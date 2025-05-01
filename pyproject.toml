@@ -1,0 +1,216 @@
+# ---- Project Info and Dependencies ----
+
+[project.urls]
+Repository = "https://github.com/jlevy/kash-docs"
+# Homepage = "https://..."
+# Documentation = "https://..."
+
+[project]
+name = "kash-docs"
+description = "The knowledge agent shell (media kit)"
+authors = [
+    { name="Joshua Levy", email="joshua@cal.berkeley.edu" },
+]
+readme = "README.md"
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.11,<4.0"
+dynamic = ["version"]
+
+
+# ---- Main dependencies ----
+
+dependencies = [
+    # Main kash and doc-handling deps:
+    "kash-shell>=0.3.10",
+    # Utilities:
+    "rich>=14.0.0",
+    "rich-argparse>=1.7.0",
+    "typing-extensions>=4.11.1",
+    "pyrate-limiter>=3.7.0",
+    "cachetools>=5.5.2",
+    # Content tools:
+    "flowmark>=0.4.2",
+    "chopdiff>=0.1.3",
+    "simplemma>=1.1.2",
+    # For printing. Note weasyprint has install dep issues on macos depending on the python version.
+    # https://github.com/Kozea/WeasyPrint/issues/2112
+    # https://github.com/Kozea/WeasyPrint/issues/1448
+    "weasyprint>=63.1",
+    # For S3/AWS:
+    "boto3>=1.38.3",
+    # Wikipedia content:
+    "requests>=2.32.3",
+    "tenacity>=9.1.2",
+    "thefuzz>=0.22.1",
+    "wikipedia-api>=0.8.1",
+    "pandas>=2.2.3",
+    # markitdown seems to work well now we've customized it, so using instead of pandoc currently.
+    "markitdown[all]>=0.1.1",
+    # pandoc may still be useful in the future.
+    # "pypandoc-binary>=1.15",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "ruff>=0.11.0",
+    "codespell>=2.4.1",
+    "rich>=14.0.0",
+    "basedpyright>=1.28.2",
+    "funlog>=0.2.0",
+    "clideps>=0.1.1",
+]
+
+[tool.uv.sources]
+# For bleeding edge:
+# kash-shell = { git = "https://github.com/jlevy/kash-shell.git" }
+# For local development:
+# kash-shell = { path = "../kash", editable = true }
+
+
+[project.scripts]
+# These override the kash-shell entry points so we have full deps for this kit.
+# kash-docs should match the package name so it's easy to run from uvx.
+# kash makes it easy to run as usual with kash.
+kash-docs = "kash.shell.shell_main:main"
+kash = "kash.shell.shell_main:main"
+kash-mcp = "kash.mcp.mcp_cli:main"
+
+
+# ---- Build system ----
+
+# Dynamic versioning from:
+# https://github.com/ninoseki/uv-dynamic-versioning/
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+# Note JSON schemas don't seem to be right for tool.hatch.version.source so
+# this may cause false warnings in IDEs.
+# https://github.com/ninoseki/uv-dynamic-versioning/issues/21
+
+[tool.hatch.metadata]
+# For referencing git+ssh urls in dependencies.
+allow-direct-references = true
+
+# Explicitly configure top-level namespace for hatch.
+[tool.hatch.build.targets.wheel]
+packages = ["src/kash"]
+
+[tool.hatch.build.targets.wheel.sources]
+"src/kash" = "kash"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+bump = "true"
+
+
+# ---- Settings ----
+
+[tool.ruff]
+# Set as desired, typically 88 (black standard) or 100 (wide).
+line-length = 100
+
+[tool.ruff.lint]
+# See: https://docs.astral.sh/ruff/rules/
+select = [
+    # Basic list from: https://docs.astral.sh/ruff/linter/#rule-selection
+    "E", # https://docs.astral.sh/ruff/rules/#error-e
+    "F", # https://docs.astral.sh/ruff/rules/#pyflakes-f
+    "UP", # https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "B", # https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
+    "I", # https://docs.astral.sh/ruff/rules/#isort-i
+    # Other possibilities:
+    # "D" # https://docs.astral.sh/ruff/rules/#pydocstyle-d
+    # "Q" # https://docs.astral.sh/ruff/rules/#flake8-quotes-q
+    # "COM" # https://docs.astral.sh/ruff/rules/#flake8-commas-com
+    # "SIM", # https://docs.astral.sh/ruff/rules/#flake8-simplify-sim
+
+]
+ignore = [
+    "E501", # https://docs.astral.sh/ruff/rules/line-too-long/
+    "E402", # https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file/
+    "E731", # https://docs.astral.sh/ruff/rules/lambda-assignment/
+    # TODO: Consider cleaning these up:
+    "E712",
+    "UP031",
+    "UP007",
+    "B904",
+    "UP038",
+    "B007",
+    "B008",
+    "B026",
+    # We use both ruff formatter and linter so some rules should always be disabled.
+    # See: https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+    "W191", # https://docs.astral.sh/ruff/rules/tab-indentation/
+    "E111", # https://docs.astral.sh/ruff/rules/indentation-with-invalid-multiple/
+    "E114", # https://docs.astral.sh/ruff/rules/indentation-with-invalid-multiple-comment/
+    "E117", # https://docs.astral.sh/ruff/rules/over-indented/
+    "D206", # https://docs.astral.sh/ruff/rules/docstring-tab-indentation/
+    "D300", # https://docs.astral.sh/ruff/rules/triple-single-quotes/
+    "Q000", # https://docs.astral.sh/ruff/rules/bad-quotes-inline-string/
+    "Q001", # https://docs.astral.sh/ruff/rules/bad-quotes-multiline-string/
+    "Q002", # https://docs.astral.sh/ruff/rules/bad-quotes-docstring/
+    "Q003", # https://docs.astral.sh/ruff/rules/avoidable-escaped-quote/
+    "COM812", # https://docs.astral.sh/ruff/rules/missing-trailing-comma/
+    "COM819", # https://docs.astral.sh/ruff/rules/prohibited-trailing-comma/
+    "ISC002", # https://docs.astral.sh/ruff/rules/multi-line-implicit-string-concatenation/
+]
+
+# BasedPyright currently seems like the best type checker option, much faster
+# than mypy and with a good extension for VSCode/Cursor.
+# https://marketplace.visualstudio.com/items?itemName=detachhead.basedpyright
+# https://docs.basedpyright.com/latest/configuration/config-files/#sample-pyprojecttoml-file
+[tool.basedpyright]
+include = ["src", "tests", "devtools"]
+reportUnusedParameter = false
+reportUnusedImport = false
+# Make ignoring easier:
+reportIgnoreCommentWithoutRule = false
+reportUnnecessaryTypeIgnoreComment = false
+# Seem generally harmless:
+reportImplicitStringConcatenation = false
+reportUnknownLambdaType = false
+# Typically noisy warnings, comment/uncomment as desired:
+reportMissingTypeStubs = false
+reportUnusedCallResult = false
+# reportMissingImports = false
+reportUnnecessaryIsInstance = false
+reportUnreachable = false
+reportAny = false
+reportExplicitAny = false
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+reportUnknownArgumentType = false
+reportUntypedFunctionDecorator = false
+reportPrivateImportUsage = false
+
+[tool.codespell]
+ignore-words-list = "iTerm,Numbe,caf"
+# skip = "foo.py,bar.py"
+
+
+[tool.pytest.ini_options]
+python_files = ["*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+testpaths = [
+    "src",
+    "tests",
+]
+norecursedirs = ["src/kash/xontrib"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore:.*deprecated.*",
+    "ignore:.*Deprecation.*",
+    "ignore::RuntimeWarning:xonsh.tools",
+    "ignore::SyntaxWarning:pydub.utils",
+    "ignore::UserWarning:pydantic",
+]
+# Dev convenience: Temporarily rename a file to a stash pattern to stop tracking it.
+addopts = "--ignore-glob='stash.*' --ignore-glob='*.stash.*'"
+
