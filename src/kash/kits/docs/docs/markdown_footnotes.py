@@ -2,34 +2,6 @@ import logging
 import re
 
 log = logging.getLogger(__name__)
-
-
-def check_endnotes(text: str) -> tuple[list[int], list[int]]:
-    """
-    Finds potential endnote markers.
-    Returns a tuple containing two lists:
-        1. Sorted unique numbers from <sup>n</sup> tags.
-        2. Sorted unique numbers from 'n. ' list items.
-    """
-    # 1) find all <sup>n</sup> markers
-    sups = re.findall(r"<sup>(\d+)</sup>", text)
-    sup_nums = sorted({int(n) for n in sups})
-
-    # 2) find all list-item numbers in the document
-    ends = re.findall(r"^\s*(\d+)\.\s+", text, flags=re.MULTILINE)
-    end_nums = sorted({int(n) for n in ends})
-
-    # Check for contiguity only if both lists seem to match initially
-    if sup_nums and sup_nums == end_nums:
-        # Check if the sequence is contiguous starting from 1 or the first found number
-        first = sup_nums[0]
-        if sup_nums != list(range(first, sup_nums[-1] + 1)):
-            # Treat as mismatch if not contiguous
-            return sup_nums, []  # Return non-matching lists
-
-    return sup_nums, end_nums
-
-
 _FOOTNOTE_INDENT = "    "
 
 
@@ -37,101 +9,109 @@ def convert_endnotes_to_footnotes(text: str, strict: bool = True) -> str:
     """
     Detects and converts docx-style endnotes (superscript footnotes marked with
     `<sup>n</sup>` tags and an enumerated list of notes) to GitHub-style footnotes.
+    It identifies the *last* contiguous numbered list starting from 1
+    as the potential endnote block. Ensures no content outside the original endnote
+    list block is dropped.
 
     Returns original text if there are no endnotes (no <sup> tags are found).
-    Raises `ValueError` if superscripts are present but list numbers don't match
-    or are non-contiguous.
+    Two issues can occur:
+    1. Failure to find a suitable endnote list block.
+    2. Mismatch between the numbers in `<sup>` tags and the numbers in the found block.
+    If `strict=True`, these issues raise a `ValueError`.
+    If `strict=False`, these issues log a warning.
     """
-
-    sup_nums, end_nums = check_endnotes(text)
-
-    # If no superscripts, assume no endnotes to convert
+    # Gather superscript markers
+    sups = re.findall(r"<sup>(\d+)</sup>", text)
+    sup_nums = sorted({int(n) for n in sups})
     if not sup_nums:
         return text
 
-    # If superscripts exist but don't match endnote numbers (or were non-contiguous)
-    if sup_nums != end_nums and strict:
-        raise ValueError(
-            f"Superscript numbers {sup_nums!r} do not match endnote list numbers {end_nums!r}"
-        )
-    else:
-        log.warning(
-            f"Superscript numbers {sup_nums!r} do not match endnote list numbers {end_nums!r}"
-        )
-
-    # Use the validated superscript numbers
-    unique_sup_nums = sup_nums
-
-    # 1) Split into lines, locate the first enumerated endnote
+    # Find all numbered list items
     lines = text.splitlines()
-    start_line = next((i for i, line in enumerate(lines) if re.match(r"\s*\d+\.\s+", line)), None)
-    # This check should technically be redundant now due to check_endnotes,
-    # but kept for safety.
-    if start_line is None:
-        raise ValueError(
-            "Detected <sup> tags but no enumerated endnote block found."
-        )  # pragma: no cover
+    numbered = [
+        (i, int(m.group(1)))
+        for i, line in enumerate(lines)
+        if (m := re.match(r"^\s*(\d+)\.\s+", line))
+    ]
 
-    # 2) If the line immediately before is a header, preserve it; else no header
-    header_line = start_line - 1
-    preserve_header = None
-    if header_line >= 0 and lines[header_line].lstrip().startswith("#"):
-        preserve_header = lines[header_line]
+    # Locate the rightmost valid block starting at 1
+    endnote_start = None
+    endnote_nums = []
+    for idx in range(len(numbered) - 1, -1, -1):
+        _i, num = numbered[idx]
+        if num == 1:
+            cand = numbered[idx:]
+            nums_cand = [n for _, n in cand]
+            if nums_cand == list(range(1, len(nums_cand) + 1)):
+                endnote_start = cand[0][0]
+                endnote_nums = nums_cand
+                break
 
-    # 3) Parse the endnote block into a dict { number -> text }
-    endnotes: dict[int, list[str]] = {}
+    # Handle block-finding failure
+    if endnote_start is None:
+        msg = "Detected <sup> tags but could not find a valid endnote block"
+        if strict:
+            raise ValueError(msg)
+        log.warning(msg + " (returning original text)")
+        return text
+
+    # Compare superscript vs endnote numbers
+    if sup_nums != endnote_nums:
+        msg = (
+            f"Superscript numbers do not match detected endnote list numbers:\n"
+            f"    sup nums: {sup_nums}\n"
+            f"    endnotes: {endnote_nums}"
+        )
+        if strict:
+            raise ValueError(msg)
+        log.warning(msg)
+
+    use_nums = set(sup_nums if strict else endnote_nums)
+
+    # Parse notes block
+    notes = {}
     current = None
-    for line in lines[start_line:]:
+    end_idx = endnote_start
+    for j in range(endnote_start, len(lines)):
+        line = lines[j]
         m = re.match(r"\s*(\d+)\.\s+(.*)", line)
-        line_stripped = line.strip()
-        if m:
-            num = int(m.group(1))
-            # Only parse notes corresponding to the detected unique numbers
+        if m and (n := int(m.group(1))) in endnote_nums:
+            current = n
+            notes[n] = [m.group(2).rstrip()]
+            end_idx = j
+        elif current and (not line.strip() or line.startswith(" ")):
+            notes[current].append(line.strip())
+            end_idx = j
+        else:
+            break
 
-            current = num
-            if num in endnotes:
-                log.warning("Duplicate footnote %s: %r", num, line)
-            if num not in unique_sup_nums:
-                log.warning("Endnote %s didn't have a corresponding <sup> tag: %r", num, line)
-            endnotes[num] = [m.group(2).rstrip()]
-        elif current is not None and (not line_stripped or line.startswith(" ")):
-            # Continuation lines are empty or indented.
-            if current in endnotes and line_stripped:
-                endnotes[current].append(line_stripped)
-        elif not line.startswith(" "):
-            # A non-indented line so end current footnote.
-            current = None
-
-    # 4) Build the footnote definitions
+    # Build footnote definitions
     footnote_defs: list[str] = []
-    for num in endnotes:
-        # Handle cases where a note number might be missing due to parsing issues
-        # though the initial check should prevent this.
-        body = f"\n{_FOOTNOTE_INDENT}".join(endnotes.get(num, [""])).strip()
-        footnote_defs.append(f"[^{num}]: {body}")
+    for n in endnote_nums:
+        if n in notes:
+            first, *rest = notes[n]
+            body = [first] + [f"{(_FOOTNOTE_INDENT + line).rstrip()}" for line in rest]
+            footnote_defs.append(f"[^{n}]: " + "\n".join(body))
+        elif n in use_nums:
+            log.warning(f"Missing note {n}")
 
-    # 5) Replace all <sup>n</sup> -> [^n]
-    def _rep(m: re.Match[str]) -> str:
-        return f"[^{m.group(1)}]"
+    # Replace all <sup>n</sup> with [^n]
+    replaced = re.sub(r"<sup>(\d+)</sup>", lambda m: f"[^{m.group(1)}]", text)
+    mlines = replaced.splitlines()
 
-    body_text = re.sub(r"<sup>(\d+)</sup>", _rep, text)
+    # Slice out original notes
+    before = "\n".join(mlines[:endnote_start]).rstrip()
+    after = "\n".join(mlines[end_idx + 1 :])
 
-    # Split the modified text to get lines with replacements
-    modified_lines = body_text.splitlines()
+    # Assemble final document
+    parts = [before]
+    if footnote_defs:
+        parts.append("\n".join(footnote_defs))
+    if after:
+        parts.append(after)
 
-    # 6) Re-slice out the original endnote block (and optional header)
-    #    Indices (cut_start) are based on the *original* lines structure
-    cut_start = header_line if preserve_header else start_line
-    # Use the modified_lines to build the new body
-    new_body = "\n".join(modified_lines[:cut_start]).rstrip()
-
-    # 7) Assemble final document:
-    parts = [new_body]
-    if preserve_header:
-        parts.append(preserve_header)
-    parts.extend(footnote_defs)
-
-    return "\n\n".join(parts) + "\n"
+    result = "\n\n".join(filter(None, parts)).rstrip() + "\n"
+    return result
 
 
 ## Tests
@@ -140,89 +120,197 @@ def convert_endnotes_to_footnotes(text: str, strict: bool = True) -> str:
 def test_endnotes_conversion():
     from textwrap import dedent
 
-    # 1) simple endnotes detection & conversion
-    md = dedent("""
-    Hello, world<sup>1</sup> and again<sup>2</sup>.
+    #  Simple endnotes detection & conversion
+    md_simple_long = dedent("""
+    Hello<sup>1</sup>, world<sup>2</sup> and again<sup>3</sup>.
     More text.
     1. First note
     2. Second note
+    3. Third note
     """)
+    converted_long = convert_endnotes_to_footnotes(md_simple_long)
+    assert "Hello[^1]" in converted_long
+    assert "world[^2]" in converted_long
+    assert "again[^3]" in converted_long
+    assert "[^1]: First note" in converted_long
+    assert "[^2]: Second note" in converted_long
+    assert "[^3]: Third note" in converted_long
+    assert "<sup>" not in converted_long  # Check all sup gone
 
-    converted = convert_endnotes_to_footnotes(md)
-    # superscripts replaced
-    assert "world[^1]" in converted
-    assert "again[^2]" in converted
-    # definitions appended
-    assert "[^1]: First note" in converted
-    assert "[^2]: Second note" in converted
-    # Original superscripts should be gone
-    assert "<sup>1</sup>" not in converted
-    assert "<sup>2</sup>" not in converted
-
-    # No endnotes
+    # No endnotes (no <sup> tags)
     plain = "Just some text without endnotes."
-    # Check it returns unchanged
     assert convert_endnotes_to_footnotes(plain) == plain
 
-    # Mismatch between <sup>…</sup> and list numbers → error
-    bad_mismatch = "Oops<sup>1</sup><sup>3</sup>\n\n1. Only one definition\n3. Third def"
+    # Mismatch between <sup> and list numbers
+    bad_mismatch = dedent("""
+    Oops<sup>1</sup><sup>3</sup>
+    1. Def one
+    2. Def two
+    3. Def three
+    """)
+    # Strict -> ValueError
     try:
-        convert_endnotes_to_footnotes(bad_mismatch)
-    except ValueError as e:
-        assert "do not match" in str(e)
-    else:
-        raise AssertionError("Expected ValueError for mismatch")
-
-    # Non-contiguous superscripts -> error
-    bad_non_contig_sup = "Oops<sup>1</sup><sup>3</sup>\n\n1. Def one\n3. Def three"
-    try:
-        convert_endnotes_to_footnotes(bad_non_contig_sup)
+        convert_endnotes_to_footnotes(bad_mismatch, strict=True)
     except ValueError as e:
         assert "Superscript numbers [1, 3]" in str(e)
-        assert "do not match endnote list numbers []" in str(
-            e
-        )  # Because check_endnotes returns empty list for end_nums on contiguity failure
+        assert "do not match detected endnote list numbers [1, 2, 3]" in str(e)
     else:
-        raise AssertionError("Expected ValueError for non-contiguous superscripts")
+        raise AssertionError("Expected ValueError for mismatch (strict)")
+    # Non-strict -> warning, proceeds with conversion based on list nums [1, 2, 3]
+    converted_mismatch_nonstrict = convert_endnotes_to_footnotes(bad_mismatch, strict=False)
+    assert "Oops[^1][^3]" in converted_mismatch_nonstrict  # Superscripts still replaced
+    assert "[^1]: Def one" in converted_mismatch_nonstrict  # Definitions based on list
+    assert "[^2]: Def two" in converted_mismatch_nonstrict
+    assert "[^3]: Def three" in converted_mismatch_nonstrict
 
-    # Non-contiguous list numbers -> error
-    bad_non_contig_list = "Oops<sup>1</sup><sup>2</sup>\n\n1. Def one\n3. Def three"
+    # --- Block Finding Failures ---
+
+    # Non-contiguous list numbers -> No valid block found
+    bad_non_contig_list = dedent("""
+    Oops<sup>1</sup><sup>2</sup>
+    1. Def one
+    3. Def three
+    """)
+    # Strict -> ValueError
     try:
-        convert_endnotes_to_footnotes(bad_non_contig_list)
+        convert_endnotes_to_footnotes(bad_non_contig_list, strict=True)
     except ValueError as e:
-        assert "Superscript numbers [1, 2]" in str(e)
-        assert "do not match endnote list numbers [1, 3]" in str(e)
+        assert "could not find a valid endnote block" in str(e)
     else:
-        raise AssertionError("Expected ValueError for non-contiguous list")
+        raise AssertionError("Expected ValueError for non-contiguous list (strict)")
+    # Non-strict -> warning, return original
+    assert convert_endnotes_to_footnotes(bad_non_contig_list, strict=False) == bad_non_contig_list
+
+    # List doesn't start at 1 -> No valid block found
+    bad_start_list = dedent("""
+    Oops<sup>2</sup><sup>3</sup>
+    2. Def two
+    3. Def three
+    4. Def four
+    """)
+    # Strict -> ValueError
+    try:
+        convert_endnotes_to_footnotes(bad_start_list, strict=True)
+    except ValueError as e:
+        assert "could not find a valid endnote block" in str(e)
+    else:
+        raise AssertionError("Expected ValueError for list not starting at 1 (strict)")
+    # Non-strict -> warning, return original
+    assert convert_endnotes_to_footnotes(bad_start_list, strict=False) == bad_start_list
+
+    # <sup> tags present, but NO numbered list exists -> No valid block found
+    no_list_at_all = dedent("""
+    Text<sup>1</sup> with sup tags.
+
+    No valid list follows.
+    """)
+    # Strict -> ValueError
+    try:
+        convert_endnotes_to_footnotes(no_list_at_all, strict=True)
+    except ValueError as e:
+        assert "could not find a valid endnote block" in str(e)
+    else:
+        raise AssertionError("Expected ValueError for missing list (strict)")
+    # Non-strict -> warning, return original
+    assert convert_endnotes_to_footnotes(no_list_at_all, strict=False) == no_list_at_all
+
+    # --- Formatting and Preservation ---
 
     # Test with header preservation
     md_with_header = dedent("""
-    Some text<sup>1</sup>.
+    Some text<sup>1</sup> and <sup>2</sup> and <sup>3</sup>.
 
     ## Notes
 
-    1. The note.
+    1. The first note.
+    2. The second note.
+    3. The third note.
     """)
     converted_header = convert_endnotes_to_footnotes(md_with_header)
-    assert "Some text[^1]." in converted_header
+    assert "Some text[^1] and [^2] and [^3]." in converted_header
     assert "\n\n## Notes\n\n" in converted_header  # Header preserved
-    assert "[^1]: The note." in converted_header
-    assert "1. The note." not in converted_header  # Original list removed
+    assert "[^1]: The first note." in converted_header
+    assert "[^3]: The third note." in converted_header
+    assert "\n1. The first note." not in converted_header  # Original list removed
 
-    # Test multiline notes
+    # 9) Test multiline notes (with improved indent handling)
     md_multiline = dedent("""
-    Point<sup>1</sup>.
+    Point<sup>1</sup> and point<sup>2</sup> and point<sup>3</sup>.
 
     1. This is the first line.
-       This is the second line.
+       This is indented second line.
 
-       This is the third line.
-
-    This is not in the footnote.
+       This is the third line after blank.
+    2. Note two.
+    3. Note three starts here.
+      Indented continuation.
+        And more.
     """)
     converted_multiline = convert_endnotes_to_footnotes(md_multiline)
-    print(converted_multiline)
-    assert "[^1]: This is the first line." in converted_multiline
-    assert "    This is the second line." in converted_multiline
-    assert "    This is the third line." in converted_multiline
-    assert "This is not in the footnote." not in converted_multiline
+    print("Multiline converted:\n", converted_multiline)
+    expected_note1 = "[^1]: This is the first line.\n    This is indented second line.\n\n    This is the third line after blank."
+    expected_note2 = "[^2]: Note two."
+    expected_note3 = "[^3]: Note three starts here.\n    Indented continuation.\n    And more."
+    assert expected_note1 in converted_multiline
+    assert expected_note2 in converted_multiline
+    assert expected_note3 in converted_multiline
+    # Ensure original list is gone
+    assert "\n1. This is the first line." not in converted_multiline
+    assert "\n2. Note two." not in converted_multiline
+    assert "\n3. Note three starts here." not in converted_multiline
+
+    # Tests conversion when other numbered lists precede/follow the endnotes.
+    md = dedent("""
+    # Document Title
+
+    Here is an introductory list:
+    1. First item.
+    2. Second item.
+    3. Third item.
+
+    Some text with a footnote<sup>1</sup>. More text<sup>2</sup>. Final point<sup>3</sup>.
+
+    Another unrelated list:
+    1. Apple
+    2. Banana
+
+    ## Notes Section
+
+    1. This is the actual first note.
+       It can span multiple lines.
+
+       Includes blank lines.
+    2. This is the second note.
+    3. And the third note.
+
+    Some text *after* the notes list.
+    This should be preserved.
+    """)
+
+    converted = convert_endnotes_to_footnotes(md)
+    print("Multiple lists converted:\n", converted)
+
+    # Check first list is preserved
+    assert "1. First item." in converted
+    assert "2. Second item." in converted
+    assert "3. Third item." in converted
+    # Check second list is preserved
+    assert "1. Apple" in converted
+    assert "2. Banana" in converted
+    # Check footnotes converted
+    assert "footnote[^1]" in converted
+    assert "text[^2]" in converted
+    # Check header preserved
+    assert "\n## Notes Section\n" in converted
+    # Check definitions are correct
+    expected_note1 = "[^1]: This is the actual first note.\n    It can span multiple lines.\n\n    Includes blank lines."
+    assert expected_note1 in converted
+    assert "[^2]: This is the second note." in converted
+    assert "[^3]: And the third note." in converted
+    # Check original endnote list numbers are removed
+    assert "\n1. This is the actual first note." not in converted
+    assert "\n2. This is the second note." not in converted
+    assert "\n3. And the third note." not in converted
+    # Check text after notes IS PRESERVED
+    assert "Some text *after* the notes list." in converted
+    assert "This should be preserved." in converted
