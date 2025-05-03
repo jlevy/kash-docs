@@ -152,8 +152,9 @@ def test_endnotes_conversion():
     try:
         convert_endnotes_to_footnotes(bad_mismatch, strict=True)
     except ValueError as e:
-        assert "Superscript numbers [1, 3]" in str(e)
-        assert "do not match detected endnote list numbers [1, 2, 3]" in str(e)
+        assert "do not match detected endnote" in str(e)
+        assert "sup nums: [1, 3]" in str(e)
+        assert "endnotes: [1, 2, 3]" in str(e)
     else:
         raise AssertionError("Expected ValueError for mismatch (strict)")
     # Non-strict -> warning, proceeds with conversion based on list nums [1, 2, 3]
