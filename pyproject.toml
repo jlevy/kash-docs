@@ -190,6 +190,7 @@ reportUnknownVariableType = false
 reportUnknownArgumentType = false
 reportUntypedFunctionDecorator = false
 reportPrivateImportUsage = false
+reportPrivateUsage = false
 
 [tool.codespell]
 ignore-words-list = "iTerm,Numbe,caf"
