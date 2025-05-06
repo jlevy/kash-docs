@@ -2,7 +2,7 @@ from frontmatter_format import yaml_util
 
 from kash.exec import kash_action
 from kash.exec.preconditions import is_docx_resource
-from kash.kits.docs.docs.docx_dump import dump_mammoth_docx
+from kash.kits.docs.doc_formats.docx_dump import dump_mammoth_docx
 from kash.model import Format, Item, ItemType
 
 

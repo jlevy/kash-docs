@@ -13,7 +13,7 @@ from markitdown._stream_info import StreamInfo
 from markitdown.converters._docx_converter import DocxConverter
 from typing_extensions import override
 
-from kash.kits.docs.docs.escape_tags import escape_html_tags
+from kash.kits.docs.doc_formats.escape_tags import escape_html_tags
 
 log = logging.getLogger(__name__)
 

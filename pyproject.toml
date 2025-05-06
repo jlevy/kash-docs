@@ -50,6 +50,8 @@ dependencies = [
     # "markitdown[all]>=0.1.1",
     # pandoc may still be useful in the future.
     # "pypandoc-binary>=1.15",
+    "beautifulsoup4>=4.13.4",
+    "html5lib>=1.1",
 ]
 
 [dependency-groups]

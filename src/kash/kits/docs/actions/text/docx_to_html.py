@@ -1,6 +1,6 @@
 from kash.exec import kash_action
 from kash.exec.preconditions import is_docx_resource
-from kash.kits.docs.docs import docx_convert
+from kash.kits.docs.doc_formats import docx_convert
 from kash.model import Format, Item, ItemType
 
 

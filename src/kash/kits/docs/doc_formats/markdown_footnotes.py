@@ -58,9 +58,9 @@ def convert_endnotes_to_footnotes(text: str, strict: bool = True) -> str:
     # Compare superscript vs endnote numbers
     if sup_nums != endnote_nums:
         msg = (
-            f"Superscript numbers do not match detected endnote list numbers:\n"
-            f"    sup nums: {sup_nums}\n"
-            f"    endnotes: {endnote_nums}"
+            f"Superscript numbers do not match detected endnote list numbers: found {len(sup_nums)} sup nums and {len(endnote_nums)} endnotes:\n"
+            f"    missing endnotes: {sorted(list(set(sup_nums) - set(endnote_nums)))}\n"
+            f"    missing sup nums: {sorted(list(set(endnote_nums) - set(sup_nums)))}"
         )
         if strict:
             raise ValueError(msg)
@@ -153,8 +153,8 @@ def test_endnotes_conversion():
         convert_endnotes_to_footnotes(bad_mismatch, strict=True)
     except ValueError as e:
         assert "do not match detected endnote" in str(e)
-        assert "sup nums: [1, 3]" in str(e)
-        assert "endnotes: [1, 2, 3]" in str(e)
+        assert "missing sup nums: [2]" in str(e)
+        assert "missing endnotes: []" in str(e)
     else:
         raise AssertionError("Expected ValueError for mismatch (strict)")
     # Non-strict -> warning, proceeds with conversion based on list nums [1, 2, 3]

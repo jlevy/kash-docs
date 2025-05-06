@@ -8,7 +8,7 @@ import_and_register(
     [
         "actions",
         "concepts",
-        "docs",
+        "doc_formats",
         "wiki",
     ],
 )
