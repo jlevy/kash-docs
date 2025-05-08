@@ -176,6 +176,10 @@ def docx_to_md(
         markdownify_options={
             "sup_symbol": "<sup>",
             "sub_symbol": "<sub>",
+            "escape_underscores": True,
+            "escape_asterisks": True,
+            "escape_misc": False,  # This suppresses gratuitous escaping of -, ., etc.
+            "newline_style": "BACKSLASH",
         },
         html_postprocess=html_postprocess,
         md_postprocess=md_postprocess,
