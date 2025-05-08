@@ -52,6 +52,16 @@ dependencies = [
     # "pypandoc-binary>=1.15",
     "beautifulsoup4>=4.13.4",
     "html5lib>=1.1",
+    "minify-html>=0.16.4",
+]
+
+[project.optional-dependencies]
+full = [
+    # Marker is more powerful but much bigger dependencies, models, etc. and needs some testing/polish
+    # to get output as clean as our custom markitdown.
+    "marker-pdf[full]>=1.6.2",
+    # Pinning until this bug fixed: https://github.com/scipy/scipy/issues/22236
+    "scipy==1.14.1",
 ]
 
 [dependency-groups]
@@ -69,7 +79,7 @@ dev = [
 # For bleeding edge:
 # kash-shell = { git = "https://github.com/jlevy/kash-shell.git" }
 # For local development:
-# kash-shell = { path = "../kash", editable = true }
+kash-shell = { path = "../kash", editable = true }
 
 
 [project.scripts]
