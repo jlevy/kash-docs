@@ -106,7 +106,7 @@ def convert_endnotes_to_footnotes(text: str, strict: bool = True) -> str:
     # Assemble final document
     parts = [before]
     if footnote_defs:
-        parts.append("\n".join(footnote_defs))
+        parts.append("\n\n".join(footnote_defs))
     if after:
         parts.append(after)
 

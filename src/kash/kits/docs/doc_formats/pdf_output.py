@@ -9,8 +9,7 @@ from textwrap import dedent
 from strif import atomic_output_file
 
 from kash.config.settings import APP_NAME
-from kash.web_gen import base_templates_dir as common_templates_dir
-from kash.web_gen.template_render import render_web_template
+from kash.web_gen.template_render import additional_template_dirs, render_web_template
 
 log = logging.getLogger(__name__)
 
@@ -77,24 +76,22 @@ def html_to_pdf(
         {html_content}
         """
 
-    extra_css = render_web_template(
-        templates_dir,
-        "pdf_styles.css.jinja",
-        {
-            "title": title,
-            "footer": footer,
-        },
-    )
-
-    full_html = render_web_template(
-        common_templates_dir,
-        "base_webpage.html.jinja",
-        {
-            "title": title,
-            "content": scaled_html,  # Use the scaled content
-            "extra_css": extra_css,
-        },
-    )
+    with additional_template_dirs(templates_dir):
+        extra_css = render_web_template(
+            "pdf_styles.css.jinja",
+            {
+                "title": title,
+                "footer": footer,
+            },
+        )
+        full_html = render_web_template(
+            "base_webpage.html.jinja",
+            {
+                "title": title,
+                "content": scaled_html,  # Use the scaled content
+                "extra_css": extra_css,
+            },
+        )
 
     # Create PDF.
     weasyprint_setup()

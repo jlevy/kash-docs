@@ -27,6 +27,6 @@ def format_gemini_report(item: Item) -> Item:
     footnotes_item = endnotes_to_footnotes(md_item)
 
     # Finally render.
-    result = render_as_html(ActionInput(items=[footnotes_item]))
+    result = render_as_html(ActionInput(items=[footnotes_item]), add_title=False)
 
     return result.items[0]
