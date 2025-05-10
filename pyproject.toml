@@ -72,12 +72,12 @@ dev = [
     "rich>=14.0.0",
     "basedpyright>=1.28.2",
     "funlog>=0.2.0",
-    "clideps>=0.1.1",
+    "clideps>=0.1.2",
 ]
 
 [tool.uv.sources]
 # For bleeding edge:
-# kash-shell = { git = "https://github.com/jlevy/kash-shell.git" }
+kash-shell = { git = "https://github.com/jlevy/kash-shell.git" }
 # For local development:
 # kash-shell = { path = "../kash", editable = true }
 
