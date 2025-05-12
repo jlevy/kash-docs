@@ -470,19 +470,19 @@ wheels = [
 
 [[package]]
 name = "click"
-version = "8.1.8"
+version = "8.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b9/2e/0090cbf739cee7d23781ad4b89a9894a41538e4fcf4c31dcdd705b78eb8b/click-8.1.8.tar.gz", hash = "sha256:ed53c9d8990d83c2a27deae68e4ee337473f6330c040a31d4225c9574d16096a", size = 226593, upload-time = "2024-12-21T18:38:44.339Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cd/0f/62ca20172d4f87d93cf89665fbaedcd560ac48b465bd1d92bfc7ea6b0a41/click-8.2.0.tar.gz", hash = "sha256:f5452aeddd9988eefa20f90f05ab66f17fce1ee2a36907fd30b05bbb5953814d", size = 235857, upload-time = "2025-05-10T22:21:03.111Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7e/d4/7ebdbd03970677812aac39c869717059dbb71a4cfc033ca6e5221787892c/click-8.1.8-py3-none-any.whl", hash = "sha256:63c132bbbed01578a06712a2d1f497bb62d9c1c0d329b7903a866228027263b2", size = 98188, upload-time = "2024-12-21T18:38:41.666Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/58/1f37bf81e3c689cc74ffa42102fa8915b59085f54a6e4a80bc6265c0f6bf/click-8.2.0-py3-none-any.whl", hash = "sha256:6b303f0b2aa85f1cb4e5303078fadcbcd4e476f114fab9b5007005711839325c", size = 102156, upload-time = "2025-05-10T22:21:01.352Z" },
 ]
 
 [[package]]
 name = "clideps"
-version = "0.1.2"
+version = "0.1.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cachetools" },
@@ -496,9 +496,9 @@ dependencies = [
     { name = "rich-argparse" },
     { name = "strif" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b7/62/fddbc599f6f874fb059ad34b91d23ed73b9615acd6ce8afcf34f1281ef92/clideps-0.1.2.tar.gz", hash = "sha256:b897092e846be1ab7674518066e5146ff1097c3169afe9b03b061c8ec62806d0", size = 55633, upload-time = "2025-05-10T19:08:20.387Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b4/89/13c3f1bdad0a3e3f3b60bfbefcc52854fab41403b221fb05c68676f26ec6/clideps-0.1.3.tar.gz", hash = "sha256:9498632cd5a7f5b88ea95e4db75c262b1492152b4f9aa81e90df54b1a1969352", size = 56469, upload-time = "2025-05-11T01:30:47.777Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d1/d0/05176af2bb07f94d4379abe743853d73257080fc20b03cec63838fc2ce40/clideps-0.1.2-py3-none-any.whl", hash = "sha256:79da29659ab2c86356f4247dc23a3e67368e6ff2256d11b750eb264679bb9e0a", size = 34533, upload-time = "2025-05-10T19:08:18.749Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/04/f7526330a04c67bf54555b66daff03af489d735f99eca552b7db45e8bf04/clideps-0.1.3-py3-none-any.whl", hash = "sha256:7679a81eeb0634944a03e8c7fe57ebf9cf6f778e27483b52bccaf02a3de488cd", size = 35441, upload-time = "2025-05-11T01:30:46.029Z" },
 ]
 
 [[package]]
@@ -1347,7 +1347,7 @@ provides-extras = ["full"]
 [package.metadata.requires-dev]
 dev = [
     { name = "basedpyright", specifier = ">=1.28.2" },
-    { name = "clideps", specifier = ">=0.1.1" },
+    { name = "clideps", specifier = ">=0.1.2" },
     { name = "codespell", specifier = ">=2.4.1" },
     { name = "funlog", specifier = ">=0.2.0" },
     { name = "pytest", specifier = ">=8.3.5" },
@@ -1357,8 +1357,8 @@ dev = [
 
 [[package]]
 name = "kash-shell"
-version = "0.3.12.dev7+04b4c71"
-source = { git = "https://github.com/jlevy/kash-shell.git#04b4c71ce720c961290c909337c09bb8de5483b1" }
+version = "0.3.12.dev16+6417239"
+source = { git = "https://github.com/jlevy/kash-shell.git#6417239f984654b3ea5206447856764143ce0df8" }
 dependencies = [
     { name = "anyio" },
     { name = "audioop-lts", marker = "python_full_version >= '3.13'" },
@@ -1421,7 +1421,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/b3/15/c9f68c4f477fbaa9f
 
 [[package]]
 name = "litellm"
-version = "1.68.2"
+version = "1.69.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -1436,9 +1436,9 @@ dependencies = [
     { name = "tiktoken" },
     { name = "tokenizers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6b/ba/624b5ebbca8d3cbfe81ea130c72215a7ee929c2cabdef37e9fd7d07abc57/litellm-1.68.2.tar.gz", hash = "sha256:03c9ecb8955239f37f52e8e91f69ec02e75eb6290ed881b0597d7e16aa88d5e0", size = 7343243, upload-time = "2025-05-09T20:28:10.773Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f1/55/8d27d9c39fc092174ea274a1e5f7e237078b0959f3b9d70448d598551f97/litellm-1.69.0.tar.gz", hash = "sha256:9f37f5fedef87fa13ebfe89a8c9c484d609ffcbd6b82f2d1bb6e1f78761be335", size = 7365657, upload-time = "2025-05-11T01:04:57.313Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/09/43/c3d7939d5852679b5d2fcb85b9ee5ba3286129f9b2e171f826e3c1db2867/litellm-1.68.2-py3-none-any.whl", hash = "sha256:49b63e0bdea0a84ac95ae1032f25b5730dc480d11c00b3afe21f1532496d6570", size = 7719293, upload-time = "2025-05-09T20:28:07.147Z" },
+    { url = "https://files.pythonhosted.org/packages/10/8e/7a3812586581304e0aa5e8555bf21f00c6b576fe98ce17ed42d66caa2c47/litellm-1.69.0-py3-none-any.whl", hash = "sha256:7fe2745dfd991bee377922b53e25f8cc7a68fc89e3c5dbbdc1d0bacb942b5d78", size = 7722378, upload-time = "2025-05-11T01:04:53.941Z" },
 ]
 
 [[package]]
@@ -1714,7 +1714,7 @@ wheels = [
 
 [[package]]
 name = "mcp"
-version = "1.8.0"
+version = "1.8.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -1727,9 +1727,9 @@ dependencies = [
     { name = "starlette" },
     { name = "uvicorn", marker = "sys_platform != 'emscripten'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ff/97/0a3e08559557b0ac5799f9fb535fbe5a4e4dcdd66ce9d32e7a74b4d0534d/mcp-1.8.0.tar.gz", hash = "sha256:263dfb700540b726c093f0c3e043f66aded0730d0b51f04eb0a3eb90055fe49b", size = 264641, upload-time = "2025-05-08T20:09:06.255Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7c/13/16b712e8a3be6a736b411df2fc6b4e75eb1d3e99b1cd57a3a1decf17f612/mcp-1.8.1.tar.gz", hash = "sha256:ec0646271d93749f784d2316fb5fe6102fb0d1be788ec70a9e2517e8f2722c0e", size = 265605, upload-time = "2025-05-12T17:33:57.887Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b2/b2/4ac3bd17b1fdd65658f18de4eb0c703517ee0b483dc5f56467802a9197e0/mcp-1.8.0-py3-none-any.whl", hash = "sha256:889d9d3b4f12b7da59e7a3933a0acadae1fce498bfcd220defb590aa291a1334", size = 119544, upload-time = "2025-05-08T20:09:04.458Z" },
+    { url = "https://files.pythonhosted.org/packages/1c/5d/91cf0d40e40ae9ecf8d4004e0f9611eea86085aa0b5505493e0ff53972da/mcp-1.8.1-py3-none-any.whl", hash = "sha256:948e03783859fa35abe05b9b6c0a1d5519be452fc079dc8d7f682549591c1770", size = 119761, upload-time = "2025-05-12T17:33:56.136Z" },
 ]
 
 [[package]]
@@ -3341,15 +3341,15 @@ wheels = [
 
 [[package]]
 name = "sse-starlette"
-version = "2.3.4"
+version = "2.3.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "starlette" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/43/be/7e776a29b5f712b5bd13c571256a2470fcf345c562c7b2359f2ee15d9355/sse_starlette-2.3.4.tar.gz", hash = "sha256:0ffd6bed217cdbb74a84816437c609278003998b4991cd2e6872d0b35130e4d5", size = 17522, upload-time = "2025-05-04T19:28:51.44Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/10/5f/28f45b1ff14bee871bacafd0a97213f7ec70e389939a80c60c0fb72a9fc9/sse_starlette-2.3.5.tar.gz", hash = "sha256:228357b6e42dcc73a427990e2b4a03c023e2495ecee82e14f07ba15077e334b2", size = 17511, upload-time = "2025-05-12T18:23:52.601Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/43/a4/ee4a20f0b5ff34c391f3685eff7cdba1178a487766e31b04efb51bbddd87/sse_starlette-2.3.4-py3-none-any.whl", hash = "sha256:b8100694f3f892b133d0f7483acb7aacfcf6ed60f863b31947664b6dc74e529f", size = 10232, upload-time = "2025-05-04T19:28:50.199Z" },
+    { url = "https://files.pythonhosted.org/packages/c8/48/3e49cf0f64961656402c0023edbc51844fe17afe53ab50e958a6dbbbd499/sse_starlette-2.3.5-py3-none-any.whl", hash = "sha256:251708539a335570f10eaaa21d1848a10c42ee6dc3a9cf37ef42266cdb1c52a8", size = 10233, upload-time = "2025-05-12T18:23:50.722Z" },
 ]
 
 [[package]]
