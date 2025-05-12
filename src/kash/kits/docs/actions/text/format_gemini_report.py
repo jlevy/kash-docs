@@ -3,12 +3,11 @@ from kash.exec import kash_action
 from kash.exec.preconditions import is_docx_resource
 from kash.kits.docs.actions.text.docx_to_md import docx_to_md
 from kash.kits.docs.actions.text.endnotes_to_footnotes import endnotes_to_footnotes
-from kash.model import ActionInput, Item, TitleTemplate
+from kash.model import ActionInput, Item
 
 
 @kash_action(
     precondition=is_docx_resource,
-    title_template=TitleTemplate("{title} (formatted)"),
 )
 def format_gemini_report(item: Item) -> Item:
     """

@@ -1,13 +1,10 @@
 from kash.exec import kash_action
 from kash.exec.preconditions import is_markdown
 from kash.kits.docs.doc_formats.markdown_footnotes import convert_endnotes_to_footnotes
-from kash.model import Format, Item, ItemType, TitleTemplate
+from kash.model import Format, Item, ItemType
 
 
-@kash_action(
-    precondition=is_markdown,
-    title_template=TitleTemplate("{title} (footnotes)"),
-)
+@kash_action(precondition=is_markdown)
 def endnotes_to_footnotes(item: Item) -> Item:
     """
     Remove endnotes from a Markdown document and replace them with footnotes.

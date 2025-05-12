@@ -9,7 +9,7 @@ from typing_extensions import override
 from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.preconditions import has_html_body
-from kash.model import Item, ItemType, TitleTemplate
+from kash.model import Item, ItemType
 from kash.utils.errors import InvalidInput
 
 log = get_logger(__name__)
@@ -154,7 +154,7 @@ class SelectiveFormatter(HTMLFormatter):
                 result.append(" ")
 
 
-@kash_action(precondition=has_html_body, title_template=TitleTemplate("{title} (formatted)"))
+@kash_action(precondition=has_html_body)
 def prettify_html(item: Item) -> Item:
     """
     Parses HTML, corrects errors via html5lib, and formats using

@@ -126,26 +126,44 @@ class MarkdownResult:
     title: str | None
 
 
-_sup_space_pattern = re.compile(r" +<sup>")
-# Match ~ not preceded or followed by another ~
-_standalone_tilde_pattern = re.compile(r"(?<!~)~(?!~)")
+_sup_space_pat = re.compile(r" +<sup>")
+
+
+def _fix_sup_space(html: str) -> str:
+    """
+    Google Gemini has a bad habit of putting extra space before superscript
+    footnotes in docx exports.
+    """
+    return _sup_space_pat.sub("<sup>", html)
+
+
+_single_tilde_pat = re.compile(r"(?<!~)~(?!~)")
+_alt_tilde = "～"
+
+
+def _fix_single_tilde(html: str) -> str:
+    """
+    Escape standalone ~ characters with spaces before/after to avoid
+    misinterpretation by markdownify as strikethrough. Using ～ because it's
+    hard to properly escape ~ in a way that markdownify will respect.
+    """
+
+    def replace_tilde(match: re.Match[str]) -> str:
+        start = match.start()
+        end = match.end()
+        # Check for space before or after
+        has_space_before = start > 0 and html[start - 1].isspace()
+        has_space_after = end < len(html) and html[end].isspace()
+        return _alt_tilde if has_space_before or has_space_after else "~"
+
+    return _single_tilde_pat.sub(replace_tilde, html)
 
 
 def default_html_postprocess(html: str) -> str:
     """
-    A few hacks to cleant up corner cases:
-
-    Google Gemini has a bad habit of putting extra space before superscript
-    footnotes in docx exports.
-
-    Also escape standalone ~ characters to avoid misinterpretation
-    by markdownify as strikethrough.
+    A few hacks to clean up corner cases in a postprocessing step.
     """
-    # XXX Hack using a different char since it was tricky to get an escape sequence
-    # markdownify would respect.
-    html = _standalone_tilde_pattern.sub(r"～", html)
-    html = _sup_space_pattern.sub("<sup>", html)
-    return html
+    return _fix_single_tilde(_fix_sup_space(html))
 
 
 def default_md_postprocess(md: str) -> str:
