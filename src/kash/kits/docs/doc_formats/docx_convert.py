@@ -171,7 +171,16 @@ def default_md_postprocess(md: str) -> str:
     HTML tags originally escaped with entities get parsed and appear unescaped
     in the Markdown so it makes sense to escape them again.
     """
-    return escape_html_tags(md, allow_bare_md_urls=True)
+    # Output from docx should not have any HTML tags except for the custom
+    # sup/sub tags we've added.
+    escaped = escape_html_tags(md, allow_bare_md_urls=True, whitelist_tags={"__sup", "__sub"})
+    # We can now safely replace our custom tags with the standard ones.
+    return (
+        escaped.replace("<__sup>", "<sup>")
+        .replace("</__sup>", "</sup>")
+        .replace("<__sub>", "<sub>")
+        .replace("</__sub>", "</sub>")
+    )
 
 
 def docx_to_md(
@@ -192,8 +201,8 @@ def docx_to_md(
     # https://github.com/matthewwithanm/python-markdownify
     docx_converter = CustomDocxConverter(
         markdownify_options={
-            "sup_symbol": "<sup>",
-            "sub_symbol": "<sub>",
+            "sup_symbol": "<__sup>",
+            "sub_symbol": "<__sub>",
             "escape_underscores": True,
             "escape_asterisks": True,
             "escape_misc": False,  # This suppresses gratuitous escaping of -, ., etc.
