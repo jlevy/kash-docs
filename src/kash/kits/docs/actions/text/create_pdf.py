@@ -2,7 +2,7 @@ from os.path import join
 
 from kash.config.logger import get_logger
 from kash.exec import kash_action
-from kash.exec.preconditions import has_html_body, has_text_body
+from kash.exec.preconditions import has_html_body, has_simple_text_body
 from kash.kits.docs.doc_formats.pdf_output import html_to_pdf
 from kash.llm_utils.clean_headings import clean_heading
 from kash.model import FileExt, Format, Item, ItemType
@@ -14,7 +14,7 @@ log = get_logger(__name__)
 
 
 @kash_action(
-    precondition=has_text_body | has_html_body,
+    precondition=has_simple_text_body | has_html_body,
     mcp_tool=True,
 )
 def create_pdf(item: Item) -> Item:

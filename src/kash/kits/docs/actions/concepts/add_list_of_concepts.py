@@ -2,7 +2,7 @@ from chopdiff.html import div_wrapper
 
 from kash.config.logger import get_logger
 from kash.exec import kash_action
-from kash.exec.preconditions import is_text_doc
+from kash.exec.preconditions import has_simple_text_body
 from kash.kits.docs.actions.concepts.identify_concepts import identify_concepts
 from kash.model import Format, Item, ItemType
 from kash.utils.common.type_utils import not_none
@@ -17,7 +17,7 @@ ORIGINAL = "original"
 
 
 @kash_action(
-    precondition=is_text_doc,
+    precondition=has_simple_text_body,
 )
 def add_list_of_concepts(item: Item) -> Item:
     """

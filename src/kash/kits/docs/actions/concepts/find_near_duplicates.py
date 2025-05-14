@@ -3,7 +3,7 @@ from chopdiff.util import lemmatized_equal
 from kash.config.logger import get_logger
 from kash.embeddings.embeddings import Embeddings
 from kash.exec import kash_action
-from kash.exec.preconditions import is_concept, is_text_doc
+from kash.exec.preconditions import has_simple_text_body, is_concept
 from kash.kits.docs.concepts.concept_relations import (
     find_related_pairs,
     relate_texts_by_embedding,
@@ -18,7 +18,7 @@ log = get_logger(__name__)
 
 @kash_action(
     expected_args=TWO_OR_MORE_ARGS,
-    precondition=is_concept | is_text_doc,
+    precondition=is_concept | has_simple_text_body,
 )
 def find_near_duplicates(input: ActionInput) -> ActionResult:
     """
