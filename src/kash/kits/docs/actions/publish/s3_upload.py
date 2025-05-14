@@ -7,7 +7,7 @@ from kash.config.logger import get_logger
 from kash.config.text_styles import COLOR_STATUS
 from kash.exec import kash_action
 from kash.exec.preconditions import has_html_body
-from kash.kits.docs.utils.s3_utils import (
+from kash.kits.docs.utils.aws_utils import (
     invalidate_s3_urls_in_cf,
     map_s3_urls_to_public_urls,
     s3_upload_path,

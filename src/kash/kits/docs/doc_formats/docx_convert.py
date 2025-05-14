@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,7 +10,10 @@ from markitdown._base_converter import DocumentConverterResult
 from markitdown.converters._docx_converter import DocxConverter
 from typing_extensions import override
 
-from kash.kits.docs.doc_formats.escape_tags import escape_html_tags
+from kash.utils.text_handling.markdownify_utils import (
+    markdownify_postprocess,
+    markdownify_preprocess,
+)
 
 if TYPE_CHECKING:
     from markitdown._stream_info import StreamInfo
@@ -127,68 +129,11 @@ class MarkdownResult:
     title: str | None
 
 
-_sup_space_pat = re.compile(r" +<sup>")
-
-
-def _fix_sup_space(html: str) -> str:
-    """
-    Google Gemini has a bad habit of putting extra space before superscript
-    footnotes in docx exports.
-    """
-    return _sup_space_pat.sub("<sup>", html)
-
-
-_single_tilde_pat = re.compile(r"(?<!~)~(?!~)")
-_alt_tilde = "～"
-
-
-def _fix_single_tilde(html: str) -> str:
-    """
-    Escape standalone ~ characters with spaces before/after to avoid
-    misinterpretation by markdownify as strikethrough. Using ～ because it's
-    hard to properly escape ~ in a way that markdownify will respect.
-    """
-
-    def replace_tilde(match: re.Match[str]) -> str:
-        start = match.start()
-        end = match.end()
-        # Check for space before or after
-        has_space_before = start > 0 and html[start - 1].isspace()
-        has_space_after = end < len(html) and html[end].isspace()
-        return _alt_tilde if has_space_before or has_space_after else "~"
-
-    return _single_tilde_pat.sub(replace_tilde, html)
-
-
-def default_html_postprocess(html: str) -> str:
-    """
-    A few hacks to clean up corner cases in a postprocessing step.
-    """
-    return _fix_single_tilde(_fix_sup_space(html))
-
-
-def default_md_postprocess(md: str) -> str:
-    """
-    HTML tags originally escaped with entities get parsed and appear unescaped
-    in the Markdown so it makes sense to escape them again.
-    """
-    # Output from docx should not have any HTML tags except for the custom
-    # sup/sub tags we've added.
-    escaped = escape_html_tags(md, allow_bare_md_urls=True, whitelist_tags={"__sup", "__sub"})
-    # We can now safely replace our custom tags with the standard ones.
-    return (
-        escaped.replace("<__sup>", "<sup>")
-        .replace("</__sup>", "</sup>")
-        .replace("<__sub>", "<sub>")
-        .replace("</__sub>", "</sub>")
-    )
-
-
 def docx_to_md(
     docx_path: Path,
     *,
-    html_postprocess: Callable[[str], str] | None = default_html_postprocess,
-    md_postprocess: Callable[[str], str] | None = default_md_postprocess,
+    html_postprocess: Callable[[str], str] | None = markdownify_preprocess,
+    md_postprocess: Callable[[str], str] | None = markdownify_postprocess,
 ) -> MarkdownResult:
     """
     Convert a docx file to clean markdown using MarkItDown, which wraps

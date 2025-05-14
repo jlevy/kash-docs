@@ -7,8 +7,8 @@ from kash.kits.docs.concepts.concept_utils import concepts_from_bullet_points
 from kash.llm_utils import LLM, LLMName, Message, MessageTemplate
 from kash.llm_utils.fuzzy_parsing import is_no_results
 from kash.model import Item, LLMOptions, TitleTemplate, common_params
-from kash.text_handling.markdown_utils import as_bullet_points
 from kash.utils.errors import InvalidOutput
+from kash.utils.text_handling.markdown_utils import as_bullet_points
 
 log = get_logger(__name__)
 

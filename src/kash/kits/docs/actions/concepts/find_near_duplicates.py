@@ -10,8 +10,8 @@ from kash.kits.docs.concepts.concept_relations import (
 )
 from kash.model import TWO_OR_MORE_ARGS, ActionInput, ActionResult, PathOp, PathOpType, StorePath
 from kash.shell.output.shell_output import PrintHooks, cprint, print_h3
-from kash.text_handling.markdown_utils import as_bullet_points
 from kash.utils.common.type_utils import not_none
+from kash.utils.text_handling.markdown_utils import as_bullet_points
 
 log = get_logger(__name__)
 

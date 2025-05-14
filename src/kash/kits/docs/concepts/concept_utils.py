@@ -1,5 +1,5 @@
 from kash.model.concept_model import Concept, normalize_concepts
-from kash.text_handling.markdown_utils import extract_bullet_points
+from kash.utils.text_handling.markdown_utils import extract_bullet_points
 
 
 def concepts_from_bullet_points(
