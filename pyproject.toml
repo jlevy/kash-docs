@@ -7,7 +7,7 @@ Repository = "https://github.com/jlevy/kash-docs"
 
 [project]
 name = "kash-docs"
-description = "The knowledge agent shell (media kit)"
+description = "The knowledge agent shell (docs kit)"
 authors = [
     { name="Joshua Levy", email="joshua@cal.berkeley.edu" },
 ]
@@ -15,6 +15,24 @@ readme = "README.md"
 license = "AGPL-3.0-or-later"
 requires-python = ">=3.11,<4.0"
 dynamic = ["version"]
+
+# https://pypi.org/classifiers/
+# Adjust as needed:
+classifiers = [
+    # Adjust as needed:
+    "Development Status :: 4 - Beta",
+    # "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+    # Include this to avoid accidentally publishing to PyPI:
+    # "Private :: Do Not Upload",
+]
 
 
 # ---- Main dependencies ----
@@ -63,6 +81,9 @@ full = [
     # Pinning until this bug fixed: https://github.com/scipy/scipy/issues/22236
     "scipy==1.14.1",
 ]
+
+
+# ---- Dev dependencies ----
 
 [dependency-groups]
 dev = [
@@ -131,8 +152,8 @@ bump = "true"
 line-length = 100
 
 [tool.ruff.lint]
-# See: https://docs.astral.sh/ruff/rules/
 select = [
+    # See: https://docs.astral.sh/ruff/rules/
     # Basic list from: https://docs.astral.sh/ruff/linter/#rule-selection
     "E", # https://docs.astral.sh/ruff/rules/#error-e
     "F", # https://docs.astral.sh/ruff/rules/#pyflakes-f
@@ -147,6 +168,7 @@ select = [
 
 ]
 ignore = [
+    # Disable some rules that are overly pedantic. Add/remove as desired:
     "E501", # https://docs.astral.sh/ruff/rules/line-too-long/
     "E402", # https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file/
     "E731", # https://docs.astral.sh/ruff/rules/lambda-assignment/
@@ -176,11 +198,11 @@ ignore = [
     "ISC002", # https://docs.astral.sh/ruff/rules/multi-line-implicit-string-concatenation/
 ]
 
+[tool.basedpyright]
 # BasedPyright currently seems like the best type checker option, much faster
 # than mypy and with a good extension for VSCode/Cursor.
 # https://marketplace.visualstudio.com/items?itemName=detachhead.basedpyright
 # https://docs.basedpyright.com/latest/configuration/config-files/#sample-pyprojecttoml-file
-[tool.basedpyright]
 include = ["src", "tests", "devtools"]
 reportUnusedParameter = false
 reportUnusedImport = false
@@ -208,7 +230,6 @@ reportPrivateUsage = false
 [tool.codespell]
 ignore-words-list = "iTerm,Numbe,caf"
 # skip = "foo.py,bar.py"
-
 
 [tool.pytest.ini_options]
 python_files = ["*.py"]
