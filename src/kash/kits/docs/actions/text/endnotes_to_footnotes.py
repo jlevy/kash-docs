@@ -19,5 +19,6 @@ def endnotes_to_footnotes(item: Item) -> Item:
     return item.derived_copy(
         type=ItemType.doc,
         format=Format.markdown,
+        title=item.title,  # Preserve original title (or none).
         body=new_body,
     )
