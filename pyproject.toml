@@ -77,7 +77,7 @@ dev = [
 
 [tool.uv.sources]
 # For bleeding edge:
-kash-shell = { git = "https://github.com/jlevy/kash-shell.git" }
+kash-shell = { git = "https://github.com/jlevy/kash.git" }
 # For local development:
 # kash-shell = { path = "../kash", editable = true }
 

@@ -2,17 +2,19 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from functools import cached_property
+from functools import cache, cached_property
+from typing import TYPE_CHECKING
 
 import requests
-import wikipediaapi
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 from thefuzz import fuzz
 from typing_extensions import override
-from wikipediaapi import Namespace, Wikipedia, WikipediaPage
 
 from kash.config.logger import get_logger
 from kash.kits.docs.utils.cache_rate_limit import CachingSession
+
+if TYPE_CHECKING:
+    from wikipediaapi import Namespace, Wikipedia, WikipediaPage
 
 log = get_logger(__name__)
 
@@ -24,13 +26,15 @@ def get_wiki_api_base_url(language: str = WIKI_LANGUAGE) -> str:
     return f"https://{language}.wikipedia.org/w/api.php"
 
 
-_wiki: Wikipedia = wikipediaapi.Wikipedia(
-    language=WIKI_LANGUAGE, user_agent=wikipediaapi.USER_AGENT
-)
+@cache
+def get_wiki() -> Wikipedia:
+    import wikipediaapi
+    from wikipediaapi import Wikipedia
 
-
-# Hot patch the session to use our caching session.
-_wiki._session = CachingSession(limit=3, limit_interval_secs=1)  # pyright: ignore[reportPrivateUsage]
+    wiki = Wikipedia(language=WIKI_LANGUAGE, user_agent=wikipediaapi.USER_AGENT)
+    # Patch the session to use our caching session.
+    wiki._session = CachingSession(limit=3, limit_interval_secs=1)  # pyright: ignore[reportPrivateUsage]
+    return wiki
 
 
 @dataclass(frozen=True)
@@ -173,7 +177,7 @@ def wiki_article_search_raw(
 
         log.message("Wikipedia search: %r", search_params)
         # Use our own patched caching session.
-        response = _wiki._session.get(  # pyright: ignore[reportPrivateUsage]
+        response = get_wiki()._session.get(
             get_wiki_api_base_url(), params=search_params, timeout=timeout
         )
         response.raise_for_status()
@@ -187,7 +191,7 @@ def wiki_article_search_raw(
         results: list[WikipediaPage] = []
         for title in titles:
             # Check page existence *before* scoring to avoid issues with missing/redirected pages
-            page = _wiki.page(title)
+            page = get_wiki().page(title)
             if not page.exists():
                 log.debug(
                     "Page '%s' for concept '%s' does not exist or is a redirect loop.",
@@ -198,7 +202,7 @@ def wiki_article_search_raw(
             # Ensure we get the final title after potential redirects
             final_title = page.title
             # Fetch page again with potentially redirected title to ensure consistency
-            page = _wiki.page(final_title)
+            page = get_wiki().page(final_title)
             if not page.exists():  # Double check after redirect resolution
                 log.warning(
                     "Redirected page '%s' for concept '%s' does not exist.", final_title, query_str
