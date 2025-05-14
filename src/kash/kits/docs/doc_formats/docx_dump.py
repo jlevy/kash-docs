@@ -1,15 +1,18 @@
-from pathlib import Path
-from typing import Any, Protocol, cast, runtime_checkable
+from __future__ import annotations
 
-from mammoth import documents
-from mammoth.documents import Document
-from mammoth.docx import read as read_docx
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
+
+if TYPE_CHECKING:
+    from mammoth.documents import Document
 
 
 def read_mammoth_docx(docx_path: Path) -> Document:
     """
     Parses a DOCX file using Mammoth and pretty-prints the internal document structure.
     """
+    from mammoth.docx import read as read_docx
+
     with open(docx_path, "rb") as fileobj:
         result = read_docx(fileobj)
 
@@ -37,6 +40,8 @@ def cobble_to_dict(obj: object, visited: set[int] | None = None) -> object:
     Handles basic types, lists, tuples, dicts, cobble objects, the specific
     mammoth.documents.Notes class, and detects circular references.
     """
+    from mammoth import documents
+
     if visited is None:
         visited = set()
 

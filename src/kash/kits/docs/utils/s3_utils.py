@@ -6,8 +6,6 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
-import boto3
-from botocore.exceptions import ClientError
 from cachetools import TTLCache, cached
 from prettyfmt import fmt_path
 
@@ -25,6 +23,8 @@ def s3_upload_path(local_path: Path, bucket: str, prefix: str = "") -> list[Url]
     AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN, AWS_REGION)
     or other standard boto3 credential methods.
     """
+    import boto3
+
     if not local_path.exists():
         raise ValueError(f"local_path must exist: {local_path}")
 
@@ -88,6 +88,8 @@ def find_cf_for_s3_bucket(bucket_name: str) -> list[CloudFrontDistributionInfo]:
     Return a list of CloudFront distributions whose origins point at bucket_name.
     Simply uses a regex to match different S3 endpoint formats.
     """
+    import boto3
+
     cf = boto3.client("cloudfront")
     # Regex to match various S3 endpoint formats associated with the bucket
     # Handles:
@@ -135,6 +137,9 @@ def find_dns_for_cf(cf_domain_name: str) -> list[str]:
 
     Requires route53:ListHostedZones and route53:ListResourceRecordSets permissions.
     """
+    import boto3
+    from botocore.exceptions import ClientError
+
     r53 = boto3.client("route53")
     found_dns_names: list[str] = []
 
@@ -280,6 +285,8 @@ def invalidate_cf_paths(distribution_id: str, paths: list[str]) -> str:
     Returns the ID of the created invalidation request.
     Raises ValueError or boto3 exceptions on failure.
     """
+    import boto3
+
     if not distribution_id:
         raise ValueError("Distribution ID cannot be empty.")
     if not paths:

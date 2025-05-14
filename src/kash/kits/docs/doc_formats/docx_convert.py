@@ -1,29 +1,27 @@
+from __future__ import annotations
+
 import logging
 import re
-import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, BinaryIO, cast
+from typing import TYPE_CHECKING, Any, BinaryIO, cast
 
-import mammoth
 from markitdown._base_converter import DocumentConverterResult
-from markitdown._exceptions import MISSING_DEPENDENCY_MESSAGE, MissingDependencyException
-from markitdown._stream_info import StreamInfo
 from markitdown.converters._docx_converter import DocxConverter
 from typing_extensions import override
 
 from kash.kits.docs.doc_formats.escape_tags import escape_html_tags
+
+if TYPE_CHECKING:
+    from markitdown._stream_info import StreamInfo
 
 log = logging.getLogger(__name__)
 
 # Based on markitdown.converters._docx_converter.DocxConverter.
 
 _dependency_exc_info = None
-try:
-    import mammoth
-except ImportError:
-    _dependency_exc_info = sys.exc_info()
+
 
 # Accepted types (copied exactly from original DocxConverter)
 ACCEPTED_MIME_TYPE_PREFIXES = [
@@ -77,6 +75,9 @@ class CustomDocxConverter(DocxConverter):
         HTML to Markdown using the internal HtmlConverter, passing along
         any stored markdownify options.
         """
+        import mammoth
+        from markitdown._exceptions import MISSING_DEPENDENCY_MESSAGE, MissingDependencyException
+
         # Same as original DocxConverter:
         if _dependency_exc_info is not None:
             raise MissingDependencyException(
