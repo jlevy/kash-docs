@@ -13,6 +13,8 @@ from kash.utils.common.url import Url, parse_s3_url
 
 log = logging.getLogger(__file__)
 
+log_message = log.warning
+
 
 def s3_upload_path(local_path: Path, bucket: str, prefix: str = "") -> list[Url]:
     """
@@ -53,18 +55,18 @@ def s3_upload_path(local_path: Path, bucket: str, prefix: str = "") -> list[Url]
         if content_type:
             extra_args["ContentType"] = content_type
 
-        log.warning("Uploading: %s -> %s", fmt_path(file_path), s3_url)
+        log.info("Uploading: %s -> %s", fmt_path(file_path), s3_url)
 
         s3_client.upload_file(str(file_path), bucket, key, ExtraArgs=extra_args)
         uploaded_s3_urls.append(s3_url)
 
     if local_path.is_dir():
-        log.info("Uploading directory: %s to %s", local_path, s3_base)
+        log_message("Uploading directory: %s -> %s", fmt_path(local_path), s3_base)
         for file_path in local_path.rglob("*"):
             if file_path.is_file():
                 _upload(file_path)
     elif local_path.is_file():
-        log.info("Uploading file: %s to %s", local_path, s3_base)
+        log_message("Uploading file: %s -> %s", fmt_path(local_path), s3_base)
         _upload(local_path)
     else:
         # This case should ideally not be reached due to the exists() check,
@@ -222,10 +224,10 @@ def find_dns_names_for_s3_bucket(bucket_name: str) -> list[str]:
         )
         dns_names = find_dns_for_cf(dist_info.domain_name)
         if dns_names:
-            log.info(f"Found DNS names for {dist_info.domain_name}: {dns_names}")
+            log_message(f"Found DNS names for {dist_info.domain_name}: {dns_names}")
             all_dns_names.update(dns_names)
         else:
-            log.info(f"No custom DNS names found for {dist_info.domain_name}")
+            log_message(f"No custom DNS names found for {dist_info.domain_name}")
 
     if not all_dns_names:
         log.warning(
@@ -261,7 +263,7 @@ def map_s3_urls_to_public_urls(s3_urls: list[Url]) -> dict[Url, Url | None]:
             public_domain = dns_names[0]
             bucket_to_dns_map[bucket] = public_domain
         else:
-            log.info(f"No public DNS name found for bucket: {bucket}")
+            log.warning(f"No public DNS name found for bucket: {bucket}")
 
     # Second pass: Construct the public URLs using the map
     s3_to_public_map: dict[Url, Url | None] = {}
@@ -311,7 +313,7 @@ def invalidate_cf_paths(distribution_id: str, paths: list[str]) -> str:
     # identical requests made close together.
     caller_reference = f"invalidation-{distribution_id}-{int(time.time())}"
 
-    log.info(
+    log_message(
         "Requesting invalidation for %d paths in distribution %s (Ref: %s): %s",
         len(formatted_paths),
         distribution_id,
@@ -339,7 +341,7 @@ def invalidate_cf_paths(distribution_id: str, paths: list[str]) -> str:
         )
 
     log.info(
-        "Successfully created invalidation request %s for distribution %s. Status: %s",
+        "Created invalidation request %s for distribution %s. Status: %s",
         invalidation_id,
         distribution_id,
         invalidation_status,
@@ -409,3 +411,127 @@ def invalidate_s3_urls_in_cf(s3_urls: list[Url]) -> dict[str, str]:
         )
 
     return invalidation_results
+
+
+def invalidate_public_urls(urls: list[str | Url]) -> dict[str, str]:
+    """
+    Invalidates CloudFront cache for public URLs (https://domain.com/path).
+
+    Extracts domains from URLs, finds associated CloudFront distributions,
+    and creates invalidation requests for the URL paths.
+    Supports wildcards in paths as long as '*' is the last character.
+
+    Returns mapping of CloudFront distribution IDs to invalidation IDs.
+    """
+    from urllib.parse import urlparse
+
+    if not urls:
+        raise ValueError("URL list cannot be empty")
+
+    # Convert all URLs to strings if they're Url objects
+    str_urls = [str(url) for url in urls]
+
+    # Group paths by domain
+    domain_to_paths: dict[str, list[str]] = defaultdict(list)
+    for url_str in str_urls:
+        parsed = urlparse(url_str)
+        if not parsed.netloc or not parsed.scheme:
+            raise ValueError(f"Invalid URL format: {url_str}")
+
+        domain = parsed.netloc
+        # CloudFront paths must start with '/', handle empty path
+        path = parsed.path if parsed.path else "/"
+        domain_to_paths[domain].append(path)
+
+    invalidation_results: dict[str, str] = {}
+
+    # Find CloudFront distributions for each domain and create invalidations
+    for domain, paths in domain_to_paths.items():
+        log.info(f"Finding CloudFront distribution for domain: {domain}")
+
+        # Find the distribution ID for this domain
+        distributions = find_cloudfront_for_domain(domain)
+
+        if not distributions:
+            raise ValueError(f"No CloudFront distribution found for domain: {domain}")
+
+        # Use the first distribution if multiple exist
+        if len(distributions) > 1:
+            log.warning(
+                f"Multiple CloudFront distributions found for domain {domain}. "
+                f"Using the first one: {distributions[0].id}"
+            )
+
+        distribution_id = distributions[0].id
+
+        # Check if we already created an invalidation for this distribution
+        if distribution_id in invalidation_results:
+            log.info(
+                f"Distribution {distribution_id} already has an invalidation request "
+                f"({invalidation_results[distribution_id]}) created in this run."
+            )
+            continue
+
+        # Create the invalidation and store the result
+        invalidation_id = invalidate_cf_paths(distribution_id, paths)
+        invalidation_results[distribution_id] = invalidation_id
+        log_message(
+            f"CloudFront invalidation request {invalidation_id} submitted for "
+            f"distribution {distribution_id} (domain {domain})"
+        )
+
+    return invalidation_results
+
+
+def find_cloudfront_for_domain(domain: str) -> list[CloudFrontDistributionInfo]:
+    """
+    Finds CloudFront distributions associated with a domain name.
+
+    Searches through all CloudFront distributions to find those that have
+    the specified domain as an alternate domain name.
+    """
+    import boto3
+
+    cf = boto3.client("cloudfront")
+    matches: list[CloudFrontDistributionInfo] = []
+
+    # Normalize domain for comparison
+    normalized_domain = domain.lower().strip()
+
+    log.info(f"Searching for CloudFront distributions with domain: {normalized_domain}")
+
+    paginator = cf.get_paginator("list_distributions")
+    for page in paginator.paginate():
+        distribution_list = page.get("DistributionList", {})
+        if not distribution_list:
+            continue
+
+        for dist in distribution_list.get("Items", []):
+            # Check if this distribution is configured for our domain
+            # First, check the default CloudFront domain
+            if dist.get("DomainName", "").lower() == normalized_domain:
+                matches.append(
+                    CloudFrontDistributionInfo(
+                        id=dist["Id"],
+                        domain_name=dist["DomainName"],
+                        comment=dist.get("Comment"),
+                        status=dist.get("Status"),
+                    )
+                )
+                continue
+
+            # Next, check alternate domain names (CNAMEs)
+            aliases = dist.get("Aliases", {}).get("Items", [])
+            if any(alias.lower() == normalized_domain for alias in aliases):
+                matches.append(
+                    CloudFrontDistributionInfo(
+                        id=dist["Id"],
+                        domain_name=dist["DomainName"],
+                        comment=dist.get("Comment"),
+                        status=dist.get("Status"),
+                    )
+                )
+
+    if matches:
+        log_message("Found CloudFront distributions for domain %s: %s", domain, matches)
+    return matches

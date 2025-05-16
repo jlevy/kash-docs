@@ -10,5 +10,6 @@ import_and_register(
         "concepts",
         "doc_formats",
         "wiki",
+        "utils",
     ],
 )
