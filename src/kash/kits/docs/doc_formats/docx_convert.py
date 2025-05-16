@@ -11,6 +11,7 @@ from markitdown.converters._docx_converter import DocxConverter
 from typing_extensions import override
 
 from kash.utils.text_handling.markdownify_utils import (
+    MARKDOWNIFY_OPTIONS,
     markdownify_postprocess,
     markdownify_preprocess,
 )
@@ -146,14 +147,7 @@ def docx_to_md(
     # Gemini Deep Research report docx files.
     # https://github.com/matthewwithanm/python-markdownify
     docx_converter = CustomDocxConverter(
-        markdownify_options={
-            "sup_symbol": "<__sup>",
-            "sub_symbol": "<__sub>",
-            "escape_underscores": True,
-            "escape_asterisks": True,
-            "escape_misc": False,  # This suppresses gratuitous escaping of -, ., etc.
-            "newline_style": "BACKSLASH",
-        },
+        markdownify_options=MARKDOWNIFY_OPTIONS,
         html_postprocess=html_postprocess,
         md_postprocess=md_postprocess,
     )
