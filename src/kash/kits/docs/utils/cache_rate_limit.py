@@ -67,9 +67,9 @@ class CachingSession(requests.Session):
             with open(path, "wb") as f:
                 f.write(content)
 
-        path, was_cached = cache_file(Loadable(url_key, save))
+        cache_result = cache_file(Loadable(url_key, save))
 
-        if not was_cached:
+        if not cache_result.was_cached:
             log.debug("Cache miss, fetched: %s", url_key)
         else:
             log.debug("Cache hit: %s", url_key)
@@ -79,6 +79,6 @@ class CachingSession(requests.Session):
         response = requests.Response()
         response.status_code = 200
         response.encoding = "utf-8"
-        response._content = path.read_bytes()
+        response._content = cache_result.content.path.read_bytes()
         response.url = url_key
         return response
