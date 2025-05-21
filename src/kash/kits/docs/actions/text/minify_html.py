@@ -1,10 +1,10 @@
 from kash.exec import kash_action
-from kash.exec.preconditions import has_full_html_page_body
+from kash.exec.preconditions import has_fullpage_html_body
 from kash.model import Format, Item
 from kash.utils.errors import InvalidInput
 
 
-@kash_action(precondition=has_full_html_page_body)
+@kash_action(precondition=has_fullpage_html_body)
 def minify_html(item: Item) -> Item:
     """
     Minify an HTML item's content using minify_html, a modern Rust-based minifier.
