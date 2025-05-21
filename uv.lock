@@ -1320,7 +1320,7 @@ requires-dist = [
     { name = "chopdiff", specifier = ">=0.1.3" },
     { name = "flowmark", specifier = ">=0.4.2" },
     { name = "html5lib", specifier = ">=1.1" },
-    { name = "kash-shell", git = "https://github.com/jlevy/kash.git" },
+    { name = "kash-shell", specifier = ">=0.3.14" },
     { name = "marker-pdf", extras = ["full"], marker = "extra == 'full'", specifier = ">=1.6.2" },
     { name = "markitdown", extras = ["docx"], specifier = ">=0.1.1" },
     { name = "minify-html", specifier = ">=0.16.4" },
@@ -1352,8 +1352,8 @@ dev = [
 
 [[package]]
 name = "kash-shell"
-version = "0.3.14.dev8+fa03b14"
-source = { git = "https://github.com/jlevy/kash.git#fa03b14998358e830b37498708489672fb5db6cd" }
+version = "0.3.14"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "audioop-lts", marker = "python_full_version >= '3.13'" },
@@ -1406,6 +1406,10 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "uvicorn" },
     { name = "xonsh" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a1/81/bdbb41feb4557ed9d07f481b7a398f9eb6debf386c0ad006b3b52a428037/kash_shell-0.3.14.tar.gz", hash = "sha256:116ada232cfb069c2765c0b4ec9e18cf3665093bf3b3815ec1a96eacac2ab75b", size = 526974, upload-time = "2025-05-21T03:59:39.908Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b1/cf/7c33645c9f17e83d0ef5166d5f3da8a03ef6a7dc3a461475a4717d049783/kash_shell-0.3.14-py3-none-any.whl", hash = "sha256:fcd3ea895fa6a8c5938f340853cda7b5613907b77d4f718b5ec1fa220c61f21a", size = 484696, upload-time = "2025-05-21T03:59:37.422Z" },
 ]
 
 [[package]]
