@@ -8,8 +8,8 @@ from kash.config.text_styles import COLOR_STATUS
 from kash.exec import kash_action
 from kash.exec.preconditions import has_html_body
 from kash.kits.docs.utils.aws_utils import (
-    invalidate_s3_urls_in_cf,
-    map_s3_urls_to_public_urls,
+    cf_invalidate_s3_urls,
+    cf_s3_to_public_urls,
     s3_upload_path,
 )
 from kash.model import ActionInput, ActionResult, common_params
@@ -58,7 +58,7 @@ def s3_upload(
     )
 
     # As a convenience check for public URLs if we can find them.
-    public_urls: dict[Url, Url | None] = map_s3_urls_to_public_urls(uploaded_s3_urls)
+    public_urls: dict[Url, Url | None] = cf_s3_to_public_urls(uploaded_s3_urls)
     if public_urls.values():
         cprint(
             f"Public URLs for these S3 objects:\n{fmt_lines(public_urls.values())}",
@@ -68,7 +68,7 @@ def s3_upload(
 
         # If paths are public, also try to invalidate CloudFront distributions.
         try:
-            invalidation_results = invalidate_s3_urls_in_cf(uploaded_s3_urls)
+            invalidation_results = cf_invalidate_s3_urls(uploaded_s3_urls)
             log.warning("Invalidated CloudFront distributions: %s", invalidation_results)
         except RuntimeError as e:
             log.warning("Failed to invalidate CloudFront distributions: %s", e)

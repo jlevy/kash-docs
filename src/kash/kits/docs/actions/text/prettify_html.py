@@ -83,6 +83,9 @@ class SelectiveFormatter(HTMLFormatter):
     excessive newlines around inline elements.
     """
 
+    # FIXME: Class names seem to be serializing incorrectly, e.g.
+    #  <div class="['gb_Fa', 'gb_Kd', 'gb_3d']" id="gb">
+
     def __init__(self, *args: Any, indent: int = 4, **kwargs: Any):
         # Use HTML5 defaults
         kwargs.setdefault("entity_substitution", EntitySubstitution.substitute_html5)
@@ -161,6 +164,7 @@ def prettify_html(item: Item) -> Item:
     a custom formatter to provide readable structure. Can change whitespace and layout!
     But good for human readability.
     """
+
     if not item.body:
         raise InvalidInput("Item must have a body")
 

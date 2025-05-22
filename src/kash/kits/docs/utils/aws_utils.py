@@ -9,11 +9,19 @@ from pathlib import Path
 from cachetools import TTLCache, cached
 from prettyfmt import fmt_path
 
-from kash.utils.common.url import Url, parse_s3_url
+from kash.utils.common.url import Url, is_url, parse_s3_url
 
 log = logging.getLogger(__file__)
 
 log_message = log.warning
+
+
+@dataclass(frozen=True)
+class CloudFrontDistributionInfo:
+    id: str
+    domain_name: str
+    comment: str | None = None
+    status: str | None = None
 
 
 def s3_upload_path(local_path: Path, bucket: str, prefix: str = "") -> list[Url]:
@@ -76,16 +84,107 @@ def s3_upload_path(local_path: Path, bucket: str, prefix: str = "") -> list[Url]
     return uploaded_s3_urls
 
 
-@dataclass(frozen=True)
-class CloudFrontDistributionInfo:
-    id: str
-    domain_name: str
-    comment: str | None = None
-    status: str | None = None
+@cached(cache=TTLCache(maxsize=1000, ttl=60))
+def r53_records_for_cf(cf_domain_name: str) -> list[str]:
+    """
+    Searches Route 53 for DNS records (A/AAAA Alias or CNAME)
+    pointing to the given CloudFront domain name.
+
+    Requires route53:ListHostedZones and route53:ListResourceRecordSets permissions.
+    """
+    import boto3
+    from botocore.exceptions import ClientError
+
+    r53 = boto3.client("route53")
+    found_dns_names: list[str] = []
+
+    # Normalize the target CloudFront domain name (remove trailing dot if present)
+    target_cf_domain = cf_domain_name.rstrip(".")
+
+    zones_paginator = r53.get_paginator("list_hosted_zones")
+    for zones_page in zones_paginator.paginate():
+        for zone in zones_page.get("HostedZones", []):
+            zone_id = zone.get("Id")
+            if not zone_id:
+                continue
+
+            log.debug(f"Scanning zone: {zone.get('Name')} ({zone_id})")
+            records_paginator = r53.get_paginator("list_resource_record_sets")
+            try:
+                for records_page in records_paginator.paginate(HostedZoneId=zone_id):
+                    for record in records_page.get("ResourceRecordSets", []):
+                        record_name = record.get("Name", "").rstrip(".")
+                        record_type = record.get("Type")
+
+                        # Check A/AAAA Alias records
+                        if record_type in ["A", "AAAA"]:
+                            alias_target = record.get("AliasTarget", {})
+                            alias_dns_name = alias_target.get("DNSName", "").rstrip(".")
+                            # Check if the alias target matches the CloudFront domain
+                            if alias_dns_name.lower() == target_cf_domain.lower():
+                                # Check if the alias target is for CloudFront
+                                # HostedZoneId for CloudFront distributions is always Z2FDTNDATAQYW2
+                                if alias_target.get("HostedZoneId") == "Z2FDTNDATAQYW2":
+                                    log.info(
+                                        f"Found Alias record: {record_name} -> {alias_dns_name}"
+                                    )
+                                    found_dns_names.append(record_name)
+
+                        # Check CNAME records
+                        elif record_type == "CNAME":
+                            resource_records = record.get("ResourceRecords", [])
+                            if resource_records:
+                                cname_value = resource_records[0].get("Value", "").rstrip(".")
+                                # Check if the CNAME value matches the CloudFront domain
+                                if cname_value.lower() == target_cf_domain.lower():
+                                    log.info(f"Found CNAME record: {record_name} -> {cname_value}")
+                                    found_dns_names.append(record_name)
+
+            except ClientError as e:
+                # Handle potential access denied errors for specific zones if needed
+                log.error(f"Could not list records for zone {zone_id}: {e}")
+                continue  # Continue to the next zone
+
+    # Return unique names
+    return sorted(list(set(found_dns_names)))
 
 
 @cached(cache=TTLCache(maxsize=1000, ttl=60))
-def find_cf_for_s3_bucket(bucket_name: str) -> list[CloudFrontDistributionInfo]:
+def cf_r53_for_bucket(bucket_name: str) -> list[str]:
+    """
+    Finds custom DNS names (via Route53 Alias/CNAME records) pointing to
+    CloudFront distributions that use the specified S3 bucket as an origin.
+    Returns a sorted list of unique DNS names found.
+    """
+    log.info(f"Searching for DNS names associated with bucket: {bucket_name}")
+    cf_distributions = cf_distros_for_bucket(bucket_name)
+    all_dns_names: set[str] = set()
+
+    if not cf_distributions:
+        log.warning(f"No CloudFront distributions found for bucket: {bucket_name}")
+        return []
+
+    for dist_info in cf_distributions:
+        log.info(
+            f"Found CloudFront distribution {dist_info.id} ({dist_info.domain_name}), searching DNS..."
+        )
+        dns_names = r53_records_for_cf(dist_info.domain_name)
+        if dns_names:
+            log_message(f"Found DNS names for {dist_info.domain_name}: {dns_names}")
+            all_dns_names.update(dns_names)
+        else:
+            log_message(f"No custom DNS names found for {dist_info.domain_name}")
+
+    if not all_dns_names:
+        log.warning(
+            f"No custom DNS names found pointing to any CloudFront distributions for bucket: {bucket_name}"
+        )
+
+    return sorted(list(all_dns_names))
+
+
+@cached(cache=TTLCache(maxsize=1000, ttl=60))
+def cf_distros_for_bucket(bucket_name: str) -> list[CloudFrontDistributionInfo]:
     """
     Return a list of CloudFront distributions whose origins point at bucket_name.
     Simply uses a regex to match different S3 endpoint formats.
@@ -131,113 +230,60 @@ def find_cf_for_s3_bucket(bucket_name: str) -> list[CloudFrontDistributionInfo]:
     return matches
 
 
-@cached(cache=TTLCache(maxsize=1000, ttl=60))
-def find_dns_for_cf(cf_domain_name: str) -> list[str]:
+def cf_distros_for_domain(domain: str) -> list[CloudFrontDistributionInfo]:
     """
-    Searches Route 53 for DNS records (A/AAAA Alias or CNAME)
-    pointing to the given CloudFront domain name.
-
-    Requires route53:ListHostedZones and route53:ListResourceRecordSets permissions.
+    Finds CloudFront distributions associated with a domain name.
+    Searches through all CloudFront distributions to find those that have
+    the specified domain as an alternate domain name.
     """
     import boto3
-    from botocore.exceptions import ClientError
 
-    r53 = boto3.client("route53")
-    found_dns_names: list[str] = []
+    cf = boto3.client("cloudfront")
+    matches: list[CloudFrontDistributionInfo] = []
 
-    # Normalize the target CloudFront domain name (remove trailing dot if present)
-    target_cf_domain = cf_domain_name.rstrip(".")
+    # Normalize domain for comparison
+    normalized_domain = domain.lower().strip()
 
-    try:
-        zones_paginator = r53.get_paginator("list_hosted_zones")
-        for zones_page in zones_paginator.paginate():
-            for zone in zones_page.get("HostedZones", []):
-                zone_id = zone.get("Id")
-                if not zone_id:
-                    continue
+    log.info(f"Searching for CloudFront distributions with domain: {normalized_domain}")
 
-                log.debug(f"Scanning zone: {zone.get('Name')} ({zone_id})")
-                records_paginator = r53.get_paginator("list_resource_record_sets")
-                try:
-                    for records_page in records_paginator.paginate(HostedZoneId=zone_id):
-                        for record in records_page.get("ResourceRecordSets", []):
-                            record_name = record.get("Name", "").rstrip(".")
-                            record_type = record.get("Type")
+    paginator = cf.get_paginator("list_distributions")
+    for page in paginator.paginate():
+        distribution_list = page.get("DistributionList", {})
+        if not distribution_list:
+            continue
 
-                            # Check A/AAAA Alias records
-                            if record_type in ["A", "AAAA"]:
-                                alias_target = record.get("AliasTarget", {})
-                                alias_dns_name = alias_target.get("DNSName", "").rstrip(".")
-                                # Check if the alias target matches the CloudFront domain
-                                if alias_dns_name.lower() == target_cf_domain.lower():
-                                    # Check if the alias target is for CloudFront
-                                    # HostedZoneId for CloudFront distributions is always Z2FDTNDATAQYW2
-                                    if alias_target.get("HostedZoneId") == "Z2FDTNDATAQYW2":
-                                        log.info(
-                                            f"Found Alias record: {record_name} -> {alias_dns_name}"
-                                        )
-                                        found_dns_names.append(record_name)
+        for dist in distribution_list.get("Items", []):
+            # Check if this distribution is configured for our domain
+            # First, check the default CloudFront domain
+            if dist.get("DomainName", "").lower() == normalized_domain:
+                matches.append(
+                    CloudFrontDistributionInfo(
+                        id=dist["Id"],
+                        domain_name=dist["DomainName"],
+                        comment=dist.get("Comment"),
+                        status=dist.get("Status"),
+                    )
+                )
+                continue
 
-                            # Check CNAME records
-                            elif record_type == "CNAME":
-                                resource_records = record.get("ResourceRecords", [])
-                                if resource_records:
-                                    cname_value = resource_records[0].get("Value", "").rstrip(".")
-                                    # Check if the CNAME value matches the CloudFront domain
-                                    if cname_value.lower() == target_cf_domain.lower():
-                                        log.info(
-                                            f"Found CNAME record: {record_name} -> {cname_value}"
-                                        )
-                                        found_dns_names.append(record_name)
+            # Next, check alternate domain names (CNAMEs)
+            aliases = dist.get("Aliases", {}).get("Items", [])
+            if any(alias.lower() == normalized_domain for alias in aliases):
+                matches.append(
+                    CloudFrontDistributionInfo(
+                        id=dist["Id"],
+                        domain_name=dist["DomainName"],
+                        comment=dist.get("Comment"),
+                        status=dist.get("Status"),
+                    )
+                )
 
-                except ClientError as e:
-                    # Handle potential access denied errors for specific zones if needed
-                    log.warning(f"Could not list records for zone {zone_id}: {e}")
-                    continue  # Continue to the next zone
-
-    except ClientError as e:
-        log.error(f"Could not list hosted zones: {e}")
-        # Depending on requirements, you might want to return [] or re-raise
-
-    # Return unique names
-    return sorted(list(set(found_dns_names)))
+    if matches:
+        log_message("Found CloudFront distributions for domain %s: %s", domain, matches)
+    return matches
 
 
-@cached(cache=TTLCache(maxsize=1000, ttl=60))
-def find_dns_names_for_s3_bucket(bucket_name: str) -> list[str]:
-    """
-    Finds custom DNS names (via Route53 Alias/CNAME records) pointing to
-    CloudFront distributions that use the specified S3 bucket as an origin.
-    Returns a sorted list of unique DNS names found.
-    """
-    log.info(f"Searching for DNS names associated with bucket: {bucket_name}")
-    cf_distributions = find_cf_for_s3_bucket(bucket_name)
-    all_dns_names: set[str] = set()
-
-    if not cf_distributions:
-        log.warning(f"No CloudFront distributions found for bucket: {bucket_name}")
-        return []
-
-    for dist_info in cf_distributions:
-        log.info(
-            f"Found CloudFront distribution {dist_info.id} ({dist_info.domain_name}), searching DNS..."
-        )
-        dns_names = find_dns_for_cf(dist_info.domain_name)
-        if dns_names:
-            log_message(f"Found DNS names for {dist_info.domain_name}: {dns_names}")
-            all_dns_names.update(dns_names)
-        else:
-            log_message(f"No custom DNS names found for {dist_info.domain_name}")
-
-    if not all_dns_names:
-        log.warning(
-            f"No custom DNS names found pointing to any CloudFront distributions for bucket: {bucket_name}"
-        )
-
-    return sorted(list(all_dns_names))
-
-
-def map_s3_urls_to_public_urls(s3_urls: list[Url]) -> dict[Url, Url | None]:
+def cf_s3_to_public_urls(s3_urls: list[Url]) -> dict[Url, Url | None]:
     """
     Maps a list of S3 URLs to their corresponding public HTTPS URLs by
     finding the primary custom domain name associated with each S3 bucket via
@@ -246,6 +292,9 @@ def map_s3_urls_to_public_urls(s3_urls: list[Url]) -> dict[Url, Url | None]:
     HTTPS URL (e.g., "https://domain.com/key/file.txt"). S3 URLs whose buckets
     do not have a resolvable public DNS name will be omitted.
     """
+    if not s3_urls or not all(is_url(url, only_schemes=["s3"]) for url in s3_urls):
+        raise ValueError(f"Must have one or more valid S3 URLs: {s3_urls}")
+
     buckets: set[str] = set()
     s3_details: dict[Url, tuple[str, str]] = {}  # Map S3 URL to (bucket, key)
 
@@ -258,7 +307,7 @@ def map_s3_urls_to_public_urls(s3_urls: list[Url]) -> dict[Url, Url | None]:
     # Find the primary DNS name for each unique bucket
     bucket_to_dns_map: dict[str, str] = {}
     for bucket in buckets:
-        dns_names = find_dns_names_for_s3_bucket(bucket)
+        dns_names = cf_r53_for_bucket(bucket)
         if dns_names:
             public_domain = dns_names[0]
             bucket_to_dns_map[bucket] = public_domain
@@ -278,7 +327,7 @@ def map_s3_urls_to_public_urls(s3_urls: list[Url]) -> dict[Url, Url | None]:
     return s3_to_public_map
 
 
-def invalidate_cf_paths(distribution_id: str, paths: list[str]) -> str:
+def cf_invalidate_paths(distribution_id: str, paths: list[str]) -> str:
     """
     Creates a CloudFront invalidation request for the specified paths.
     Accepts a list of paths to invalidate (e.g., ['/images/*', '/index.html']).
@@ -349,7 +398,7 @@ def invalidate_cf_paths(distribution_id: str, paths: list[str]) -> str:
     return invalidation_id
 
 
-def invalidate_s3_urls_in_cf(s3_urls: list[Url]) -> dict[str, str]:
+def cf_invalidate_s3_urls(s3_urls: list[Url]) -> dict[str, str]:
     """
     Invalidates paths in CloudFront distributions corresponding to given S3 URLs.
     Groups S3 URLs by bucket, finds the first CloudFront distribution
@@ -358,8 +407,8 @@ def invalidate_s3_urls_in_cf(s3_urls: list[Url]) -> dict[str, str]:
     Returns dictionary mapping CloudFront distribution IDs to the created
     invalidation IDs.
     """
-    if not s3_urls:
-        raise ValueError("Input s3_urls list cannot be empty.")
+    if not s3_urls or not all(is_url(url, only_schemes=["s3"]) for url in s3_urls):
+        raise ValueError(f"Must have one or more valid S3 URLs: {s3_urls}")
 
     # Group paths by bucket
     bucket_to_paths: dict[str, list[str]] = defaultdict(list)
@@ -375,45 +424,42 @@ def invalidate_s3_urls_in_cf(s3_urls: list[Url]) -> dict[str, str]:
     # Process invalidations bucket by bucket
     for bucket, paths in bucket_to_paths.items():
         log.info(f"Processing invalidation for bucket: {bucket}")
-        cf_distributions = find_cf_for_s3_bucket(bucket)
+        cf_distributions = cf_distros_for_bucket(bucket)
 
         if not cf_distributions:
             raise ValueError(f"No CloudFront distribution found for bucket: {bucket}")
 
-        # Use the first distribution found if multiple exist for the same bucket
         if len(cf_distributions) > 1:
             log.warning(
-                "Multiple CloudFront distributions found for bucket %s (%s). Using the first one: %s (%s)",
+                "Multiple CloudFront distributions found for bucket %s (%s). Invalidating all.",
                 bucket,
                 [d.id for d in cf_distributions],
-                cf_distributions[0].id,
-                cf_distributions[0].domain_name,
             )
 
-        dist_info = cf_distributions[0]
-        distribution_id = dist_info.id
+        # Process all distributions for this bucket
+        for dist_info in cf_distributions:
+            distribution_id = dist_info.id
 
-        # Check if we already created an invalidation for this distribution
-        # (can happen if multiple buckets point to the same CF distro, though less common)
-        if distribution_id in invalidation_results:
-            log.warning(
-                "Distribution %s already has an invalidation request (%s) created in this run.",
-                distribution_id,
-                invalidation_results[distribution_id],
+            # Check if we already created an invalidation for this distribution
+            if distribution_id in invalidation_results:
+                log.warning(
+                    "Distribution %s already has an invalidation request (%s) created in this run.",
+                    distribution_id,
+                    invalidation_results[distribution_id],
+                )
+                continue
+
+            # Call the underlying invalidation function and raise exceptions on failure.
+            invalidation_id = cf_invalidate_paths(distribution_id, paths)
+            invalidation_results[distribution_id] = invalidation_id
+            log.info(
+                f"Invalidation request {invalidation_id} submitted for bucket {bucket} via distribution {distribution_id}"
             )
-            continue
-
-        # Call the underlying invalidation function and raise exceptions on failure.
-        invalidation_id = invalidate_cf_paths(distribution_id, paths)
-        invalidation_results[distribution_id] = invalidation_id
-        log.info(
-            f"Invalidation request {invalidation_id} submitted for bucket {bucket} via distribution {distribution_id}"
-        )
 
     return invalidation_results
 
 
-def invalidate_public_urls(urls: list[str | Url]) -> dict[str, str]:
+def cf_invalidate_urls(urls: list[str | Url]) -> dict[str, str]:
     """
     Invalidates CloudFront cache for public URLs (https://domain.com/path).
 
@@ -450,7 +496,7 @@ def invalidate_public_urls(urls: list[str | Url]) -> dict[str, str]:
         log.info(f"Finding CloudFront distribution for domain: {domain}")
 
         # Find the distribution ID for this domain
-        distributions = find_cloudfront_for_domain(domain)
+        distributions = cf_distros_for_domain(domain)
 
         if not distributions:
             raise ValueError(f"No CloudFront distribution found for domain: {domain}")
@@ -473,7 +519,7 @@ def invalidate_public_urls(urls: list[str | Url]) -> dict[str, str]:
             continue
 
         # Create the invalidation and store the result
-        invalidation_id = invalidate_cf_paths(distribution_id, paths)
+        invalidation_id = cf_invalidate_paths(distribution_id, paths)
         invalidation_results[distribution_id] = invalidation_id
         log_message(
             f"CloudFront invalidation request {invalidation_id} submitted for "
@@ -481,57 +527,3 @@ def invalidate_public_urls(urls: list[str | Url]) -> dict[str, str]:
         )
 
     return invalidation_results
-
-
-def find_cloudfront_for_domain(domain: str) -> list[CloudFrontDistributionInfo]:
-    """
-    Finds CloudFront distributions associated with a domain name.
-
-    Searches through all CloudFront distributions to find those that have
-    the specified domain as an alternate domain name.
-    """
-    import boto3
-
-    cf = boto3.client("cloudfront")
-    matches: list[CloudFrontDistributionInfo] = []
-
-    # Normalize domain for comparison
-    normalized_domain = domain.lower().strip()
-
-    log.info(f"Searching for CloudFront distributions with domain: {normalized_domain}")
-
-    paginator = cf.get_paginator("list_distributions")
-    for page in paginator.paginate():
-        distribution_list = page.get("DistributionList", {})
-        if not distribution_list:
-            continue
-
-        for dist in distribution_list.get("Items", []):
-            # Check if this distribution is configured for our domain
-            # First, check the default CloudFront domain
-            if dist.get("DomainName", "").lower() == normalized_domain:
-                matches.append(
-                    CloudFrontDistributionInfo(
-                        id=dist["Id"],
-                        domain_name=dist["DomainName"],
-                        comment=dist.get("Comment"),
-                        status=dist.get("Status"),
-                    )
-                )
-                continue
-
-            # Next, check alternate domain names (CNAMEs)
-            aliases = dist.get("Aliases", {}).get("Items", [])
-            if any(alias.lower() == normalized_domain for alias in aliases):
-                matches.append(
-                    CloudFrontDistributionInfo(
-                        id=dist["Id"],
-                        domain_name=dist["DomainName"],
-                        comment=dist.get("Comment"),
-                        status=dist.get("Status"),
-                    )
-                )
-
-    if matches:
-        log_message("Found CloudFront distributions for domain %s: %s", domain, matches)
-    return matches
