@@ -16,6 +16,6 @@ def docx_to_html(item: Item) -> Item:
     return item.derived_copy(
         type=ItemType.doc,
         format=Format.html,
-        title=result.title or item.abbrev_title(),
+        title=result.title or item.abbrev_title(pull_body_heading=True),
         body=result.raw_html,
     )
