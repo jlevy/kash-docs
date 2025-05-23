@@ -28,20 +28,25 @@ class SimpleHtmlToDocx:
     max_recursion_depth: int = 100  # Prevent stack overflow on deeply nested documents
 
     def convert_html_string(self, html: str) -> Document:
-        """Convert HTML string to Document object."""
-        soup = BeautifulSoup(html, "html.parser")
-        doc = docx.Document()
+        """
+        Convert HTML string to Document object.
+        """
+        docx_template = Path(__file__).parent.resolve() / "templates" / "docx_template.docx"
+        doc = docx.Document(str(docx_template))
+
+        soup: BeautifulSoup = BeautifulSoup(html, "html.parser")
 
         # Ensure 'Code' style exists
         self._ensure_style(doc, "Code")
-
         self._process_element(soup, doc)
         return doc
 
     def convert_html_file(
         self, input_path: Path | str, output_path: Path | str | None = None
     ) -> None:
-        """Convert HTML file to DOCX file."""
+        """
+        Convert HTML file to DOCX file.
+        """
         input_path = Path(input_path)
         try:
             html = input_path.read_text(encoding="utf-8")

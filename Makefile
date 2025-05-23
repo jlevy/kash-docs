@@ -4,7 +4,7 @@
 
 .DEFAULT_GOAL := default
 
-.PHONY: default install lint test run upgrade build clean
+.PHONY: default install lint test run upgrade build clean docx_template
 
 default: install lint test
 
@@ -33,3 +33,8 @@ clean:
 	-rm -rf .mypy_cache/
 	-rm -rf .venv/
 	-find . -type d -name "__pycache__" -exec rm -rf {} +
+
+# Rebuild the docx template from source.
+# Template source was created from Google docs then unzipped and formatted.
+docx_template:
+	cd ./template_src/docx_template && zip -r ../src/kash/kits/docs/doc_formats/templates/docx_template.docx .
