@@ -23,7 +23,7 @@ class SimpleHtmlToDocx:
     Convert restricted (simple, markdown-generated) HTML to DOCX format.
     """
 
-    list_indent: float = 0.5  # inches
+    list_indent: float = 0.4  # inches
     max_indent: float = 5.5  # inches
     max_recursion_depth: int = 100  # Prevent stack overflow on deeply nested documents
 
@@ -62,11 +62,15 @@ class SimpleHtmlToDocx:
             return  # Prevent stack overflow
 
         if isinstance(element, NavigableString):
-            # More refined whitespace handling - preserve single spaces but not unnecessary whitespace
             text = str(element)
-            # Remove repeated whitespace but maintain basic structure
+            # Collapse whitespace
             text = re.sub(r"\s+", " ", text)
-            if text and hasattr(parent, "add_run"):
+
+            # Skip pure whitespace nodes between block elements
+            if not text.strip():
+                return
+
+            if hasattr(parent, "add_run"):
                 parent.add_run(text)
             return
 
@@ -92,12 +96,23 @@ class SimpleHtmlToDocx:
                     self._process_children(element, parent, list_depth, recursion_depth + 1)
 
             case "blockquote":
-                p = parent.add_paragraph()
-                p.paragraph_format.left_indent = Inches(0.5)
-                p.paragraph_format.right_indent = Inches(0.5)
-                p.paragraph_format.space_before = Pt(10)
-                p.paragraph_format.space_after = Pt(10)
-                self._process_children(element, p, list_depth, recursion_depth + 1)
+                # Process blockquote children directly to maintain paragraph structure
+                for child in element.children:
+                    if isinstance(child, Tag) and child.name == "p":
+                        p = parent.add_paragraph()
+                        p.paragraph_format.left_indent = Inches(0.5)
+                        p.paragraph_format.right_indent = Inches(0.5)
+                        p.paragraph_format.space_before = Pt(10)
+                        p.paragraph_format.space_after = Pt(10)
+                        self._process_children(child, p, list_depth, recursion_depth + 1)
+                    elif isinstance(child, NavigableString) and child.strip():
+                        # Handle direct text in blockquote (not in a p tag)
+                        p = parent.add_paragraph()
+                        p.paragraph_format.left_indent = Inches(0.5)
+                        p.paragraph_format.right_indent = Inches(0.5)
+                        p.paragraph_format.space_before = Pt(10)
+                        p.paragraph_format.space_after = Pt(10)
+                        p.add_run(child.strip())
 
             case "pre":
                 p = parent.add_paragraph()
@@ -180,18 +195,55 @@ class SimpleHtmlToDocx:
         self, element: Tag, parent: Any, list_depth: int = 0, recursion_depth: int = 0
     ) -> None:
         """Process all children of an element."""
-        for child in element.children:
-            # If the parent is a Run, pass the Run as parent to _process_element
-            # This allows text and nested inline elements to be added to the same run
+        # Define inline elements that should preserve surrounding whitespace
+        inline_tags = {"a", "strong", "b", "em", "i", "code", "span", "u", "s", "sub", "sup"}
+
+        children = list(element.children)
+
+        for i, child in enumerate(children):
             if isinstance(parent, Run) and isinstance(child, NavigableString):
-                parent.text += str(child)  # Append text to existing run
+                parent.text += str(child)
             elif isinstance(parent, Run) and isinstance(child, Tag):
-                # For nested tags within a run, this gets more complex.
-                # For simplicity, we'll assume here that inline tags don't nest deeply or complexly.
-                # A more robust solution might need to break runs.
                 self._process_element(child, parent, list_depth, recursion_depth + 1)
             else:
-                self._process_element(child, parent, list_depth, recursion_depth + 1)
+                if isinstance(child, NavigableString) and isinstance(parent, Paragraph):
+                    text = str(child)
+                    # Collapse whitespace
+                    text = re.sub(r"\s+", " ", text)
+
+                    # Skip pure whitespace
+                    if not text.strip():
+                        continue
+
+                    # Trim leading whitespace if at start of paragraph
+                    if i == 0 or all(
+                        isinstance(c, NavigableString) and not c.strip() for c in children[:i]
+                    ):
+                        text = text.lstrip()
+
+                    # Trim trailing whitespace if at end or before non-inline element
+                    should_trim_trailing = False
+                    if i == len(children) - 1:
+                        should_trim_trailing = True
+                    else:
+                        # Look for the next non-whitespace sibling
+                        for j in range(i + 1, len(children)):
+                            next_child = children[j]
+                            if isinstance(next_child, NavigableString):
+                                if next_child.strip():  # Found non-whitespace text
+                                    break
+                            elif isinstance(next_child, Tag):
+                                # Trim if next element is not inline
+                                should_trim_trailing = next_child.name not in inline_tags
+                                break
+
+                    if should_trim_trailing:
+                        text = text.rstrip()
+
+                    if text:
+                        parent.add_run(text)
+                else:
+                    self._process_element(child, parent, list_depth, recursion_depth + 1)
 
     def _process_list_item(
         self, li: Tag, doc: Document, list_type: str, depth: int, recursion_depth: int = 0
@@ -229,9 +281,26 @@ class SimpleHtmlToDocx:
             else:
                 direct_content.append(child)
 
+        # Find the last non-empty text node if we have nested lists
+        last_text_index = -1
+        if nested_lists:
+            for i in range(len(direct_content) - 1, -1, -1):
+                content = direct_content[i]
+                if isinstance(content, NavigableString) and content.strip():
+                    last_text_index = i
+                    break
+
         # Process direct content
-        for content in direct_content:
-            self._process_element(content, p, depth, recursion_depth + 1)
+        for i, content in enumerate(direct_content):
+            if isinstance(content, NavigableString) and i == last_text_index:
+                # This is the last non-empty text before nested lists
+                text = str(content)
+                text = re.sub(r"\s+", " ", text)
+                text = text.strip()  # Trim both sides for the last text
+                if text:
+                    p.add_run(text)
+            else:
+                self._process_element(content, p, depth, recursion_depth + 1)
 
         # Process nested lists (each gets its own paragraph with proper style)
         for nested_list in nested_lists:
@@ -399,9 +468,25 @@ _SAMPLE_HTML = """
 </table>
 """
 
-
-# FIXME: Not roundtripping Markdown nested lists correctly.
+# FIXME: Not roundtripping nested lists correctly as we lose the information we need.
 # Fix code and then nested items below to be indented.
+
+_EXPECTED_HTML = (
+    """<h1>Document Title</h1>"""
+    """<p>This is a <strong>bold</strong> paragraph with <em>italic</em> text and a <a href="https://example.com">link</a>.</p>"""
+    """<h2>Lists</h2>"""
+    """<ul><li>Unordered item 1</li><li>Unordered item 2</li><li>Nested item A</li><li>Nested item B</li></ul>"""
+    """<ol><li>Ordered item 1</li><li>Ordered item 2</li></ol>"""
+    """<h2>Code</h2>"""
+    """<p>def hello_world():<br />    print(&quot;Hello, World!&quot;)</p>"""
+    """<p>Inline code example</p>"""
+    """<h2>Blockquote</h2>"""
+    """<p>This is a blockquote with <strong>formatting</strong>.</p><p>And a second paragraph.</p>"""
+    """<p>* * *</p>"""
+    """<h2>Table</h2>"""
+    """<table><tr><td><p>Header 1</p></td><td><p>Header 2</p></td><td><p>Right Aligned</p></td></tr><tr><td><p>Row 1, Col 1</p></td><td><p>Row 1, Col 2</p></td><td><p>1234</p></td></tr><tr><td><p>Row 2, Col 1</p></td><td><p>Row 2, Col 2</p></td><td><p>5678</p></td></tr></table>"""
+)
+
 _EXPECTED_MD = r"""
 # Document Title
 
@@ -425,7 +510,9 @@ Inline code example
 
 ## Blockquote
 
- This is a blockquote with **formatting**. And a second paragraph.
+This is a blockquote with **formatting**.
+
+And a second paragraph.
 
 \* \* \*
 
@@ -469,9 +556,12 @@ def test_html_to_docx_conversion():
 
         md = docx_convert.docx_to_md(temp_docx_path)
 
+        print(md.raw_html)
+        print("\n-----\n")
         print(md.markdown)
 
-        assert md.markdown == _EXPECTED_MD.strip()
+        assert md.raw_html.strip() == _EXPECTED_HTML.strip()
+        assert md.markdown.strip() == _EXPECTED_MD.strip()
 
     finally:
         # Clean up temp files
