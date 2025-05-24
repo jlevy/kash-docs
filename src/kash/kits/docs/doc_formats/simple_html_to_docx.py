@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -13,8 +15,40 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.opc.constants import RELATIONSHIP_TYPE
 from docx.oxml.shared import OxmlElement, qn
 from docx.shared import Inches, Pt, RGBColor
+from docx.styles.style import ParagraphStyle
 from docx.text.paragraph import Paragraph
 from docx.text.run import Run
+
+log = logging.getLogger(__name__)
+
+
+class DocxStyle(Enum):
+    """Enum for standard and custom DOCX style names."""
+
+    NORMAL = "Normal"
+    HEADING_1 = "Heading 1"
+    HEADING_2 = "Heading 2"
+    HEADING_3 = "Heading 3"
+    HEADING_4 = "Heading 4"
+    HEADING_5 = "Heading 5"
+    HEADING_6 = "Heading 6"
+    LIST_NUMBER = "List Number"
+    LIST_NUMBER_2 = "List Number 2"
+    LIST_NUMBER_3 = "List Number 3"
+    LIST_BULLET = "List Bullet"
+    LIST_BULLET_2 = "List Bullet 2"
+    LIST_BULLET_3 = "List Bullet 3"
+    CODE = "Code"
+    TABLE_GRID = "Table Grid"
+
+    @property
+    def type(self) -> WD_STYLE_TYPE:
+        """Return the WD_STYLE_TYPE for the enum member."""
+        if self.name.startswith("TABLE_"):
+            return WD_STYLE_TYPE.TABLE
+        # LIST_ styles are paragraph styles
+        # CODE, HEADING, NORMAL are paragraph styles
+        return WD_STYLE_TYPE.PARAGRAPH
 
 
 @dataclass
@@ -31,13 +65,11 @@ class SimpleHtmlToDocx:
         """
         Convert HTML string to Document object.
         """
-        docx_template = Path(__file__).parent.resolve() / "templates" / "docx_template.docx"
-        doc = docx.Document(str(docx_template))
+        # docx_template = Path(__file__).parent.resolve() / "templates" / "docx_template.docx"
+        doc = docx.Document()
 
         soup: BeautifulSoup = BeautifulSoup(html, "html.parser")
 
-        # Ensure 'Code' style exists
-        self._ensure_style(doc, "Code")
         self._process_element(soup, doc)
         return doc
 
@@ -121,7 +153,7 @@ class SimpleHtmlToDocx:
 
             case "pre":
                 p = parent.add_paragraph()
-                p.style = "Code"
+                p.style = self._get_style_name(self._get_document(parent), DocxStyle.CODE)
                 text = element.get_text().strip()
                 p.add_run(text)
                 p.paragraph_format.space_before = Pt(8)
@@ -134,7 +166,7 @@ class SimpleHtmlToDocx:
                     run.font.size = Pt(9)
                 elif hasattr(parent, "add_paragraph"):
                     p = parent.add_paragraph()
-                    p.style = "Code"
+                    p.style = self._get_style_name(self._get_document(parent), DocxStyle.CODE)
                     p.add_run(element.get_text().strip())
                 else:
                     # We're in an unknown container that can't add runs or paragraphs
@@ -147,7 +179,11 @@ class SimpleHtmlToDocx:
                 for li in element.find_all("li", recursive=False):
                     if isinstance(li, Tag):
                         self._process_list_item(
-                            li, parent, element.name, list_depth, recursion_depth + 1
+                            li,
+                            self._get_document(parent),
+                            element.name,
+                            list_depth,
+                            recursion_depth + 1,
                         )
 
             case "table":
@@ -253,27 +289,38 @@ class SimpleHtmlToDocx:
     def _process_list_item(
         self, li: Tag, doc: Document, list_type: str, depth: int, recursion_depth: int = 0
     ) -> None:
-        """Process a list item with proper semantic list structure for nested lists."""
-        # Choose list style based on type and depth
-        if list_type == "ol":
-            # Use the appropriate level of numbered list style
-            if depth == 0:
-                style_name = "List Number"
-            elif depth == 1:
-                style_name = "List Number 2"
-            else:
-                style_name = "List Number 3"  # Most Word templates support up to level 3
-        else:  # ul
-            # Use the appropriate level of bullet list style
-            if depth == 0:
-                style_name = "List Bullet"
-            elif depth == 1:
-                style_name = "List Bullet 2"
-            else:
-                style_name = "List Bullet 3"  # Most Word templates support up to level 3
+        """Process a list item by applying pre-defined list styles from the template."""
 
-        # Create the paragraph with the appropriate list style
-        p = doc.add_paragraph(style=style_name)
+        style_enum: DocxStyle
+        if list_type == "ol":
+            if depth == 0:
+                style_enum = DocxStyle.LIST_NUMBER
+            elif depth == 1:
+                style_enum = DocxStyle.LIST_NUMBER_2
+            else:
+                style_enum = DocxStyle.LIST_NUMBER_3
+        else:  # ul
+            if depth == 0:
+                style_enum = DocxStyle.LIST_BULLET
+            elif depth == 1:
+                style_enum = DocxStyle.LIST_BULLET_2
+            else:
+                style_enum = DocxStyle.LIST_BULLET_3
+
+        try:
+            # Attempt to apply the style from the template.
+            style_name_str = self._get_style_name(doc, style_enum)
+            p = doc.add_paragraph(style=style_name_str)
+        except KeyError:
+            # Fallback if style is not in the template (will likely not look like a list)
+            log.warning(
+                f"List style '{style_enum.value}' not found in template. Adding paragraph without list styling."
+            )
+            p = doc.add_paragraph()
+            # Apply manual indentation as a minimal fallback
+            p.paragraph_format.left_indent = Inches(0.5 + depth * 0.5)
+            if depth > 0:  # Hanging indent for nested, simple indent for top level
+                p.paragraph_format.first_line_indent = Inches(-0.25)
 
         # Process direct content (excluding nested lists) into this paragraph
         direct_content = []
@@ -307,7 +354,7 @@ class SimpleHtmlToDocx:
             else:
                 self._process_element(content, p, depth, recursion_depth + 1)
 
-        # Process nested lists (each gets its own paragraph with proper style)
+        # Process nested lists (each gets its own paragraph with proper numbering)
         for nested_list in nested_lists:
             for nested_li in nested_list.find_all("li", recursive=False):
                 if isinstance(nested_li, Tag):
@@ -331,7 +378,7 @@ class SimpleHtmlToDocx:
 
         # Create table
         docx_table = doc.add_table(rows=len(rows_tags), cols=max_cols if max_cols > 0 else 1)
-        docx_table.style = "Table Grid"  # Add borders
+        docx_table.style = self._get_style_name(doc, DocxStyle.TABLE_GRID)  # Add borders
 
         # Fill cells
         for row_idx, row_element in enumerate(rows_tags):
@@ -413,13 +460,56 @@ class SimpleHtmlToDocx:
         # Add hyperlink to paragraph
         paragraph._p.append(hyperlink)
 
-    def _ensure_style(self, doc: Document, style_name: str) -> None:
-        """Ensure a style exists in the document, creating it if necessary."""
+    def _get_document(self, parent: Any) -> Document:
+        """Get the Document object from any parent (Document, Paragraph, etc.)."""
+        if isinstance(parent, Document):
+            return parent
+        elif hasattr(parent, "_part") and hasattr(parent._part, "document"):
+            return parent._part.document
+        else:
+            raise ValueError(f"Cannot get document from parent of type {type(parent)}")
+
+    def _get_style_name(self, doc: Document, style_enum_member: DocxStyle) -> str:
+        """
+        Ensures a style exists by its DocxStyle enum member, returning its string name.
+        If a style is missing, it logs a warning and attempts to create a basic version.
+        It's strongly recommended the template defines these styles properly.
+        """
+        style_name = style_enum_member.value
+        style_type = style_enum_member.type
+
         try:
-            doc.styles[style_name]
+            style = doc.styles[style_name]
+            if style.type != style_type:
+                log.warning(
+                    f"Style '{style_name}' exists in template but is type '{style.type}', not expected '{style_type}'."
+                    f" Formatting may be incorrect."
+                )
+            return style_name
         except KeyError:
-            # Create code style if it doesn't exist
-            doc.styles.add_style(style_name, WD_STYLE_TYPE.PARAGRAPH)
+            log.warning(
+                f"Style '{style_name}' not found in template. "
+                f"Attempting to add a basic '{style_type.name}' style. "
+                f"For proper formatting, define this style in your DOCX template."
+            )
+            doc.styles.add_style(style_name, style_type)
+            created_style = doc.styles[style_name]
+
+            if style_type == WD_STYLE_TYPE.PARAGRAPH:
+                if isinstance(created_style, ParagraphStyle):
+                    if style_enum_member == DocxStyle.CODE:
+                        created_style.font.name = "Courier New"
+                        created_style.font.size = Pt(9)
+                        created_style.paragraph_format.space_before = Pt(6)
+                        created_style.paragraph_format.space_after = Pt(6)
+                    elif style_name.startswith("List"):
+                        created_style.paragraph_format.left_indent = Inches(0.5)
+                else:
+                    log.error(
+                        f"Style '{style_name}' was added but could not be fetched as ParagraphStyle."
+                    )
+
+            return style_name
 
 
 ## Tests
@@ -530,6 +620,12 @@ And a second paragraph.
 """
 
 
+# Normalize for cleaner testing
+def _normalize_html(html_str: str) -> str:
+    soup = BeautifulSoup(html_str, "html.parser")
+    return str(soup.prettify(formatter="html5")).strip()
+
+
 def test_html_to_docx_conversion():
     import os
     import tempfile
@@ -561,11 +657,26 @@ def test_html_to_docx_conversion():
 
         md = docx_convert.docx_to_md(temp_docx_path)
 
-        print(md.raw_html)
-        print("\n-----\n")
-        print(md.markdown)
+        # Normalize HTML for comparison
+        actual_html_normalized = _normalize_html(md.raw_html)
+        expected_html_normalized = _normalize_html(_EXPECTED_HTML)
 
-        assert md.raw_html.strip() == _EXPECTED_HTML.strip()
+        # Print for debugging if needed
+        if actual_html_normalized != expected_html_normalized:
+            import difflib
+
+            print("=== HTML DIFF ===")
+            diff = difflib.unified_diff(
+                expected_html_normalized.splitlines(keepends=True),
+                actual_html_normalized.splitlines(keepends=True),
+                fromfile="expected",
+                tofile="actual",
+                lineterm="",
+            )
+            print("".join(diff))
+
+        # Compare normalized HTML and raw markdown
+        assert actual_html_normalized == expected_html_normalized
         assert md.markdown.strip() == _EXPECTED_MD.strip()
 
     finally:

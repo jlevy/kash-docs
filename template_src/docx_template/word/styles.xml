@@ -22,7 +22,8 @@
           xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex"
           xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid"
           xmlns="http://schemas.microsoft.com/office/tasks/2019/documenttasks"
-          xmlns:cr="http://schemas.microsoft.com/office/comments/2020/reactions">
+          xmlns:cr="http://schemas.microsoft.com/office/comments/2020/reactions"
+          mc:Ignorable="w14 w15 w16 w16cex w16cid wp14">
   <w:docDefaults>
     <w:rPrDefault>
       <w:rPr>
@@ -159,5 +160,116 @@
       <w:sz w:val="26" />
       <w:szCs w:val="26" />
     </w:rPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="ListBullet">
+    <w:name w:val="List Bullet" />
+    <w:basedOn w:val="Normal" />
+    <w:uiPriority w:val="10" />
+    <w:qFormat />
+    <w:pPr>
+      <w:numPr>
+        <w:ilvl w:val="0" />
+        <w:numId w:val="100" />
+      </w:numPr>
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="ListBullet2">
+    <w:name w:val="List Bullet 2" />
+    <w:basedOn w:val="Normal" />
+    <w:uiPriority w:val="10" />
+    <w:qFormat />
+    <w:pPr>
+      <w:numPr>
+        <w:ilvl w:val="1" />
+        <w:numId w:val="100" />
+      </w:numPr>
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="ListBullet3">
+    <w:name w:val="List Bullet 3" />
+    <w:basedOn w:val="Normal" />
+    <w:uiPriority w:val="10" />
+    <w:qFormat />
+    <w:pPr>
+      <w:numPr>
+        <w:ilvl w:val="2" />
+        <w:numId w:val="100" />
+      </w:numPr>
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="ListNumber">
+    <w:name w:val="List Number" />
+    <w:basedOn w:val="Normal" />
+    <w:uiPriority w:val="10" />
+    <w:qFormat />
+    <w:pPr>
+      <w:numPr>
+        <w:ilvl w:val="0" />
+        <w:numId w:val="101" />
+      </w:numPr>
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="ListNumber2">
+    <w:name w:val="List Number 2" />
+    <w:basedOn w:val="Normal" />
+    <w:uiPriority w:val="10" />
+    <w:qFormat />
+    <w:pPr>
+      <w:numPr>
+        <w:ilvl w:val="1" />
+        <w:numId w:val="101" />
+      </w:numPr>
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="ListNumber3">
+    <w:name w:val="List Number 3" />
+    <w:basedOn w:val="Normal" />
+    <w:uiPriority w:val="10" />
+    <w:qFormat />
+    <w:pPr>
+      <w:numPr>
+        <w:ilvl w:val="2" />
+        <w:numId w:val="101" />
+      </w:numPr>
+    </w:pPr>
+  </w:style>
+  <w:style w:type="paragraph" w:styleId="Code">
+    <w:name w:val="Code" />
+    <w:basedOn w:val="Normal" />
+    <w:uiPriority w:val="10" />
+    <w:qFormat />
+    <w:pPr>
+      <w:spacing w:before="120" w:after="120" />
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="Courier New" w:hAnsi="Courier New" w:cs="Courier New" />
+      <w:sz w:val="20" />
+    </w:rPr>
+  </w:style>
+  <w:style w:type="table" w:styleId="TableGrid">
+    <w:name w:val="Table Grid" />
+    <w:basedOn w:val="TableNormal" />
+    <w:uiPriority w:val="59" />
+    <w:rsid w:val="00FC693F" />
+    <w:pPr>
+      <w:spacing w:after="0" w:line="240" w:lineRule="auto" />
+    </w:pPr>
+    <w:tblPr>
+      <w:tblInd w:w="0" w:type="dxa" />
+      <w:tblBorders>
+        <w:top w:val="single" w:sz="4" w:space="0" w:color="auto" />
+        <w:left w:val="single" w:sz="4" w:space="0" w:color="auto" />
+        <w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto" />
+        <w:right w:val="single" w:sz="4" w:space="0" w:color="auto" />
+        <w:insideH w:val="single" w:sz="4" w:space="0" w:color="auto" />
+        <w:insideV w:val="single" w:sz="4" w:space="0" w:color="auto" />
+      </w:tblBorders>
+      <w:tblCellMar>
+        <w:top w:w="0" w:type="dxa" />
+        <w:left w:w="108" w:type="dxa" />
+        <w:bottom w:w="0" w:type="dxa" />
+        <w:right w:w="108" w:type="dxa" />
+      </w:tblCellMar>
+    </w:tblPr>
   </w:style>
 </w:styles>

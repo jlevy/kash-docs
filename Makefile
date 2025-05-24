@@ -37,4 +37,4 @@ clean:
 # Rebuild the docx template from source.
 # Template source was created from Google docs then unzipped and formatted.
 docx_template:
-	cd ./template_src/docx_template && zip -r ../src/kash/kits/docs/doc_formats/templates/docx_template.docx .
+	cd ./template_src/docx_template && zip -r ../../src/kash/kits/docs/doc_formats/templates/docx_template.docx .

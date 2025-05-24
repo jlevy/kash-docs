@@ -22,4 +22,94 @@
              xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex"
              xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid"
              xmlns="http://schemas.microsoft.com/office/tasks/2019/documenttasks"
-             xmlns:cr="http://schemas.microsoft.com/office/comments/2020/reactions" />
+             xmlns:cr="http://schemas.microsoft.com/office/comments/2020/reactions"
+             mc:Ignorable="w14 w15 w16 w16cex w16cid wp14">
+
+  <!-- Abstract Numbering Definition for Bullets (all levels) -->
+  <w:abstractNum w:abstractNumId="0" w15:restartNumberingAfterBreak="0">
+    <w:nsid w:val="10000001" />
+    <w:multiLevelType w:val="hybridMultilevel" />
+    <w:tmpl w:val="04090021" />
+    <w:lvl w:ilvl="0">
+      <w:start w:val="1" />
+      <w:numFmt w:val="bullet" />
+      <w:lvlText w:val="▪" />
+      <w:lvlJc w:val="left" />
+      <w:pPr>
+        <w:ind w:left="720" w:hanging="360" />
+      </w:pPr>
+      <w:rPr>
+        <w:rFonts w:ascii="Source Sans 3" w:hAnsi="Source Sans 3" w:cs="Source Sans 3" w:hint="default" />
+      </w:rPr>
+    </w:lvl>
+    <w:lvl w:ilvl="1">
+      <w:start w:val="1" />
+      <w:numFmt w:val="bullet" />
+      <w:lvlText w:val="▫︎" />
+      <w:lvlJc w:val="left" />
+      <w:pPr>
+        <w:ind w:left="1440" w:hanging="360" />
+      </w:pPr>
+      <w:rPr>
+        <w:rFonts w:ascii="Source Sans 3" w:hAnsi="Source Sans 3" w:cs="Source Sans 3" w:hint="default" />
+      </w:rPr>
+    </w:lvl>
+    <w:lvl w:ilvl="2">
+      <w:start w:val="1" />
+      <w:numFmt w:val="bullet" />
+      <w:lvlText w:val="▻" />
+      <w:lvlJc w:val="left" />
+      <w:pPr>
+        <w:ind w:left="2160" w:hanging="360" />
+      </w:pPr>
+      <w:rPr>
+        <w:rFonts w:ascii="Source Sans 3" w:hAnsi="Source Sans 3" w:cs="Source Sans 3" w:hint="default" />
+      </w:rPr>
+    </w:lvl>
+  </w:abstractNum>
+
+  <!-- Abstract Numbering Definition for Numbers (all levels) -->
+  <w:abstractNum w:abstractNumId="1" w15:restartNumberingAfterBreak="0">
+    <w:nsid w:val="10000002" />
+    <w:multiLevelType w:val="hybridMultilevel" />
+    <w:tmpl w:val="04090019" />
+    <w:lvl w:ilvl="0">
+      <w:start w:val="1" />
+      <w:numFmt w:val="decimal" />
+      <w:lvlText w:val="%1." />
+      <w:lvlJc w:val="left" />
+      <w:pPr>
+        <w:ind w:left="720" w:hanging="360" />
+      </w:pPr>
+    </w:lvl>
+    <w:lvl w:ilvl="1">
+      <w:start w:val="1" />
+      <w:numFmt w:val="lowerLetter" />
+      <w:lvlText w:val="%2." />
+      <w:lvlJc w:val="left" />
+      <w:pPr>
+        <w:ind w:left="1440" w:hanging="360" />
+      </w:pPr>
+    </w:lvl>
+    <w:lvl w:ilvl="2">
+      <w:start w:val="1" />
+      <w:numFmt w:val="lowerRoman" />
+      <w:lvlText w:val="%3." />
+      <w:lvlJc w:val="left" />
+      <w:pPr>
+        <w:ind w:left="2160" w:hanging="360" />
+      </w:pPr>
+    </w:lvl>
+  </w:abstractNum>
+
+  <!-- Concrete Numbering Instance for Bullets -->
+  <w:num w:numId="100">
+    <w:abstractNumId w:val="0" />
+  </w:num>
+
+  <!-- Concrete Numbering Instance for Numbers -->
+  <w:num w:numId="101">
+    <w:abstractNumId w:val="1" />
+  </w:num>
+
+</w:numbering>
