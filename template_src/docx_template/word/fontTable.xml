@@ -22,7 +22,9 @@
          xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex"
          xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid"
          xmlns="http://schemas.microsoft.com/office/tasks/2019/documenttasks"
-         xmlns:cr="http://schemas.microsoft.com/office/comments/2020/reactions">
+         xmlns:cr="http://schemas.microsoft.com/office/comments/2020/reactions"
+         mc:Ignorable="w14 w15 w16 w16cex w16cid cr">
+  <!-- Source Sans fonts from Google Docs export -->
   <w:font w:name="Source Sans 3 SemiBold">
     <w:embedRegular w:fontKey="{00000000-0000-0000-0000-000000000000}" r:id="rId1" w:subsetted="0" />
     <w:embedBold w:fontKey="{00000000-0000-0000-0000-000000000000}" r:id="rId2" w:subsetted="0" />
@@ -40,5 +42,104 @@
     <w:embedBold w:fontKey="{00000000-0000-0000-0000-000000000000}" r:id="rId10" w:subsetted="0" />
     <w:embedItalic w:fontKey="{00000000-0000-0000-0000-000000000000}" r:id="rId11" w:subsetted="0" />
     <w:embedBoldItalic w:fontKey="{00000000-0000-0000-0000-000000000000}" r:id="rId12" w:subsetted="0" />
+  </w:font>
+  <!-- Standard fonts from template -->
+  <w:font w:name="Symbol">
+    <w:panose1 w:val="00000000000000000000" />
+    <w:charset w:val="02" />
+    <w:family w:val="auto" />
+    <w:pitch w:val="variable" />
+    <w:sig w:usb0="00000000"
+           w:usb1="10000000"
+           w:usb2="00000000"
+           w:usb3="00000000"
+           w:csb0="80000000"
+           w:csb1="00000000" />
+  </w:font>
+  <w:font w:name="Times New Roman">
+    <w:panose1 w:val="02020603050405020304" />
+    <w:charset w:val="00" />
+    <w:family w:val="auto" />
+    <w:pitch w:val="variable" />
+    <w:sig w:usb0="E0002AFF"
+           w:usb1="C0007841"
+           w:usb2="00000009"
+           w:usb3="00000000"
+           w:csb0="000001FF"
+           w:csb1="00000000" />
+  </w:font>
+  <w:font w:name="Cambria">
+    <w:panose1 w:val="02040503050406030204" />
+    <w:charset w:val="00" />
+    <w:family w:val="auto" />
+    <w:pitch w:val="variable" />
+    <w:sig w:usb0="E00002FF"
+           w:usb1="400004FF"
+           w:usb2="00000000"
+           w:usb3="00000000"
+           w:csb0="0000019F"
+           w:csb1="00000000" />
+  </w:font>
+  <w:font w:name="ＭＳ 明朝">
+    <w:panose1 w:val="00000000000000000000" />
+    <w:charset w:val="80" />
+    <w:family w:val="roman" />
+    <w:notTrueType />
+    <w:pitch w:val="fixed" />
+    <w:sig w:usb0="00000001"
+           w:usb1="08070000"
+           w:usb2="00000010"
+           w:usb3="00000000"
+           w:csb0="00020000"
+           w:csb1="00000000" />
+  </w:font>
+  <w:font w:name="Calibri">
+    <w:panose1 w:val="020F0502020204030204" />
+    <w:charset w:val="00" />
+    <w:family w:val="auto" />
+    <w:pitch w:val="variable" />
+    <w:sig w:usb0="E10002FF"
+           w:usb1="4000ACFF"
+           w:usb2="00000009"
+           w:usb3="00000000"
+           w:csb0="0000019F"
+           w:csb1="00000000" />
+  </w:font>
+  <w:font w:name="ＭＳ ゴシック">
+    <w:panose1 w:val="00000000000000000000" />
+    <w:charset w:val="80" />
+    <w:family w:val="modern" />
+    <w:notTrueType />
+    <w:pitch w:val="fixed" />
+    <w:sig w:usb0="00000001"
+           w:usb1="08070000"
+           w:usb2="00000010"
+           w:usb3="00000000"
+           w:csb0="00020000"
+           w:csb1="00000000" />
+  </w:font>
+  <w:font w:name="Courier">
+    <w:panose1 w:val="02000500000000000000" />
+    <w:charset w:val="00" />
+    <w:family w:val="auto" />
+    <w:pitch w:val="variable" />
+    <w:sig w:usb0="00000003"
+           w:usb1="00000000"
+           w:usb2="00000000"
+           w:usb3="00000000"
+           w:csb0="00000001"
+           w:csb1="00000000" />
+  </w:font>
+  <w:font w:name="Arial">
+    <w:panose1 w:val="020B0604020202020204" />
+    <w:charset w:val="00" />
+    <w:family w:val="auto" />
+    <w:pitch w:val="variable" />
+    <w:sig w:usb0="E0002AFF"
+           w:usb1="C0007843"
+           w:usb2="00000009"
+           w:usb3="00000000"
+           w:csb0="000001FF"
+           w:csb1="00000000" />
   </w:font>
 </w:fonts>

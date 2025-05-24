@@ -65,8 +65,8 @@ class SimpleHtmlToDocx:
         """
         Convert HTML string to Document object.
         """
-        # docx_template = Path(__file__).parent.resolve() / "templates" / "docx_template.docx"
-        doc = docx.Document()
+        docx_template = Path(__file__).parent.resolve() / "templates" / "docx_template.docx"
+        doc = docx.Document(str(docx_template))
 
         soup: BeautifulSoup = BeautifulSoup(html, "html.parser")
 
@@ -627,9 +627,6 @@ def _normalize_html(html_str: str) -> str:
 
 
 def test_html_to_docx_conversion():
-    import os
-    import tempfile
-
     from kash.kits.docs.doc_formats import docx_convert
 
     converter = SimpleHtmlToDocx()
@@ -643,45 +640,49 @@ def test_html_to_docx_conversion():
     assert len(doc.tables) > 0
 
     # Test file conversion
-    with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as temp_html:
-        temp_html.write(_SAMPLE_HTML.encode("utf-8"))
-        temp_html_path = temp_html.name
+    out_dir = Path("tmp")
+    out_dir.mkdir(exist_ok=True)
+    temp_html_path = out_dir / "test_doc.html"
+    temp_docx_path = out_dir / "test_doc.docx"
 
-    temp_docx_path = Path(temp_html_path.replace(".html", ".docx"))
-    try:
-        converter.convert_html_file(temp_html_path, temp_docx_path)
+    with open(temp_html_path, "w") as temp_html:
+        temp_html.write(_SAMPLE_HTML)
 
-        # Verify file exists and has content
-        assert temp_docx_path.exists()
-        assert temp_docx_path.stat().st_size > 0
+    converter.convert_html_file(temp_html_path, temp_docx_path)
 
-        md = docx_convert.docx_to_md(temp_docx_path)
+    # Verify file exists and has content
+    assert temp_docx_path.exists()
+    assert temp_docx_path.stat().st_size > 0
 
-        # Normalize HTML for comparison
-        actual_html_normalized = _normalize_html(md.raw_html)
-        expected_html_normalized = _normalize_html(_EXPECTED_HTML)
+    md = docx_convert.docx_to_md(temp_docx_path)
 
-        # Print for debugging if needed
-        if actual_html_normalized != expected_html_normalized:
-            import difflib
+    # Normalize HTML for comparison
+    actual_html_normalized = _normalize_html(md.raw_html)
+    expected_html_normalized = _normalize_html(_EXPECTED_HTML)
 
-            print("=== HTML DIFF ===")
-            diff = difflib.unified_diff(
-                expected_html_normalized.splitlines(keepends=True),
-                actual_html_normalized.splitlines(keepends=True),
-                fromfile="expected",
-                tofile="actual",
-                lineterm="",
-            )
-            print("".join(diff))
+    # Print for debugging if needed
+    if actual_html_normalized != expected_html_normalized:
+        import difflib
 
-        # Compare normalized HTML and raw markdown
-        assert actual_html_normalized == expected_html_normalized
-        assert md.markdown.strip() == _EXPECTED_MD.strip()
+        print("=== HTML DIFF ===")
+        diff = difflib.unified_diff(
+            expected_html_normalized.splitlines(keepends=True),
+            actual_html_normalized.splitlines(keepends=True),
+            fromfile="expected",
+            tofile="actual",
+            lineterm="",
+        )
+        print("".join(diff))
 
-    finally:
-        # Clean up temp files
-        if os.path.exists(temp_html_path):
-            os.unlink(temp_html_path)
-        if os.path.exists(temp_docx_path):
-            os.unlink(temp_docx_path)
+    print("=== DOCX OUTPUT ===")
+    print(f"{temp_docx_path}")
+
+    # Compare normalized HTML and raw markdown
+    assert actual_html_normalized == expected_html_normalized
+    assert md.markdown.strip() == _EXPECTED_MD.strip()
+
+    # Clean up temp files
+    # if os.path.exists(temp_html_path):
+    #     os.unlink(temp_html_path)
+    # if os.path.exists(temp_docx_path):
+    #     os.unlink(temp_docx_path)

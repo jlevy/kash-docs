@@ -1,33 +1,26 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:styles xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<w:styles xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
+          xmlns:mo="http://schemas.microsoft.com/office/mac/office/2008/main"
+          xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+          xmlns:mv="urn:schemas-microsoft-com:mac:vml"
           xmlns:o="urn:schemas-microsoft-com:office:office"
           xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
           xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
           xmlns:v="urn:schemas-microsoft-com:vml"
+          xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
           xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
           xmlns:w10="urn:schemas-microsoft-com:office:word"
           xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-          xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml"
-          xmlns:sl="http://schemas.openxmlformats.org/schemaLibrary/2006/main"
-          xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
-          xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"
-          xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"
-          xmlns:lc="http://schemas.openxmlformats.org/drawingml/2006/lockedCanvas"
-          xmlns:dgm="http://schemas.openxmlformats.org/drawingml/2006/diagram"
-          xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
-          xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
           xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
-          xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml"
-          xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml"
-          xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex"
-          xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid"
-          xmlns="http://schemas.microsoft.com/office/tasks/2019/documenttasks"
-          xmlns:cr="http://schemas.microsoft.com/office/comments/2020/reactions"
-          mc:Ignorable="w14 w15 w16 w16cex w16cid cr">
+          xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
+          xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+          xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml"
+          xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
+          mc:Ignorable="w14 wp14">
   <w:docDefaults>
     <w:rPrDefault>
       <w:rPr>
-        <w:rFonts w:ascii="Source Sans 3" w:cs="Source Sans 3" w:eastAsia="Source Sans 3" w:hAnsi="Source Sans 3" />
+        <w:rFonts w:asciiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia" w:hAnsiTheme="minorHAnsi" w:cstheme="minorBidi" />
         <w:sz w:val="22" />
         <w:szCs w:val="22" />
         <w:lang w:val="en-US" w:eastAsia="en-US" w:bidi="ar-SA" />
@@ -35,7 +28,7 @@
     </w:rPrDefault>
     <w:pPrDefault>
       <w:pPr>
-        <w:spacing w:after="160" w:before="160" w:line="276" w:lineRule="auto" />
+        <w:spacing w:after="200" w:line="276" w:lineRule="auto" />
       </w:pPr>
     </w:pPrDefault>
   </w:docDefaults>
@@ -243,14 +236,11 @@
     <w:lsdException w:name="Bibliography" w:uiPriority="37" />
     <w:lsdException w:name="TOC Heading" w:uiPriority="39" w:qFormat="1" />
   </w:latentStyles>
-  <!-- Core paragraph styles -->
   <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
     <w:name w:val="Normal" />
     <w:qFormat />
     <w:rsid w:val="00FC693F" />
   </w:style>
-  
-  <!-- Heading styles with Google Docs fonts and formatting -->
   <w:style w:type="paragraph" w:styleId="Heading1">
     <w:name w:val="heading 1" />
     <w:basedOn w:val="Normal" />
@@ -260,18 +250,20 @@
     <w:qFormat />
     <w:rsid w:val="00FC693F" />
     <w:pPr>
-      <w:keepNext w:val="1" />
-      <w:keepLines w:val="1" />
-      <w:spacing w:after="80" w:before="320" w:line="192" w:lineRule="auto" />
+      <w:keepNext />
+      <w:keepLines />
+      <w:spacing w:before="480" w:after="0" />
       <w:outlineLvl w:val="0" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:ascii="Source Sans 3 Medium" w:cs="Source Sans 3 Medium" w:eastAsia="Source Sans 3 Medium" w:hAnsi="Source Sans 3 Medium" />
-      <w:sz w:val="30" />
-      <w:szCs w:val="30" />
+      <w:rFonts w:asciiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorHAnsi" w:cstheme="majorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="365F91" w:themeColor="accent1" w:themeShade="BF" />
+      <w:sz w:val="28" />
+      <w:szCs w:val="28" />
     </w:rPr>
   </w:style>
-  
   <w:style w:type="paragraph" w:styleId="Heading2">
     <w:name w:val="heading 2" />
     <w:basedOn w:val="Normal" />
@@ -282,19 +274,20 @@
     <w:qFormat />
     <w:rsid w:val="00FC693F" />
     <w:pPr>
-      <w:keepNext w:val="1" />
-      <w:keepLines w:val="1" />
-      <w:spacing w:after="80" w:before="200" w:line="192" w:lineRule="auto" />
+      <w:keepNext />
+      <w:keepLines />
+      <w:spacing w:before="200" w:after="0" />
       <w:outlineLvl w:val="1" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:ascii="Source Sans 3 Medium" w:cs="Source Sans 3 Medium" w:eastAsia="Source Sans 3 Medium" w:hAnsi="Source Sans 3 Medium" />
-      <w:i w:val="1" />
-      <w:sz w:val="24" />
-      <w:szCs w:val="24" />
+      <w:rFonts w:asciiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorHAnsi" w:cstheme="majorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="4F81BD" w:themeColor="accent1" />
+      <w:sz w:val="26" />
+      <w:szCs w:val="26" />
     </w:rPr>
   </w:style>
-  
   <w:style w:type="paragraph" w:styleId="Heading3">
     <w:name w:val="heading 3" />
     <w:basedOn w:val="Normal" />
@@ -305,17 +298,18 @@
     <w:qFormat />
     <w:rsid w:val="00FC693F" />
     <w:pPr>
-      <w:keepNext w:val="1" />
-      <w:keepLines w:val="1" />
-      <w:spacing w:after="80" w:before="200" w:line="192" w:lineRule="auto" />
+      <w:keepNext />
+      <w:keepLines />
+      <w:spacing w:before="200" w:after="0" />
       <w:outlineLvl w:val="2" />
     </w:pPr>
     <w:rPr>
-      <w:b w:val="1" />
-      <w:bCs w:val="1" />
+      <w:rFonts w:asciiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorHAnsi" w:cstheme="majorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:color w:val="4F81BD" w:themeColor="accent1" />
     </w:rPr>
   </w:style>
-  
   <w:style w:type="paragraph" w:styleId="Heading4">
     <w:name w:val="heading 4" />
     <w:basedOn w:val="Normal" />
@@ -327,17 +321,20 @@
     <w:qFormat />
     <w:rsid w:val="00FC693F" />
     <w:pPr>
-      <w:keepNext w:val="1" />
-      <w:keepLines w:val="1" />
-      <w:spacing w:after="80" w:before="200" w:line="192" w:lineRule="auto" />
+      <w:keepNext />
+      <w:keepLines />
+      <w:spacing w:before="200" w:after="0" />
       <w:outlineLvl w:val="3" />
     </w:pPr>
     <w:rPr>
-      <w:b w:val="1" />
-      <w:bCs w:val="1" />
+      <w:rFonts w:asciiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorHAnsi" w:cstheme="majorBidi" />
+      <w:b />
+      <w:bCs />
+      <w:i />
+      <w:iCs />
+      <w:color w:val="4F81BD" w:themeColor="accent1" />
     </w:rPr>
   </w:style>
-  
   <w:style w:type="paragraph" w:styleId="Heading5">
     <w:name w:val="heading 5" />
     <w:basedOn w:val="Normal" />
@@ -349,17 +346,16 @@
     <w:qFormat />
     <w:rsid w:val="00FC693F" />
     <w:pPr>
-      <w:keepNext w:val="1" />
-      <w:keepLines w:val="1" />
-      <w:spacing w:after="80" w:before="200" w:line="192" w:lineRule="auto" />
+      <w:keepNext />
+      <w:keepLines />
+      <w:spacing w:before="200" w:after="0" />
       <w:outlineLvl w:val="4" />
     </w:pPr>
     <w:rPr>
-      <w:i w:val="1" />
-      <w:color w:val="434343" />
+      <w:rFonts w:asciiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorHAnsi" w:cstheme="majorBidi" />
+      <w:color w:val="243F60" w:themeColor="accent1" w:themeShade="7F" />
     </w:rPr>
   </w:style>
-  
   <w:style w:type="paragraph" w:styleId="Heading6">
     <w:name w:val="heading 6" />
     <w:basedOn w:val="Normal" />
@@ -371,20 +367,18 @@
     <w:qFormat />
     <w:rsid w:val="00FC693F" />
     <w:pPr>
-      <w:keepNext w:val="1" />
-      <w:keepLines w:val="1" />
-      <w:spacing w:after="80" w:before="200" w:line="192" w:lineRule="auto" />
+      <w:keepNext />
+      <w:keepLines />
+      <w:spacing w:before="200" w:after="0" />
       <w:outlineLvl w:val="5" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:ascii="Source Sans 3 Medium" w:cs="Source Sans 3 Medium" w:eastAsia="Source Sans 3 Medium" w:hAnsi="Source Sans 3 Medium" />
-      <w:color w:val="434343" />
-      <w:sz w:val="18" />
-      <w:szCs w:val="18" />
+      <w:rFonts w:asciiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorHAnsi" w:cstheme="majorBidi" />
+      <w:i />
+      <w:iCs />
+      <w:color w:val="243F60" w:themeColor="accent1" w:themeShade="7F" />
     </w:rPr>
   </w:style>
-  
-  <!-- Preserve Heading 7, 8, 9 from original template but update fonts -->
   <w:style w:type="paragraph" w:styleId="Heading7">
     <w:name w:val="heading 7" />
     <w:basedOn w:val="Normal" />
@@ -402,98 +396,59 @@
       <w:outlineLvl w:val="6" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:ascii="Source Sans 3" w:cs="Source Sans 3" w:eastAsia="Source Sans 3" w:hAnsi="Source Sans 3" />
+      <w:rFonts w:asciiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorHAnsi" w:cstheme="majorBidi" />
       <w:i />
       <w:iCs />
       <w:color w:val="404040" w:themeColor="text1" w:themeTint="BF" />
     </w:rPr>
   </w:style>
-  
-  <!-- Title and Subtitle with Google Docs fonts -->
-  <w:style w:type="paragraph" w:styleId="Title">
-    <w:name w:val="Title" />
+  <w:style w:type="paragraph" w:styleId="Heading8">
+    <w:name w:val="heading 8" />
     <w:basedOn w:val="Normal" />
     <w:next w:val="Normal" />
-    <w:link w:val="TitleChar" />
-    <w:uiPriority w:val="10" />
+    <w:link w:val="Heading8Char" />
+    <w:uiPriority w:val="9" />
+    <w:semiHidden />
+    <w:unhideWhenUsed />
     <w:qFormat />
     <w:rsid w:val="00FC693F" />
     <w:pPr>
-      <w:keepNext w:val="1" />
-      <w:keepLines w:val="1" />
-      <w:spacing w:after="120" w:lineRule="auto" />
-      <w:contextualSpacing />
+      <w:keepNext />
+      <w:keepLines />
+      <w:spacing w:before="200" w:after="0" />
+      <w:outlineLvl w:val="7" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:ascii="Source Sans 3 Medium" w:cs="Source Sans 3 Medium" w:eastAsia="Source Sans 3 Medium" w:hAnsi="Source Sans 3 Medium" />
-      <w:sz w:val="40" />
-      <w:szCs w:val="40" />
+      <w:rFonts w:asciiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorHAnsi" w:cstheme="majorBidi" />
+      <w:color w:val="4F81BD" w:themeColor="accent1" />
+      <w:sz w:val="20" />
+      <w:szCs w:val="20" />
     </w:rPr>
   </w:style>
-  
-  <w:style w:type="paragraph" w:styleId="Subtitle">
-    <w:name w:val="Subtitle" />
+  <w:style w:type="paragraph" w:styleId="Heading9">
+    <w:name w:val="heading 9" />
     <w:basedOn w:val="Normal" />
     <w:next w:val="Normal" />
-    <w:link w:val="SubtitleChar" />
-    <w:uiPriority w:val="11" />
+    <w:link w:val="Heading9Char" />
+    <w:uiPriority w:val="9" />
+    <w:semiHidden />
+    <w:unhideWhenUsed />
     <w:qFormat />
     <w:rsid w:val="00FC693F" />
     <w:pPr>
-      <w:keepNext w:val="1" />
-      <w:keepLines w:val="1" />
-      <w:spacing w:after="80" w:before="80" w:lineRule="auto" />
+      <w:keepNext />
+      <w:keepLines />
+      <w:spacing w:before="200" w:after="0" />
+      <w:outlineLvl w:val="8" />
     </w:pPr>
     <w:rPr>
-      <w:rFonts w:ascii="Source Sans 3 SemiBold" w:cs="Source Sans 3 SemiBold" w:eastAsia="Source Sans 3 SemiBold" w:hAnsi="Source Sans 3 SemiBold" />
-      <w:sz w:val="28" />
-      <w:szCs w:val="28" />
+      <w:rFonts w:asciiTheme="majorHAnsi" w:eastAsiaTheme="majorEastAsia" w:hAnsiTheme="majorHAnsi" w:cstheme="majorBidi" />
+      <w:i />
+      <w:iCs />
+      <w:color w:val="404040" w:themeColor="text1" w:themeTint="BF" />
+      <w:sz w:val="20" />
+      <w:szCs w:val="20" />
     </w:rPr>
-  </w:style>
-  
-  <w:style w:type="paragraph" w:styleId="Header">
-    <w:name w:val="header" />
-    <w:basedOn w:val="Normal" />
-    <w:link w:val="HeaderChar" />
-    <w:uiPriority w:val="99" />
-    <w:unhideWhenUsed />
-    <w:rsid w:val="00E618BF" />
-    <w:pPr>
-      <w:tabs>
-        <w:tab w:val="center" w:pos="4680" />
-        <w:tab w:val="right" w:pos="9360" />
-      </w:tabs>
-      <w:spacing w:after="0" w:line="240" w:lineRule="auto" />
-    </w:pPr>
-  </w:style>
-  <w:style w:type="character" w:customStyle="1" w:styleId="HeaderChar">
-    <w:name w:val="Header Char" />
-    <w:basedOn w:val="DefaultParagraphFont" />
-    <w:link w:val="Header" />
-    <w:uiPriority w:val="99" />
-    <w:rsid w:val="00E618BF" />
-  </w:style>
-  <w:style w:type="paragraph" w:styleId="Footer">
-    <w:name w:val="footer" />
-    <w:basedOn w:val="Normal" />
-    <w:link w:val="FooterChar" />
-    <w:uiPriority w:val="99" />
-    <w:unhideWhenUsed />
-    <w:rsid w:val="00E618BF" />
-    <w:pPr>
-      <w:tabs>
-        <w:tab w:val="center" w:pos="4680" />
-        <w:tab w:val="right" w:pos="9360" />
-      </w:tabs>
-      <w:spacing w:after="0" w:line="240" w:lineRule="auto" />
-    </w:pPr>
-  </w:style>
-  <w:style w:type="character" w:customStyle="1" w:styleId="FooterChar">
-    <w:name w:val="Footer Char" />
-    <w:basedOn w:val="DefaultParagraphFont" />
-    <w:link w:val="Footer" />
-    <w:uiPriority w:val="99" />
-    <w:rsid w:val="00E618BF" />
   </w:style>
   <w:style w:type="character" w:default="1" w:styleId="DefaultParagraphFont">
     <w:name w:val="Default Paragraph Font" />
