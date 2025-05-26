@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 
 class DocxStyle(Enum):
-    """Enum for standard and custom DOCX style names."""
+    """Enum for standard and custom .docx style names."""
 
     NORMAL = "Normal"
     HEADING_1 = "Heading 1"
@@ -54,7 +54,7 @@ class DocxStyle(Enum):
 @dataclass
 class SimpleHtmlToDocx:
     """
-    Convert restricted (simple, markdown-generated) HTML to DOCX format.
+    Convert restricted (simple, markdown-generated) HTML to .docx format.
     """
 
     list_indent: float = 0.4  # inches
@@ -77,7 +77,7 @@ class SimpleHtmlToDocx:
         self, input_path: Path | str, output_path: Path | str | None = None
     ) -> None:
         """
-        Convert HTML file to DOCX file.
+        Convert HTML file to .docx file.
         """
         input_path = Path(input_path)
         try:
@@ -490,7 +490,7 @@ class SimpleHtmlToDocx:
             log.warning(
                 f"Style '{style_name}' not found in template. "
                 f"Attempting to add a basic '{style_type.name}' style. "
-                f"For proper formatting, define this style in your DOCX template."
+                f"For proper formatting, define this style in your .docx template."
             )
             doc.styles.add_style(style_name, style_type)
             created_style = doc.styles[style_name]

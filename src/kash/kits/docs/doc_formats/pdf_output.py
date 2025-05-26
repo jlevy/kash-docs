@@ -53,11 +53,13 @@ def weasyprint_setup() -> None:
 
 def html_to_pdf(
     html_content: str,
-    output_file_path: str,
+    pdf_out_path: Path,
     title: str | None = None,
+    html_out_path: Path | None = None,
 ) -> None:
     """
-    Converts an HTML doc to a nicely formatted PDF file.
+    Converts an HTML doc to a nicely formatted PDF file. Optionally also saves
+    the HTML template.
     """
 
     today = datetime.now().strftime("%Y-%m-%d")
@@ -93,10 +95,14 @@ def html_to_pdf(
             },
         )
 
+    if html_out_path:
+        with atomic_output_file(html_out_path, make_parents=True) as temp_file_path:
+            temp_file_path.write_text(full_html)
+
     # Create PDF.
     weasyprint_setup()
     import weasyprint
 
     weasy_html = weasyprint.HTML(string=full_html)
-    with atomic_output_file(output_file_path, make_parents=True) as temp_file_path:
+    with atomic_output_file(pdf_out_path, make_parents=True) as temp_file_path:
         weasy_html.write_pdf(temp_file_path)

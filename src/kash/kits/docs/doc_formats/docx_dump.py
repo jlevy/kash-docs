@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 def read_mammoth_docx(docx_path: Path) -> Document:
     """
-    Parses a DOCX file using Mammoth and pretty-prints the internal document structure.
+    Parses a .docx file using Mammoth and pretty-prints the internal document structure.
     """
     from mammoth.docx import read as read_docx
 
@@ -21,7 +21,7 @@ def read_mammoth_docx(docx_path: Path) -> Document:
 
 def dump_mammoth_docx(docx_path: Path) -> object:
     """
-    Parses a DOCX file using Mammoth and returns the internal document
+    Parses a .docx file using Mammoth and returns the internal document
     structure as a dictionary.
     """
     return cobble_to_dict(read_mammoth_docx(docx_path))
