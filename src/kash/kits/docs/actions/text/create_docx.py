@@ -25,7 +25,7 @@ def create_docx(item: Item) -> Item:
     assert item.store_path
 
     docx_item = item.derived_copy(type=ItemType.export, format=Format.docx, file_ext=FileExt.docx)
-    docx_path, _found, _old_docx_path = current_ws().store_path_for(docx_item)
+    docx_path, _old_docx_path = current_ws().store_path_for(docx_item)
     full_docx_path = current_ws().base_dir / docx_path
 
     content_html = item.body_as_html()

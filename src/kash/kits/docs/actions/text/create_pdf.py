@@ -23,7 +23,7 @@ def create_pdf(item: Item, save_html: bool = False) -> Item:
         raise InvalidInput(f"Item must have a body: {item}")
 
     pdf_item = item.derived_copy(type=ItemType.export, format=Format.pdf, file_ext=FileExt.pdf)
-    pdf_store_path, _found, _old_pdf_path = current_ws().store_path_for(pdf_item)
+    pdf_store_path, _old_pdf_path = current_ws().store_path_for(pdf_item)
     log.message("Will save PDF to: %s", fmt_loc(pdf_store_path))
     pdf_path = current_ws().base_dir / pdf_store_path
 
@@ -31,7 +31,7 @@ def create_pdf(item: Item, save_html: bool = False) -> Item:
         html_item = item.derived_copy(
             type=ItemType.export, format=Format.html, file_ext=FileExt.html
         )
-        html_store_path, _found, _old_html_path = current_ws().store_path_for(html_item)
+        html_store_path, _old_html_path = current_ws().store_path_for(html_item)
         log.message("Will save HTML to: %s", fmt_loc(html_store_path))
         html_path = current_ws().base_dir / html_store_path
     else:
