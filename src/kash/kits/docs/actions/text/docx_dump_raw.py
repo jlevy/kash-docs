@@ -19,6 +19,6 @@ def docx_dump_raw(item: Item) -> Item:
     return item.derived_copy(
         type=ItemType.config,
         format=Format.yaml,
-        title=f"{item.abbrev_title()} (raw dump)",
+        title=f"{item.pick_title()} (raw dump)",
         body=yaml_body,
     )

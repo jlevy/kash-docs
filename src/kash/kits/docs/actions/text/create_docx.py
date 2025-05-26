@@ -28,12 +28,10 @@ def create_docx(item: Item) -> Item:
     docx_path, _found, _old_docx_path = current_ws().store_path_for(docx_item)
     full_docx_path = current_ws().base_dir / docx_path
 
-    clean_title = item.abbrev_title(pull_body_heading=True)
+    content_html = item.body_as_html()
 
-    content_html = f"""<h1>{clean_title}</h1>\n{item.body_as_html()}"""
-
-    # html4docx to create the DOCX file.
-    # This version has issues with formatting paragraphs inside items.
+    # Trying html4docx:
+    # This approach has issues with extra linebreaks if there are paragraphs inside items.
     # parser = HtmlToDocx()
     # parser.table_style = "Table Grid"  # Add borders to tables
     # docx = parser.parse_html_string(content_html)

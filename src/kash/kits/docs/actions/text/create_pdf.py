@@ -26,22 +26,10 @@ def create_pdf(item: Item) -> Item:
     log.message("Will save PDF to: %s", fmt_loc(pdf_path))
     full_pdf_path = current_ws().base_dir / pdf_path
 
-    clean_title = item.abbrev_title(pull_body_heading=True)
-
-    # Convert to HTML if necessary.
-    if item.format == Format.html:
-        content_html = f"""
-            <h1>{clean_title}</h1>
-            {item.body_text()}
-            """
-    else:
-        content_html = f"""
-            <h1>{clean_title}</h1>
-            {item.body_as_html()}
-            """
+    html = item.body_as_html()
 
     # Add directly to the store.
-    html_to_pdf(content_html, str(full_pdf_path), title=item.title)
+    html_to_pdf(html, str(full_pdf_path), title=item.title)
     pdf_item.external_path = str(full_pdf_path)
 
     return pdf_item
