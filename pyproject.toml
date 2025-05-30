@@ -70,7 +70,8 @@ dependencies = [
     # "pypandoc-binary>=1.15",
     "beautifulsoup4>=4.13.4",
     "html5lib>=1.1",
-    "minify-html>=0.16.4",
+    # https://github.com/wilsonzlin/minify-html/issues/236 means JS minification can break.
+    "minify-html>=0.16.4", 
     # Docx support.
     "python-docx>=1.1.2",
     # "html-for-docx>=1.0.6",  # Had some issues, using our own for now.

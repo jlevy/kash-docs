@@ -1352,7 +1352,7 @@ requires-dist = [
     { name = "kash-shell", git = "https://github.com/jlevy/kash.git" },
     { name = "marker-pdf", extras = ["full"], marker = "extra == 'full'", specifier = ">=1.6.2" },
     { name = "markitdown", extras = ["docx"], specifier = ">=0.1.1" },
-    { name = "minify-html", specifier = ">=0.16.4" },
+    { name = "minify-html", specifier = "==0.16.4" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pyrate-limiter", specifier = ">=3.7.0" },
     { name = "python-docx", specifier = ">=1.1.2" },
