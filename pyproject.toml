@@ -39,7 +39,7 @@ classifiers = [
 
 dependencies = [
     # Main kash and doc-handling deps:
-    "kash-shell>=0.3.16",
+    "kash-shell>=0.3.17",
     # Utilities:
     "rich>=14.0.0",
     "rich-argparse>=1.7.0",
@@ -103,7 +103,7 @@ dev = [
 
 [tool.uv.sources]
 # For bleeding edge:
-kash-shell = { git = "https://github.com/jlevy/kash.git" }
+# kash-shell = { git = "https://github.com/jlevy/kash.git" }
 # For local development:
 # kash-shell = { path = "../kash", editable = true }
 
