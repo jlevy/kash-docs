@@ -10,6 +10,7 @@ from kash.exec.preconditions import (
     is_url_resource,
 )
 from kash.kits.docs.actions.text.docx_to_md import docx_to_md
+from kash.kits.docs.actions.text.pdf_to_md import pdf_to_md
 from kash.model import ActionInput, ActionResult
 from kash.utils.errors import InvalidInput
 
@@ -19,13 +20,14 @@ log = get_logger(__name__)
 @kash_action(
     precondition=is_url_resource
     | is_docx_resource
-    # | is_pdf_resource
+    | is_pdf_resource
     | has_html_body
     | has_simple_text_body
 )
 def markdownify_doc(input: ActionInput) -> ActionResult:
     """
-    Convert a document to Markdown, handling HTML (like `markdownify`) as well as docx files.
+    A more flexible `markdownify` action that converts documents of multiple formats
+    to Markdown, handling HTML as well as PDF and .docx files.
     """
     item = input.items[0]
     if is_url_resource(item) or has_fullpage_html_body(item):
@@ -37,7 +39,8 @@ def markdownify_doc(input: ActionInput) -> ActionResult:
         # First do basic conversion to markdown.
         result_item = docx_to_md(item)
     elif is_pdf_resource(item):
-        raise NotImplementedError("PDF conversion not implemented yet.")  # FIXME
+        log.message("Converting PDF to Markdown with custom MarkItDown/WeasyPrint/Markdownify...")
+        result_item = pdf_to_md(item)
     elif has_simple_text_body(item):
         log.message("Document already simple text so not converting further.")
         result_item = item

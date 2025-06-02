@@ -4,6 +4,7 @@
 tmp/
 trash/
 attic/
+.worktrees/
 .envrc
 .kash/
 

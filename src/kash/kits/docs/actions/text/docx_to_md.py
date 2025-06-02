@@ -1,6 +1,6 @@
 from kash.exec import kash_action
 from kash.exec.preconditions import is_docx_resource
-from kash.kits.docs.doc_formats import docx_convert
+from kash.kits.docs.doc_formats import markitdown_convert
 from kash.kits.docs.doc_formats.doc_cleanups import gemini_cleanups
 from kash.kits.docs.doc_formats.markdown_footnotes import convert_endnotes_to_footnotes
 from kash.model import Format, Item, ItemType
@@ -21,7 +21,7 @@ def docx_to_md(item: Item) -> Item:
     uses this action, to convert documents of multiple formats to Markdown.
     """
 
-    result = docx_convert.docx_to_md(item.absolute_path())
+    result = markitdown_convert.docx_to_md(item.absolute_path())
 
     # Cleanups for Gemini reports. Should be fine on other files too.
     body = gemini_cleanups(result.markdown)

@@ -64,8 +64,8 @@ dependencies = [
     "pandas>=2.2.3",
     # markitdown seems to work well now we've customized it, so using instead of pandoc currently.
     # currently using docx support only.
-    "markitdown[docx]>=0.1.1",
-    # "markitdown[all]>=0.1.1",
+    "markitdown[docx,pdf]>=0.1.2",
+    # "markitdown[all]>=0.1.2",
     # pandoc may still be useful in the future.
     # "pypandoc-binary>=1.15",
     "beautifulsoup4>=4.13.4",
@@ -103,7 +103,7 @@ dev = [
 
 [tool.uv.sources]
 # For bleeding edge:
-# kash-shell = { git = "https://github.com/jlevy/kash.git" }
+kash-shell = { git = "https://github.com/jlevy/kash.git" }
 # For local development:
 # kash-shell = { path = "../kash", editable = true }
 

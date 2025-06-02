@@ -125,8 +125,8 @@ class CustomDocxConverter(DocxConverter):
 
 @dataclass(frozen=True)
 class MarkdownResult:
-    raw_html: str
     markdown: str
+    raw_html: str | None
     title: str | None
 
 
@@ -155,4 +155,18 @@ def docx_to_md(
     mid.register_converter(docx_converter)
     result = cast(CustomDCResult, mid.convert(docx_path))
 
-    return MarkdownResult(raw_html=result.html, markdown=result.markdown, title=result.title)
+    return MarkdownResult(markdown=result.markdown, raw_html=result.html, title=result.title)
+
+
+def pdf_to_md(pdf_path: Path) -> MarkdownResult:
+    """
+    Convert a PDF file to Markdown using MarkItDown.
+    Does not normalize the Markdown.
+    """
+
+    from markitdown import MarkItDown
+
+    mid = MarkItDown(enable_plugins=False)
+    result = mid.convert(pdf_path)
+
+    return MarkdownResult(markdown=result.markdown, raw_html=None, title=result.title)

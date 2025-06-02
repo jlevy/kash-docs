@@ -627,7 +627,7 @@ def _normalize_html(html_str: str) -> str:
 
 
 def test_html_to_docx_conversion():
-    from kash.kits.docs.doc_formats import docx_convert
+    from kash.kits.docs.doc_formats import markitdown_convert
 
     converter = SimpleHtmlToDocx()
 
@@ -654,9 +654,10 @@ def test_html_to_docx_conversion():
     assert temp_docx_path.exists()
     assert temp_docx_path.stat().st_size > 0
 
-    md = docx_convert.docx_to_md(temp_docx_path)
+    md = markitdown_convert.docx_to_md(temp_docx_path)
 
     # Normalize HTML for comparison
+    assert md.raw_html
     actual_html_normalized = _normalize_html(md.raw_html)
     expected_html_normalized = _normalize_html(_EXPECTED_HTML)
 
