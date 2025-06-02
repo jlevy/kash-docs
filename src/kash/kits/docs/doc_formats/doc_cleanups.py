@@ -1,4 +1,24 @@
+import logging
 import re
+
+from chopdiff.docs import diff_wordtoks, wordtokenize
+
+log = logging.getLogger(__name__)
+
+
+def _fix_literal_sups_bug(body: str) -> str:
+    """
+    Gemini sometimes puts explicit `sup` tags around superscripts (in addition to them
+    already being superscripts).
+    """
+
+    return (
+        body.replace("&lt;sup&gt;<sup>", "<sup>")
+        .replace("&lt;sup><sup>", "<sup>")
+        .replace("</sup>&lt;/sup&gt;", "</sup>")
+        .replace("</sup>&lt;/sup>", "</sup>")
+    )
+
 
 _sup_space_pat = re.compile(r" +<sup>")
 
@@ -22,10 +42,17 @@ def _fix_works_cited(body: str) -> str:
 def gemini_cleanups(body: str) -> str:
     """
     Extra modifications to clean up Gemini Deep Research output.
-    Should be safe for other docs as well.
+    Rare replacements that should be safe for other docs as well.
     """
 
-    body = _fix_sup_space(body)
-    body = _fix_works_cited(body)
+    new_body = _fix_literal_sups_bug(body)
+    new_body = _fix_sup_space(new_body)
+    new_body = _fix_works_cited(new_body)
 
-    return body
+    diff = diff_wordtoks(wordtokenize(body), wordtokenize(new_body))
+    if diff.stats().nchanges() > 0:
+        log.warning(
+            "Seems to be a Gemini doc output that needed cleanups: %s word tokens", diff.stats()
+        )
+
+    return new_body

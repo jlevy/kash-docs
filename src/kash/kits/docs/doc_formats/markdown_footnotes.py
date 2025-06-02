@@ -5,7 +5,7 @@ log = logging.getLogger(__name__)
 _FOOTNOTE_INDENT = "    "
 
 
-def convert_endnotes_to_footnotes(text: str, strict: bool = True) -> str:
+def convert_endnotes_to_footnotes(text: str, strict: bool = False) -> str:
     """
     Detects and converts docx-style endnotes (superscript footnotes marked with
     `<sup>n</sup>` tags and an enumerated list of notes) to GitHub-style footnotes.

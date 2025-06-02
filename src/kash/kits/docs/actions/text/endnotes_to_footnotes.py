@@ -16,7 +16,7 @@ def endnotes_to_footnotes(item: Item) -> Item:
     if not item.body:
         raise ValueError("Item has no body")
 
-    new_body = convert_endnotes_to_footnotes(item.body, strict=False)
+    new_body = convert_endnotes_to_footnotes(item.body)
 
     return item.derived_copy(
         type=ItemType.doc,
