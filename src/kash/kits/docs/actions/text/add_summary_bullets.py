@@ -1,4 +1,4 @@
-from chopdiff.html.html_in_md import div_wrapper, tag_with_attrs
+from chopdiff.html import Attrs, div_wrapper, tag_with_attrs
 
 from kash.config.logger import get_logger
 from kash.exec import kash_action
@@ -51,11 +51,11 @@ def add_summary_bullets(
         assert summary_item.body
 
         # If there's only one summary, make the title simply "Summary" and expand it by default.
+        details_attrs: Attrs = {}
         if one_summary:
-            details_attrs = {"open": ""}
+            details_attrs = {"open": True}
             summary_title = "Summary"
         else:
-            details_attrs = {}
             summary_title = f"Summary ({model})"
 
         details_div = div_wrapper(class_name=SUMMARY, attrs={"data-model": model})(
