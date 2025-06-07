@@ -11,9 +11,12 @@ from kash.utils.errors import InvalidInput
         Param("no_css_min", "Disable CSS minification", bool),
     ),
 )
-def minify_html(item: Item, no_js_min: bool = False, no_css_min: bool = False) -> Item:
+def minify_html_fast(item: Item, no_js_min: bool = False, no_css_min: bool = False) -> Item:
     """
-    Minify an HTML item's content using minify_html, a modern Rust-based minifier.
+    Minify an HTML item's content using minify_html, a fast, modern Rust-based minifier.
+
+    This is convenient but seems to have a few bugs with JS minification:
+    https://github.com/wilsonzlin/minify-html/issues/236
     """
     from minify_html import minify
 
