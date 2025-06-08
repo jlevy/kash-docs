@@ -25,8 +25,7 @@ def create_docx(item: Item) -> Item:
     assert item.store_path
 
     docx_item = item.derived_copy(type=ItemType.export, format=Format.docx, file_ext=FileExt.docx)
-    docx_path, _old_docx_path = current_ws().store_path_for(docx_item)
-    full_docx_path = current_ws().base_dir / docx_path
+    target_docx_path = current_ws().target_path_for(docx_item)
 
     content_html = item.body_as_html()
 
@@ -36,11 +35,12 @@ def create_docx(item: Item) -> Item:
     # parser.table_style = "Table Grid"  # Add borders to tables
     # docx = parser.parse_html_string(content_html)
 
-    # Using our own simpler converter instead.
+    # Using our own simpler converter instead and write directly to the store.
     docx = SimpleHtmlToDocx().convert_html_string(content_html)
-    with atomic_output_file(full_docx_path, make_parents=True) as f:
+    with atomic_output_file(target_docx_path, make_parents=True) as f:
         docx.save(str(f))
 
-    docx_item.external_path = str(full_docx_path)
+    # Indicate that we've already saved the file.
+    docx_item.external_path = str(target_docx_path)
 
     return docx_item

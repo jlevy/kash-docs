@@ -23,24 +23,22 @@ def create_pdf(item: Item, save_html: bool = False) -> Item:
         raise InvalidInput(f"Item must have a body: {item}")
 
     pdf_item = item.derived_copy(type=ItemType.export, format=Format.pdf, file_ext=FileExt.pdf)
-    pdf_store_path, _old_pdf_path = current_ws().store_path_for(pdf_item)
-    log.message("Will save PDF to: %s", fmt_loc(pdf_store_path))
-    pdf_path = current_ws().base_dir / pdf_store_path
+    target_pdf_path = current_ws().target_path_for(pdf_item)
+    log.message("Will save PDF to: %s", fmt_loc(target_pdf_path))
 
     if save_html:
         html_item = item.derived_copy(
             type=ItemType.export, format=Format.html, file_ext=FileExt.html
         )
-        html_store_path, _old_html_path = current_ws().store_path_for(html_item)
-        log.message("Will save HTML to: %s", fmt_loc(html_store_path))
-        html_path = current_ws().base_dir / html_store_path
+        target_html_path = current_ws().target_path_for(html_item)
+        log.message("Will save HTML to: %s", fmt_loc(target_html_path))
     else:
-        html_path = None
+        target_html_path = None
 
     html = item.body_as_html()
 
     # Add directly to the store.
-    html_to_pdf(html, pdf_path, title=item.title, html_out_path=html_path)
-    pdf_item.external_path = str(pdf_path)
+    html_to_pdf(html, target_pdf_path, title=item.title, html_out_path=target_html_path)
+    pdf_item.external_path = str(target_pdf_path)
 
     return pdf_item
