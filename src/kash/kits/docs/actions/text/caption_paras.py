@@ -26,8 +26,8 @@ llm_options = LLMOptions(
 
         - Mention only the most important points. Include all the key topics discussed.
         
-        - Keep the caption short! Use one or two short, complete sentences. It must be significantly
-            shorter than the input text.
+        - Keep the caption short! Use ONE sentence or TWO SHORT sentences, with a total of 10-15
+          words. It must be significantly shorter than the input text.
         
         - Write in clean and and direct language.
 
@@ -56,7 +56,7 @@ llm_options = LLMOptions(
 
         Sample output text:
 
-        Push ups are an underrated exercise. They are not easy to do well so are often done poorly.
+        Push ups are an underrated exercise. They are not easy to do well.
 
         Input text:
 

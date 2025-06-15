@@ -1,15 +1,19 @@
-from chopdiff.divs import div
 from chopdiff.docs import Paragraph, TextDoc, TextUnit
+from strif import abbrev_list, abbrev_str
 
 from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.llm_transforms import llm_transform_str
+from kash.kits.docs.concepts.para_annotations import map_notes_with_embeddings
 from kash.llm_utils import Message, MessageTemplate
 from kash.model import Format, Item, ItemType, LLMOptions
 from kash.utils.common.task_stack import task_stack
 from kash.utils.errors import InvalidInput
+from kash.utils.text_handling.markdown_utils import extract_bullet_points
 
 log = get_logger(__name__)
+
+FN_PREFIX = "N"
 
 
 llm_options = LLMOptions(
@@ -281,31 +285,54 @@ llm_options = LLMOptions(
 )
 
 
-PARA = "para"
-ANNOTATED_PARA = "annotated-para"
-PARA_NOTES = "para-notes"
+def process_para(
+    llm_options: LLMOptions, para: Paragraph, footnote_counter: int
+) -> tuple[str, int]:
+    """
+    Process a paragraph and return the paragraph text and next footnote counter.
 
+    Args:
+        llm_options: LLM options for processing
+        para: Paragraph to process
+        footnote_counter: Current footnote counter
 
-def process_para(llm_options: LLMOptions, para: Paragraph) -> str:
-    caption_div = None
-
+    Returns:
+        Tuple of (paragraph_text, next_footnote_counter)
+    """
     para_str = para.reassemble()
-    # Only caption actual paragraphs with enough words.
-    if not para.is_markup() and not para.is_header() and para.size(TextUnit.words) > 40:
-        log.message("Researching paragraph (%s words)", para.size(TextUnit.words))
-        llm_response = llm_transform_str(llm_options, para_str)
-        if llm_response.strip():
-            caption_div = div(PARA_NOTES, llm_response)
-            new_div = div(ANNOTATED_PARA, caption_div, div(PARA, para_str))
-            log.message("LLM new div: %s", new_div)
-        else:
-            new_div = para_str
-    else:
+    # Only research actual paragraphs with enough words.
+    if not para.is_markup() and not para.is_header() and para.size(TextUnit.words) > 4:
         log.message(
-            "Skipping captioning very short paragraph (%s words)", para.size(TextUnit.words)
+            "Researching paragraph (%s words): %r",
+            para.size(TextUnit.words),
+            abbrev_str(para_str),
         )
-        new_div = para_str
-    return new_div
+        llm_response: str = llm_transform_str(llm_options, para_str)
+        if llm_response.strip():
+            # Parse notes from markdown and create annotated paragraph using embeddings
+            parsed_notes = extract_bullet_points(llm_response)
+            log.message("Parsed %d notes: %s", len(parsed_notes), abbrev_list(parsed_notes))
+
+            annotated_para = map_notes_with_embeddings(
+                para, parsed_notes, fn_prefix=FN_PREFIX, fn_start=footnote_counter
+            )
+
+            if annotated_para.has_annotations():
+                # Use the footnoted paragraph text instead of raw paragraph text
+                para_str = annotated_para.as_markdown_footnotes()
+                log.message(
+                    "Added %s annotated paragraph: %r",
+                    annotated_para.annotation_count(),
+                    abbrev_str(para_str),
+                )
+                # Update footnote counter for next paragraph
+                footnote_counter = annotated_para.next_footnote_number()
+            else:
+                log.message("No annotations found for paragraph")
+    else:
+        log.message("Skipping header or very short paragraph: %r", abbrev_str(para_str))
+
+    return para_str, footnote_counter
 
 
 @kash_action(llm_options=llm_options)
@@ -317,11 +344,14 @@ def research_paras(item: Item) -> Item:
         raise InvalidInput(f"Item must have a body: {item}")
 
     doc = TextDoc.from_text(item.body)
-    output = []
-    with task_stack().context("caption_paras", doc.size(TextUnit.paragraphs), "para") as ts:
+    output: list[str] = []
+    footnote_counter = 1  # Start footnote numbering at 1
+
+    with task_stack().context("research_paras", doc.size(TextUnit.paragraphs), "para") as ts:
         for para in doc.paragraphs:
             if para.size(TextUnit.words) > 0:
-                output.append(process_para(llm_options, para))
+                para_text, footnote_counter = process_para(llm_options, para, footnote_counter)
+                output.append(para_text)
             ts.next()
 
     final_output = "\n\n".join(output)
