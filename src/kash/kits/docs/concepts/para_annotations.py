@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 from chopdiff.docs.text_doc import Paragraph
 
+from kash.utils.common.testing import enable_if
+
 
 @dataclass
 class AnnotatedParagraph:
@@ -203,6 +205,7 @@ def test_markdown_footnotes() -> None:
     assert len(footnote_lines) == 3
 
 
+@enable_if("online")
 def test_map_notes_with_embeddings() -> None:
     para = Paragraph.from_text("Python is great for AI. Java is verbose but reliable.")
     notes = ["Python is popular for machine learning", "Java enterprise applications"]

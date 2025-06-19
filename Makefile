@@ -4,9 +4,9 @@
 
 .DEFAULT_GOAL := default
 
-.PHONY: default install lint test run upgrade build clean docx_template
+.PHONY: default install lint test test-full upgrade build clean agent-rules
 
-default: install lint test
+default: agent-rules install lint test 
 
 install:
 	uv sync --all-extras --dev
@@ -16,6 +16,9 @@ lint:
 
 test:
 	uv run pytest
+
+test-full:
+	ENABLE_TESTS_ONLINE=1 ENABLE_TESTS_INTEGRATION=1 uv run pytest
 
 run: install lint test
 	uv run kash
