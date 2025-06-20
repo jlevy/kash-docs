@@ -79,11 +79,8 @@ dependencies = [
 
 [project.optional-dependencies]
 full = [
-    # Marker is more powerful but much bigger dependencies, models, etc. and needs some testing/polish
-    # to get output as clean as our custom markitdown.
-    "marker-pdf[full]>=1.6.2",
-    # Pinning until this bug fixed: https://github.com/scipy/scipy/issues/22236
-    "scipy==1.14.1",
+    # Marker is more powerful but much bigger dependencies, models, etc.
+    "marker-pdf[full]>=1.7.5"
 ]
 
 
