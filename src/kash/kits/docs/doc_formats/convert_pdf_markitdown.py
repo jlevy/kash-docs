@@ -5,7 +5,7 @@ from pathlib import Path
 from kash.kits.docs.doc_formats.markitdown_convert import MarkdownResult
 
 
-def pdf_to_md(pdf_path: Path) -> MarkdownResult:
+def pdf_to_md_markitdown(pdf_path: Path) -> MarkdownResult:
     """
     Convert a PDF file to Markdown using MarkItDown.
     Does not normalize the Markdown.

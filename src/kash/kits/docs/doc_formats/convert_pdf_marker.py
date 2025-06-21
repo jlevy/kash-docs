@@ -7,7 +7,7 @@ from marker.models import create_model_dict
 from marker.output import text_from_rendered
 
 
-def pdf_to_md(pdf_path: Path) -> str:
+def pdf_to_md_marker(pdf_path: Path) -> str:
     """
     Convert a PDF file to Markdown using Marker.
     Does not normalize the Markdown.
