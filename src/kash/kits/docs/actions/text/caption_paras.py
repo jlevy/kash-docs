@@ -1,12 +1,15 @@
+import asyncio
+
 from chopdiff.divs import div
 from chopdiff.docs import Paragraph, TextDoc, TextUnit
+from strif import abbrev_str
 
 from kash.config.logger import get_logger
 from kash.exec import kash_action, kash_precondition
 from kash.exec.llm_transforms import llm_transform_str
 from kash.llm_utils import Message, MessageTemplate
 from kash.model import Format, Item, ItemType, LLMOptions
-from kash.utils.common.task_stack import task_stack
+from kash.utils.api_utils.gather_limited import gather_limited_sync
 from kash.utils.errors import InvalidInput
 
 log = get_logger(__name__)
@@ -81,22 +84,73 @@ def has_annotated_paras(item: Item) -> bool:
     return bool(item.body and item.body.find(f'<p class="{ANNOTATED_PARA}">') != -1)
 
 
-def process_para(llm_options: LLMOptions, para: Paragraph) -> str:
-    caption_div = None
+def caption_paragraph(llm_options: LLMOptions, para: Paragraph) -> str | None:
+    """
+    Caption a single paragraph and return the caption.
+    Returns None if paragraph should be skipped.
+    """
+    if para.is_markup() or para.is_header() or para.size(TextUnit.words) <= 40:
+        return None
 
     para_str = para.reassemble()
-    # Only caption actual paragraphs with enough words.
-    if not para.is_markup() and not para.is_header() and para.size(TextUnit.words) > 40:
-        log.message("Captioning paragraph (%s words)", para.size(TextUnit.words))
-        llm_response = llm_transform_str(llm_options, para_str)
-        caption_div = div(PARA_CAPTION, llm_response)
-        new_div = div(ANNOTATED_PARA, caption_div, div(PARA, para_str))
-    else:
+    log.message(
+        "Captioning paragraph (%s words): %r", para.size(TextUnit.words), abbrev_str(para_str)
+    )
+
+    llm_response: str = llm_transform_str(llm_options, para_str)
+    log.message("Generated caption: %r", abbrev_str(llm_response))
+    return llm_response
+
+
+def apply_caption_to_paragraph(para: Paragraph, caption: str | None) -> str:
+    """
+    Apply caption to a paragraph and return the formatted paragraph text.
+    """
+    para_str = para.reassemble()
+
+    if caption is None:
+        # Paragraph was skipped during captioning
         log.message(
             "Skipping captioning very short paragraph (%s words)", para.size(TextUnit.words)
         )
-        new_div = para_str
-    return new_div
+        return para_str
+
+    if caption:
+        caption_div = div(PARA_CAPTION, caption)
+        new_div = div(ANNOTATED_PARA, caption_div, div(PARA, para_str))
+        log.message("Added caption to paragraph: %r", abbrev_str(para_str))
+        return new_div
+    else:
+        log.message("No caption generated for paragraph")
+        return para_str
+
+
+async def caption_paras_async(item: Item) -> Item:
+    if not item.body:
+        raise InvalidInput(f"Item must have a body: {item}")
+
+    doc = TextDoc.from_text(item.body)
+    paragraphs = [para for para in doc.paragraphs if para.size(TextUnit.words) > 0]
+
+    log.message("Step 1: Captioning %d paragraphs", len(paragraphs))
+    caption_tasks = [lambda para=para: caption_paragraph(llm_options, para) for para in paragraphs]
+
+    # Execute in parallel with rate limiting and retries.
+    paragraph_captions = await gather_limited_sync(*caption_tasks)
+
+    log.message(
+        "Step 2: Applying %d captions to %d paragraphs",
+        len(paragraph_captions),
+        len(paragraphs),
+    )
+    output: list[str] = []
+
+    for para, caption in zip(paragraphs, paragraph_captions, strict=False):
+        para_text = apply_caption_to_paragraph(para, caption)
+        output.append(para_text)
+
+    final_output = "\n\n".join(output)
+    return item.derived_copy(type=ItemType.doc, body=final_output, format=Format.md_html)
 
 
 @kash_action(llm_options=llm_options)
@@ -108,15 +162,4 @@ def caption_paras(item: Item) -> Item:
     if not item.body:
         raise InvalidInput(f"Item must have a body: {item}")
 
-    doc = TextDoc.from_text(item.body)
-    output = []
-    with task_stack().context("caption_paras", doc.size(TextUnit.paragraphs), "para") as ts:
-        for para in doc.paragraphs:
-            if para.size(TextUnit.words) > 0:
-                output.append(process_para(llm_options, para))
-            ts.next()
-
-    final_output = "\n\n".join(output)
-    result_item = item.derived_copy(type=ItemType.doc, body=final_output, format=Format.md_html)
-
-    return result_item
+    return asyncio.run(caption_paras_async(item))

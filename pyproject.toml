@@ -44,7 +44,6 @@ dependencies = [
     "rich>=14.0.0",
     "rich-argparse>=1.7.0",
     "typing-extensions>=4.11.1",
-    "pyrate-limiter>=3.7.0",
     "cachetools>=5.5.2",
     # Content tools:
     "flowmark>=0.4.2",
@@ -71,7 +70,7 @@ dependencies = [
     "beautifulsoup4>=4.13.4",
     "html5lib>=1.1",
     # https://github.com/wilsonzlin/minify-html/issues/236 means JS minification can break.
-    "minify-html>=0.16.4", 
+    "minify-html>=0.16.4",
     # Docx support.
     "python-docx>=1.1.2",
     # "html-for-docx>=1.0.6",  # Had some issues, using our own for now.
@@ -100,7 +99,7 @@ dev = [
 
 [tool.uv.sources]
 # For bleeding edge:
-# kash-shell = { git = "https://github.com/jlevy/kash.git" }
+kash-shell = { git = "https://github.com/jlevy/kash.git" }
 # For local development:
 # kash-shell = { path = "../kash", editable = true }
 # chopdiff = { path = "../../github/chopdiff", editable = true }

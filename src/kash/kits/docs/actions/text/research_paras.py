@@ -1,3 +1,6 @@
+import asyncio
+from typing import TypeVar
+
 from chopdiff.docs import Paragraph, TextDoc, TextUnit
 from strif import abbrev_list, abbrev_str
 
@@ -7,13 +10,14 @@ from kash.exec.llm_transforms import llm_transform_str
 from kash.kits.docs.concepts.para_annotations import map_notes_with_embeddings
 from kash.llm_utils import Message, MessageTemplate
 from kash.model import Format, Item, ItemType, LLMOptions
-from kash.utils.common.task_stack import task_stack
+from kash.utils.api_utils.gather_limited import gather_limited_sync
 from kash.utils.errors import InvalidInput
 from kash.utils.text_handling.markdown_utils import extract_bullet_points
 
 log = get_logger(__name__)
 
 FN_PREFIX = "N"
+T = TypeVar("T")
 
 
 llm_options = LLMOptions(
@@ -26,26 +30,26 @@ llm_options = LLMOptions(
     body_template=MessageTemplate(
         """
 
-      You are a fact checker for a top-tier publication with high standards for accuracy and
-      rigor.
+      You are a fact checker and researcher for a top-tier publication with high standards
+      for accuracy and rigor.
 
       You will be given one or more paragraphs, likely an excerpt from a longer text.
 
-      Your task it to research all facts and entities mentioned in the paragraphs and give
-      further information, verify correctness.
+      Your task it to research all facts and entities mentioned in the paragraphs and check
+      for correctness or give essential context.
       This will provide key context for the author to revise the writing and may help the
       readers who wish for context and relevant citations.
 
       It is VERY important that writing and editorial notes are accurate and notable and
-      always backed by reputable sources.
+      always backed by reputable sources. NEVER give speculative information.
 
       The output should be a list of bulleted items in Markdown format
-      (use - for bullets, not •).
+      (use - for bullets and DO NOT use • or other bullet characters).
       
       Each item should be ONE SENTENCE long and should cover one of the following:
 
       1. background facts about people, places, things, software, and other entities mentioned
-        in the text that a reader may not already be familiar with
+         in the text that a reader may not already be familiar with
 
       2. closely related concepts or notable work that is closely related to the text
 
@@ -55,15 +59,15 @@ llm_options = LLMOptions(
       Guidelines for the items: Each bullet should be one of the following:
 
       1. A brief link to places, things, software, entities, etc, include a brief summary and
-        link to the most relevant 1 or 2 pages on that entity, such as a Wikipedia page for a
-        person or company, a GitHub link for an open source project, or a website for a
-        product.
+         link to the most relevant 1 or 2 pages on that entity, such as a Wikipedia page for a
+         person or company, a GitHub link for an open source project, or a website for a
+         product.
 
       2. For closely related work found during research, write a sentence with a link to the
-        work, mentioning the author or source.
+         work, mentioning the author or source.
 
       3. For fact assertions, if there are corroborating or contradicting sources, write a
-        sentence with a link to the source and briefly state what the source says.
+         sentence with a link to the source and briefly state what the source says.
 
       Use web searches to find the most relevant and authoritative sources.
 
@@ -285,76 +289,100 @@ llm_options = LLMOptions(
 )
 
 
-def process_para(
-    llm_options: LLMOptions, para: Paragraph, footnote_counter: int
+def research_paragraph(llm_options: LLMOptions, para: Paragraph) -> list[str] | None:
+    """
+    Research a single paragraph and return the parsed notes.
+    Returns None if paragraph should be skipped.
+    """
+    if para.is_markup() or para.is_header() or para.size(TextUnit.words) <= 4:
+        return None
+
+    para_str = para.reassemble()
+    log.message(
+        "Researching paragraph (%s words): %r", para.size(TextUnit.words), abbrev_str(para_str)
+    )
+
+    # Call the sync function directly
+    llm_response: str = llm_transform_str(llm_options, para_str)
+
+    if llm_response.strip():
+        parsed_notes = extract_bullet_points(llm_response)
+        log.message("Parsed %d notes: %s", len(parsed_notes), abbrev_list(parsed_notes))
+        return parsed_notes
+
+    log.message("No notes found for paragraph")
+    return []
+
+
+def apply_footnotes_to_paragraph(
+    para: Paragraph, notes: list[str] | None, footnote_counter: int
 ) -> tuple[str, int]:
     """
-    Process a paragraph and return the paragraph text and next footnote counter.
-
-    Args:
-        llm_options: LLM options for processing
-        para: Paragraph to process
-        footnote_counter: Current footnote counter
-
-    Returns:
-        Tuple of (paragraph_text, next_footnote_counter)
+    Apply footnotes to a paragraph and return the paragraph text and next footnote counter.
     """
     para_str = para.reassemble()
-    # Only research actual paragraphs with enough words.
-    if not para.is_markup() and not para.is_header() and para.size(TextUnit.words) > 4:
-        log.message(
-            "Researching paragraph (%s words): %r",
-            para.size(TextUnit.words),
-            abbrev_str(para_str),
-        )
-        llm_response: str = llm_transform_str(llm_options, para_str)
-        if llm_response.strip():
-            # Parse notes from markdown and create annotated paragraph using embeddings
-            parsed_notes = extract_bullet_points(llm_response)
-            log.message("Parsed %d notes: %s", len(parsed_notes), abbrev_list(parsed_notes))
 
-            annotated_para = map_notes_with_embeddings(
-                para, parsed_notes, fn_prefix=FN_PREFIX, fn_start=footnote_counter
-            )
-
-            if annotated_para.has_annotations():
-                # Use the footnoted paragraph text instead of raw paragraph text
-                para_str = annotated_para.as_markdown_footnotes()
-                log.message(
-                    "Added %s annotated paragraph: %r",
-                    annotated_para.annotation_count(),
-                    abbrev_str(para_str),
-                )
-                # Update footnote counter for next paragraph
-                footnote_counter = annotated_para.next_footnote_number()
-            else:
-                log.message("No annotations found for paragraph")
-    else:
+    if notes is None:
+        # Paragraph was skipped during research
         log.message("Skipping header or very short paragraph: %r", abbrev_str(para_str))
+        return para_str, footnote_counter
+
+    if notes:
+        annotated_para = map_notes_with_embeddings(
+            para, notes, fn_prefix=FN_PREFIX, fn_start=footnote_counter
+        )
+
+        if annotated_para.has_annotations():
+            para_str = annotated_para.as_markdown_footnotes()
+            log.message(
+                "Added %s annotated paragraph: %r",
+                annotated_para.annotation_count(),
+                abbrev_str(para_str),
+            )
+            footnote_counter = annotated_para.next_footnote_number()
+        else:
+            log.message("No annotations found for paragraph")
 
     return para_str, footnote_counter
 
 
+async def research_paras_async(item: Item) -> Item:
+    if not item.body:
+        raise InvalidInput(f"Item must have a body: {item}")
+    doc = TextDoc.from_text(item.body)
+    paragraphs = [para for para in doc.paragraphs if para.size(TextUnit.words) > 0]
+
+    log.message("Step 1: Researching %d paragraphs", len(paragraphs))
+    research_tasks = [
+        lambda para=para: research_paragraph(llm_options, para) for para in paragraphs
+    ]
+
+    # Execute in parallel with rate limiting and retries.
+    paragraph_notes = await gather_limited_sync(*research_tasks)
+
+    log.message(
+        "Step 2: Applying %d sets of footnotes (%s total) to %d paragraphs",
+        len(paragraph_notes),
+        sum(len(notes or []) for notes in paragraph_notes),
+        len(paragraphs),
+    )
+    output: list[str] = []
+    footnote_counter = 1
+
+    for para, notes in zip(paragraphs, paragraph_notes, strict=False):
+        para_text, footnote_counter = apply_footnotes_to_paragraph(para, notes, footnote_counter)
+        output.append(para_text)
+
+    final_output = "\n\n".join(output)
+    return item.derived_copy(type=ItemType.doc, body=final_output, format=Format.md_html)
+
+
 @kash_action(llm_options=llm_options)
-def research_paras(item: Item) -> Item:
+def research_paras(input: Item) -> Item:
     """
     Fact checks and researches each paragraph of a text.
     """
-    if not item.body:
-        raise InvalidInput(f"Item must have a body: {item}")
+    if not input.body:
+        raise InvalidInput(f"Item must have a body: {input}")
 
-    doc = TextDoc.from_text(item.body)
-    output: list[str] = []
-    footnote_counter = 1  # Start footnote numbering at 1
-
-    with task_stack().context("research_paras", doc.size(TextUnit.paragraphs), "para") as ts:
-        for para in doc.paragraphs:
-            if para.size(TextUnit.words) > 0:
-                para_text, footnote_counter = process_para(llm_options, para, footnote_counter)
-                output.append(para_text)
-            ts.next()
-
-    final_output = "\n\n".join(output)
-    result_item = item.derived_copy(type=ItemType.doc, body=final_output, format=Format.md_html)
-
-    return result_item
+    return asyncio.run(research_paras_async(input))

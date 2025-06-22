@@ -11,7 +11,7 @@ from thefuzz import fuzz
 from typing_extensions import override
 
 from kash.config.logger import get_logger
-from kash.kits.docs.utils.cache_rate_limit import CachingSession
+from kash.utils.api_utils.cache_requests_limited import CachingSession
 
 if TYPE_CHECKING:
     from wikipediaapi import Namespace, Wikipedia, WikipediaPage
