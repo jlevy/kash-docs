@@ -213,6 +213,7 @@ class AnnotatedDoc:
 
     def as_markdown_with_footnotes(
         self,
+        footnote_header: str | None = None,
     ) -> str:
         """
         Render the entire document as markdown with consolidated footnotes.
@@ -257,20 +258,22 @@ class AnnotatedDoc:
 
             para_texts.append(" ".join(annotated_sentences))
 
-        # Combine paragraphs
-        doc_text = "\n\n".join(para_texts)
-
-        # Add consolidated footnotes at the end
+        # Build output
         if self.footnote_mapping:
-            # Sort footnote IDs for consistent ordering
-            sorted_footnote_ids = sorted(self.footnote_mapping.keys())
+            # Preserve insertion order of footnotes
             footnote_lines = [
                 f"[^{footnote_id}]: {self.footnote_mapping[footnote_id]}"
-                for footnote_id in sorted_footnote_ids
+                for footnote_id in self.footnote_mapping.keys()
             ]
-            doc_text += "\n\n" + "\n\n".join(footnote_lines)
 
-        return doc_text
+            # Append optional header before footnotes
+            if footnote_header and footnote_header.strip():
+                para_texts.append(footnote_header.strip())
+
+            para_texts.extend(footnote_lines)
+
+        # Join all sections as separate Markdown paragraphs
+        return "\n\n".join(para_texts)
 
     def add_annotation(self, sent_index: SentIndex, annotation: str, fn_prefix: str = "") -> None:
         """Add an annotation to a specific sentence."""
@@ -686,3 +689,48 @@ def test_annotated_para_footnote_id_validation() -> None:
         raise AssertionError("Expected ValueError for invalid footnote prefix")
     except ValueError:
         pass  # Expected
+
+
+## Tests for footnote header
+
+
+def test_markdown_with_footnotes_header() -> None:
+    """Ensure footnote_header is inserted correctly above consolidated footnotes."""
+    para = Paragraph.from_text("Some text.")
+    ann_para = AnnotatedPara.from_para(para, fn_prefix="ref", fn_start=1)
+    ann_para.add_annotation(0, "Reference note")
+
+    ann_doc = AnnotatedDoc.consolidate_annotations([ann_para])
+    header_text = "## Footnotes"
+    result = ann_doc.as_markdown_with_footnotes(footnote_header=header_text)
+
+    # Header should appear exactly once and above footnotes
+    assert header_text in result
+    header_index = result.find(header_text)
+    footnote_index = result.find("[^ref1]:")
+    assert 0 <= header_index < footnote_index, "Header must precede footnotes"
+
+
+def test_markdown_footnote_order() -> None:
+    """Ensure footnotes retain order of appearance, not lexicographic order."""
+    para1 = Paragraph.from_text("P1.")
+    para2 = Paragraph.from_text("P2.")
+    para3 = Paragraph.from_text("P3.")
+
+    ann_para1 = AnnotatedPara.from_para(para1, fn_prefix="a", fn_start=1)
+    ann_para1.add_annotation(0, "Note A1")  # a1
+
+    ann_para2 = AnnotatedPara.from_para(para2, fn_prefix="b", fn_start=1)
+    ann_para2.add_annotation(0, "Note B1")  # b1
+
+    ann_para3 = AnnotatedPara.from_para(para3, fn_prefix="a", fn_start=1)
+    ann_para3.add_annotation(0, "Note A2")  # a2
+
+    ann_doc = AnnotatedDoc.consolidate_annotations([ann_para1, ann_para2, ann_para3])
+    output = ann_doc.as_markdown_with_footnotes()
+
+    # Extract footnote IDs in output order
+    lines = [line.strip() for line in output.split("\n") if line.startswith("[^")]
+    ids_in_output = [line.split(":")[0][2:-1] for line in lines]  # remove "[^" and "]"
+
+    assert ids_in_output == ["a1", "b1", "a2"], ids_in_output

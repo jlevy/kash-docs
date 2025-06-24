@@ -219,6 +219,7 @@ reportUnknownLambdaType = false
 reportMissingTypeStubs = false
 reportUnusedCallResult = false
 # reportMissingImports = false
+reportMissingTypeArgument = false
 reportUnnecessaryIsInstance = false
 reportUnreachable = false
 reportAny = false

@@ -9,7 +9,11 @@ from strif import abbrev_list, abbrev_str
 from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.llm_transforms import llm_transform_str
-from kash.kits.docs.concepts.doc_annotations import AnnotatedPara, map_notes_with_embeddings
+from kash.kits.docs.concepts.doc_annotations import (
+    AnnotatedDoc,
+    AnnotatedPara,
+    map_notes_with_embeddings,
+)
 from kash.llm_utils import Message, MessageTemplate
 from kash.model import Format, Item, ItemType, LLMOptions
 from kash.shell.output.shell_output import multitask_status
@@ -19,7 +23,7 @@ from kash.utils.text_handling.markdown_utils import extract_bullet_points
 
 log = get_logger(__name__)
 
-FN_PREFIX = "N"
+FN_PREFIX = "RES"
 T = TypeVar("T")
 
 
@@ -314,37 +318,31 @@ def research_paragraph(llm_options: LLMOptions, para: Paragraph) -> list[str] | 
     return []
 
 
-def annotate_paragraph(
-    para: Paragraph, notes: list[str] | None, footnote_counter: int
-) -> tuple[AnnotatedPara, int]:
+def annotate_paragraph(para: Paragraph, notes: list[str] | None) -> AnnotatedPara:
     """
-    Apply footnotes to a paragraph and return the paragraph text and next footnote counter.
+    Apply footnotes to a paragraph and return the annotated paragraph.
     """
     para_str = para.reassemble()
 
-    ann_para = AnnotatedPara.from_para(para)
+    ann_para = AnnotatedPara.from_para(para, fn_prefix=FN_PREFIX, fn_start=1)
     if notes is None:
         # Paragraph was skipped during research
         log.info("Skipping header or very short paragraph: %r", abbrev_str(para_str))
-        return ann_para, footnote_counter
+        return ann_para
 
     if notes:
-        ann_para = map_notes_with_embeddings(
-            para, notes, fn_prefix=FN_PREFIX, fn_start=footnote_counter
-        )
+        ann_para = map_notes_with_embeddings(para, notes, fn_prefix=FN_PREFIX, fn_start=1)
 
         if ann_para.has_annotations():
-            para_str = ann_para.as_markdown_footnotes()
             log.info(
-                "Added %s annotated paragraph: %r",
+                "Added %s annotations to paragraph: %r",
                 ann_para.annotation_count(),
                 abbrev_str(para_str),
             )
-            footnote_counter = ann_para.next_footnote_number()
         else:
             log.info("No annotations found for paragraph")
 
-    return ann_para, footnote_counter
+    return ann_para
 
 
 async def research_paras_async(item: Item) -> Item:
@@ -353,7 +351,7 @@ async def research_paras_async(item: Item) -> Item:
     doc = TextDoc.from_text(item.body)
     paragraphs = [para for para in doc.paragraphs if para.size(TextUnit.words) > 0]
 
-    log.info("Step 1: Researching %d paragraphs", len(paragraphs))
+    log.message("Step 1: Researching %d paragraphs", len(paragraphs))
     research_tasks = [FuncTask(research_paragraph, (llm_options, para)) for para in paragraphs]
 
     def labeler(i: int, spec: Any) -> str:
@@ -373,20 +371,26 @@ async def research_paras_async(item: Item) -> Item:
             labeler=labeler,
         )
 
-    log.info(
+    log.message(
         "Step 2: Applying %d sets of footnotes (%s total) to %d paragraphs",
         len(paragraph_notes),
         sum(len(notes or []) for notes in paragraph_notes),
         len(paragraphs),
     )
-    output: list[str] = []
-    footnote_counter = 1
 
+    # Create annotated paragraphs
+    annotated_paras: list[AnnotatedPara] = []
     for para, notes in zip(paragraphs, paragraph_notes, strict=False):
-        ann_para, footnote_counter = annotate_paragraph(para, notes, footnote_counter)
-        output.append(ann_para.as_markdown_footnotes())
+        ann_para = annotate_paragraph(para, notes)
+        annotated_paras.append(ann_para)
 
-    final_output = "\n\n".join(output)
+    # Consolidate all annotations into a single document with footnotes at the end
+    log.message("Step 3: Consolidating footnotes at end of document")
+    consolidated_doc = AnnotatedDoc.consolidate_annotations(annotated_paras)
+    final_output = consolidated_doc.as_markdown_with_footnotes()
+
+    # TODO: Remove near-duplicate footnotes.
+
     return item.derived_copy(type=ItemType.doc, body=final_output, format=Format.md_html)
 
 
