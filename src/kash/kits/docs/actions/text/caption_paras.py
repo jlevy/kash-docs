@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import asyncio
+from typing import Any
 
 from chopdiff.divs import div
 from chopdiff.docs import Paragraph, TextDoc, TextUnit
@@ -9,7 +12,8 @@ from kash.exec import kash_action, kash_precondition
 from kash.exec.llm_transforms import llm_transform_str
 from kash.llm_utils import Message, MessageTemplate
 from kash.model import Format, Item, ItemType, LLMOptions
-from kash.utils.api_utils.gather_limited import gather_limited_sync
+from kash.shell.output.shell_output import multitask_status
+from kash.utils.api_utils.gather_limited import FuncTask, gather_limited_sync
 from kash.utils.errors import InvalidInput
 
 log = get_logger(__name__)
@@ -133,10 +137,22 @@ async def caption_paras_async(item: Item) -> Item:
     paragraphs = [para for para in doc.paragraphs if para.size(TextUnit.words) > 0]
 
     log.message("Step 1: Captioning %d paragraphs", len(paragraphs))
-    caption_tasks = [lambda para=para: caption_paragraph(llm_options, para) for para in paragraphs]
+    caption_tasks = [FuncTask(caption_paragraph, (llm_options, para)) for para in paragraphs]
 
-    # Execute in parallel with rate limiting and retries.
-    paragraph_captions = await gather_limited_sync(*caption_tasks)
+    def labeler(i: int, spec: Any) -> str:
+        """Create descriptive labels for caption tasks using paragraph content."""
+        if isinstance(spec, FuncTask) and len(spec.args) >= 2:
+            para = spec.args[1]  # Second arg is the paragraph
+            if isinstance(para, Paragraph):
+                para_text = abbrev_str(para.reassemble())
+                return f"Caption {i + 1}/{len(paragraphs)}: {para_text}"
+        return f"Caption paragraph {i + 1}/{len(paragraphs)}"
+
+    # Execute in parallel with rate limiting, retries, and progress tracking
+    async with multitask_status() as status:
+        paragraph_captions = await gather_limited_sync(
+            *caption_tasks, status=status, labeler=labeler
+        )
 
     log.message(
         "Step 2: Applying %d captions to %d paragraphs",
@@ -153,7 +169,7 @@ async def caption_paras_async(item: Item) -> Item:
     return item.derived_copy(type=ItemType.doc, body=final_output, format=Format.md_html)
 
 
-@kash_action(llm_options=llm_options)
+@kash_action(llm_options=llm_options, live_output=True)
 def caption_paras(item: Item) -> Item:
     """
     Caption each paragraph in the text with a very short summary, wrapping the original

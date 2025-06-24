@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import asyncio
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from chopdiff.docs import Paragraph, TextDoc, TextUnit
 from strif import abbrev_list, abbrev_str
@@ -7,10 +9,11 @@ from strif import abbrev_list, abbrev_str
 from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.llm_transforms import llm_transform_str
-from kash.kits.docs.concepts.para_annotations import map_notes_with_embeddings
+from kash.kits.docs.concepts.doc_annotations import AnnotatedPara, map_notes_with_embeddings
 from kash.llm_utils import Message, MessageTemplate
 from kash.model import Format, Item, ItemType, LLMOptions
-from kash.utils.api_utils.gather_limited import gather_limited_sync
+from kash.shell.output.shell_output import multitask_status
+from kash.utils.api_utils.gather_limited import FuncTask, gather_limited_sync
 from kash.utils.errors import InvalidInput
 from kash.utils.text_handling.markdown_utils import extract_bullet_points
 
@@ -298,52 +301,50 @@ def research_paragraph(llm_options: LLMOptions, para: Paragraph) -> list[str] | 
         return None
 
     para_str = para.reassemble()
-    log.message(
-        "Researching paragraph (%s words): %r", para.size(TextUnit.words), abbrev_str(para_str)
-    )
 
     # Call the sync function directly
     llm_response: str = llm_transform_str(llm_options, para_str)
 
     if llm_response.strip():
         parsed_notes = extract_bullet_points(llm_response)
-        log.message("Parsed %d notes: %s", len(parsed_notes), abbrev_list(parsed_notes))
+        log.info("Parsed %d notes: %s", len(parsed_notes), abbrev_list(parsed_notes))
         return parsed_notes
 
-    log.message("No notes found for paragraph")
+    log.info("No notes found for paragraph")
     return []
 
 
-def apply_footnotes_to_paragraph(
+def annotate_paragraph(
     para: Paragraph, notes: list[str] | None, footnote_counter: int
-) -> tuple[str, int]:
+) -> tuple[AnnotatedPara, int]:
     """
     Apply footnotes to a paragraph and return the paragraph text and next footnote counter.
     """
     para_str = para.reassemble()
 
+    ann_para = AnnotatedPara.from_para(para)
     if notes is None:
         # Paragraph was skipped during research
-        log.message("Skipping header or very short paragraph: %r", abbrev_str(para_str))
-        return para_str, footnote_counter
+        log.info("Skipping header or very short paragraph: %r", abbrev_str(para_str))
+        return ann_para, footnote_counter
 
     if notes:
-        annotated_para = map_notes_with_embeddings(
+        ann_para = map_notes_with_embeddings(
             para, notes, fn_prefix=FN_PREFIX, fn_start=footnote_counter
         )
 
-        if annotated_para.has_annotations():
-            para_str = annotated_para.as_markdown_footnotes()
-            log.message(
+        if ann_para.has_annotations():
+            para_str = ann_para.as_markdown_footnotes()
+            log.info(
                 "Added %s annotated paragraph: %r",
-                annotated_para.annotation_count(),
+                ann_para.annotation_count(),
                 abbrev_str(para_str),
             )
-            footnote_counter = annotated_para.next_footnote_number()
+            footnote_counter = ann_para.next_footnote_number()
         else:
-            log.message("No annotations found for paragraph")
+            log.info("No annotations found for paragraph")
 
-    return para_str, footnote_counter
+    return ann_para, footnote_counter
 
 
 async def research_paras_async(item: Item) -> Item:
@@ -352,15 +353,27 @@ async def research_paras_async(item: Item) -> Item:
     doc = TextDoc.from_text(item.body)
     paragraphs = [para for para in doc.paragraphs if para.size(TextUnit.words) > 0]
 
-    log.message("Step 1: Researching %d paragraphs", len(paragraphs))
-    research_tasks = [
-        lambda para=para: research_paragraph(llm_options, para) for para in paragraphs
-    ]
+    log.info("Step 1: Researching %d paragraphs", len(paragraphs))
+    research_tasks = [FuncTask(research_paragraph, (llm_options, para)) for para in paragraphs]
 
-    # Execute in parallel with rate limiting and retries.
-    paragraph_notes = await gather_limited_sync(*research_tasks)
+    def labeler(i: int, spec: Any) -> str:
+        if isinstance(spec, FuncTask) and len(spec.args) >= 2:
+            para = spec.args[1]  # Second arg is the paragraph
+            if isinstance(para, Paragraph):
+                nwords = para.size(TextUnit.words)
+                para_text = abbrev_str(para.reassemble(), 30)
+                return f"Paragraph {i + 1}/{len(paragraphs)} ({nwords} words): {repr(para_text)}"
+        return f"Paragraph {i + 1}/{len(paragraphs)}"
 
-    log.message(
+    # Execute in parallel with rate limiting, retries, and progress tracking
+    async with multitask_status() as status:
+        paragraph_notes = await gather_limited_sync(
+            *research_tasks,
+            status=status,
+            labeler=labeler,
+        )
+
+    log.info(
         "Step 2: Applying %d sets of footnotes (%s total) to %d paragraphs",
         len(paragraph_notes),
         sum(len(notes or []) for notes in paragraph_notes),
@@ -370,19 +383,19 @@ async def research_paras_async(item: Item) -> Item:
     footnote_counter = 1
 
     for para, notes in zip(paragraphs, paragraph_notes, strict=False):
-        para_text, footnote_counter = apply_footnotes_to_paragraph(para, notes, footnote_counter)
-        output.append(para_text)
+        ann_para, footnote_counter = annotate_paragraph(para, notes, footnote_counter)
+        output.append(ann_para.as_markdown_footnotes())
 
     final_output = "\n\n".join(output)
     return item.derived_copy(type=ItemType.doc, body=final_output, format=Format.md_html)
 
 
-@kash_action(llm_options=llm_options)
-def research_paras(input: Item) -> Item:
+@kash_action(llm_options=llm_options, live_output=True)
+def research_paras(item: Item) -> Item:
     """
     Fact checks and researches each paragraph of a text.
     """
-    if not input.body:
-        raise InvalidInput(f"Item must have a body: {input}")
+    if not item.body:
+        raise InvalidInput(f"Item must have a body: {item}")
 
-    return asyncio.run(research_paras_async(input))
+    return asyncio.run(research_paras_async(item))
