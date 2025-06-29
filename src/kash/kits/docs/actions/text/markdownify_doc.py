@@ -66,7 +66,7 @@ def markdownify_doc(input: ActionInput, pdf_converter: str = "marker") -> Action
 
     try:
         result_item = markdownify_item(item, pdf_converter=pdf_converter)
-    except InvalidInput as e:
+    except InvalidInput:
         if is_url_resource(item):
             log.message("Converting URL to Markdown with custom Markdownify...")
             content_item = fetch_url_item_content(item)
@@ -74,11 +74,9 @@ def markdownify_doc(input: ActionInput, pdf_converter: str = "marker") -> Action
                 result_item = markdownify_item(content_item, pdf_converter=pdf_converter)
             except InvalidInput as e:
                 raise InvalidInput(
-                    f"Downloaded content doesn't seem to be a format we can convert to Markdown: {item.format}"
+                    f"Downloaded content doesn't seem to be a format we can convert to Markdown: {content_item}"
                 ) from e
         else:
-            raise InvalidInput(
-                f"Not a recognized format or URL we can convert to Markdown: {item.format}"
-            ) from e
+            raise InvalidInput(f"Not a recognized format or URL we can convert to Markdown: {item}")
 
     return ActionResult(items=[result_item])

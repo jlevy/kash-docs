@@ -365,11 +365,7 @@ async def research_paras_async(item: Item) -> Item:
 
     # Execute in parallel with rate limiting, retries, and progress tracking
     async with multitask_status() as status:
-        paragraph_notes = await gather_limited_sync(
-            *research_tasks,
-            status=status,
-            labeler=labeler,
-        )
+        paragraph_notes = await gather_limited_sync(*research_tasks, status=status, labeler=labeler)
 
     log.message(
         "Step 2: Applying %d sets of footnotes (%s total) to %d paragraphs",

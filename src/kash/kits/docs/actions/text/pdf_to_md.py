@@ -25,7 +25,7 @@ def pdf_to_md(item: Item, converter: str = "markitdown") -> Item:
     Convert a PDF file to clean Markdown using MarkItDown.
 
     This is a lower-level action. You may also use `markdownify_doc`, which
-    uses this action, which auto-detects formats and calls this action for PDFs.
+    auto-detects formats and calls this action for PDFs.
 
     :param converter: The converter to use to convert the PDF to Markdown
     (markitdown or marker)
