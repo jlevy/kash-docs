@@ -9,7 +9,7 @@ from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.preconditions import has_markdown_body
 from kash.kits.docs.actions.text.extract_links import extract_links
-from kash.kits.docs.links.download_urls_async import download_urls_async
+from kash.kits.docs.links.fetch_urls_async import fetch_urls_async
 from kash.kits.docs.links.links_model import Link, LinkResults
 from kash.kits.docs.links.links_preconditions import is_links_data
 from kash.model import Format, Item, ItemType, TitleTemplate
@@ -24,7 +24,7 @@ log = get_logger(__name__)
     title_template=TitleTemplate("Link metadata from {title}"),
     live_output=True,
 )
-def download_links(item: Item) -> Item:
+def fetch_links(item: Item) -> Item:
     """
     Download metadata for links from either markdown content or a links data item.
     If the input is markdown, extracts links first then downloads metadata.
@@ -60,7 +60,7 @@ def download_links(item: Item) -> Item:
             body=to_yaml_string(LinkResults(links=[]).model_dump()),
         )
 
-    download_result = asyncio.run(download_urls_async(urls))
+    download_result = asyncio.run(fetch_urls_async(urls))
 
     if download_result.has_errors:
         log.warning(
@@ -80,20 +80,20 @@ def download_links(item: Item) -> Item:
 ## Tests
 
 
-def test_download_links_no_links():
+def test_fetch_links_no_links():
     item = Item(
         type=ItemType.doc,
         format=Format.markdown,
         body="This is just plain text with no links at all.",
     )
-    result = download_links(item)
+    result = fetch_links(item)
     assert result.type == ItemType.data
     assert result.format == Format.yaml
     assert result.body is not None
     assert "links: []" in result.body
 
 
-def test_download_links_with_mock_links():
+def test_fetch_links_with_mock_links():
     """Test the link extraction part without actually downloading URLs."""
     from textwrap import dedent
 
@@ -113,8 +113,8 @@ def test_download_links_with_mock_links():
     assert "https://python.org" in links
 
 
-def test_download_links_with_links_data():
-    """Test download_links with a pre-existing links data item."""
+def test_fetch_links_with_links_data():
+    """Test fetch_links with a pre-existing links data item."""
     links = [
         Link(url="https://example.com"),
         Link(url="https://test.com"),

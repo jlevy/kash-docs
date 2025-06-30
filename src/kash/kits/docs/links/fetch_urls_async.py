@@ -40,7 +40,7 @@ OVERALL_LIMIT = Limit(rps=20, concurrency=20)
 PER_HOST_LIMIT = Limit(rps=2, concurrency=2)
 
 
-async def download_urls_async(urls: list[Url], show_progress: bool = True) -> LinkDownloadResult:
+async def fetch_urls_async(urls: list[Url], show_progress: bool = True) -> LinkDownloadResult:
     """
     Download a list of URLs and return both successful results and errors.
     """
@@ -87,7 +87,7 @@ async def download_urls_async(urls: list[Url], show_progress: bool = True) -> Li
 ## Tests
 
 
-def test_download_links_with_mock_links():
+def test_fetch_links_with_mock_links():
     """Test the link extraction part without actually downloading URLs."""
     from textwrap import dedent
 
@@ -105,9 +105,9 @@ def test_download_links_with_mock_links():
     assert "https://python.org" in links
 
 
-def test_download_urls_async_empty_behavior():
-    """Test download_urls_async handles empty input correctly."""
-    result = asyncio.run(download_urls_async([]))
+def test_fetch_urls_async_empty_behavior():
+    """Test fetch_urls_async handles empty input correctly."""
+    result = asyncio.run(fetch_urls_async([]))
     assert len(result.links) == 0
     assert len(result.errors) == 0
     assert not result.has_errors
