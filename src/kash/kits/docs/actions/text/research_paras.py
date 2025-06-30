@@ -354,18 +354,20 @@ async def research_paras_async(item: Item) -> Item:
     log.message("Step 1: Researching %d paragraphs", len(paragraphs))
     research_tasks = [FuncTask(research_paragraph, (llm_options, para)) for para in paragraphs]
 
-    def labeler(i: int, spec: Any) -> str:
+    def research_labeler(i: int, spec: Any) -> str:
         if isinstance(spec, FuncTask) and len(spec.args) >= 2:
             para = spec.args[1]  # Second arg is the paragraph
             if isinstance(para, Paragraph):
                 nwords = para.size(TextUnit.words)
                 para_text = abbrev_str(para.reassemble(), 30)
-                return f"Paragraph {i + 1}/{len(paragraphs)} ({nwords} words): {repr(para_text)}"
-        return f"Paragraph {i + 1}/{len(paragraphs)}"
+                return f"Research {i + 1}/{len(paragraphs)} ({nwords} words): {repr(para_text)}"
+        return f"Research {i + 1}/{len(paragraphs)}"
 
-    # Execute in parallel with rate limiting, retries, and progress tracking
+    # Execute research in parallel with rate limiting, retries, and progress tracking
     async with multitask_status() as status:
-        paragraph_notes = await gather_limited_sync(*research_tasks, status=status, labeler=labeler)
+        paragraph_notes = await gather_limited_sync(
+            *research_tasks, status=status, labeler=research_labeler
+        )
 
     log.message(
         "Step 2: Applying %d sets of footnotes (%s total) to %d paragraphs",
@@ -374,11 +376,28 @@ async def research_paras_async(item: Item) -> Item:
         len(paragraphs),
     )
 
-    # Create annotated paragraphs
-    annotated_paras: list[AnnotatedPara] = []
-    for para, notes in zip(paragraphs, paragraph_notes, strict=False):
-        ann_para = annotate_paragraph(para, notes)
-        annotated_paras.append(ann_para)
+    # Create annotation tasks
+    annotation_tasks = [
+        FuncTask(annotate_paragraph, (para, notes))
+        for para, notes in zip(paragraphs, paragraph_notes, strict=False)
+    ]
+
+    def annotation_labeler(i: int, spec: Any) -> str:
+        if isinstance(spec, FuncTask) and len(spec.args) >= 1:
+            para = spec.args[0]  # First arg is the paragraph
+            if isinstance(para, Paragraph):
+                nwords = para.size(TextUnit.words)
+                para_text = abbrev_str(para.reassemble(), 30)
+                return f"Annotate {i + 1}/{len(paragraphs)} ({nwords} words): {repr(para_text)}"
+        return f"Annotate {i + 1}/{len(paragraphs)}"
+
+    # Execute annotations in parallel (no rate limiting needed for local processing)
+    async with multitask_status() as status:
+        annotated_paras = await gather_limited_sync(
+            *annotation_tasks,
+            status=status,
+            labeler=annotation_labeler,
+        )
 
     # Consolidate all annotations into a single document with footnotes at the end
     log.message("Step 3: Consolidating footnotes at end of document")
