@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import asyncio
 
-import yaml
 from frontmatter_format import from_yaml_string, to_yaml_string
+from ruamel.yaml.error import YAMLError
 
 from kash.config.logger import get_logger
 from kash.exec import kash_action
@@ -11,15 +11,19 @@ from kash.exec.preconditions import has_markdown_body
 from kash.kits.docs.actions.text.extract_links import extract_links
 from kash.kits.docs.links.download_urls_async import download_urls_async
 from kash.kits.docs.links.links_model import Link, LinkResults
-from kash.kits.docs.links.links_preconditions import has_links_data
-from kash.model import Format, Item, ItemType
+from kash.kits.docs.links.links_preconditions import is_links_data
+from kash.model import Format, Item, ItemType, TitleTemplate
 from kash.utils.common.url import Url
 from kash.utils.errors import InvalidInput
 
 log = get_logger(__name__)
 
 
-@kash_action(precondition=has_markdown_body | has_links_data, live_output=True)
+@kash_action(
+    precondition=has_markdown_body | is_links_data,
+    title_template=TitleTemplate("Link metadata from {title}"),
+    live_output=True,
+)
 def download_links(item: Item) -> Item:
     """
     Download metadata for links from either markdown content or a links data item.
@@ -30,7 +34,7 @@ def download_links(item: Item) -> Item:
     # If input is markdown, first extract the links
     if has_markdown_body(item):
         links_item = extract_links(item)
-    elif has_links_data(item):
+    elif is_links_data(item):
         links_item = item
     else:
         raise InvalidInput(f"Item must have markdown body or links data: {item}")
@@ -45,7 +49,7 @@ def download_links(item: Item) -> Item:
         urls: list[Url] = [
             Url(link["url"]) for link in links_data if isinstance(link, dict) and "url" in link
         ]
-    except (yaml.YAMLError, KeyError, TypeError) as e:
+    except (KeyError, TypeError, YAMLError) as e:
         raise InvalidInput(f"Failed to parse links data: {e}")
 
     if not urls:
@@ -125,7 +129,7 @@ def test_download_links_with_links_data():
     )
 
     # Verify precondition works
-    assert has_links_data(item)
+    assert is_links_data(item)
 
     # Note: This test won't actually download since we're testing with fake URLs
     # The real download would happen with valid URLs

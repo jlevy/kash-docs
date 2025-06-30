@@ -7,7 +7,7 @@ from kash.model import Format, Item, ItemType
 
 
 @kash_precondition
-def has_links_data(item: Item) -> bool:
+def is_links_data(item: Item) -> bool:
     """Check if an item is a data item containing a list of links."""
     if item.type != ItemType.data or item.format != Format.yaml or not item.body:
         return False
@@ -47,7 +47,7 @@ def test_has_links_data_precondition():
         format=Format.yaml,
         body=yaml_content,
     )
-    assert has_links_data(valid_item) is True
+    assert is_links_data(valid_item) is True
 
     # Test empty links data
     empty_results = LinkResults(links=[])
@@ -58,7 +58,7 @@ def test_has_links_data_precondition():
         format=Format.yaml,
         body=empty_yaml,
     )
-    assert has_links_data(empty_item) is True
+    assert is_links_data(empty_item) is True
 
     # Test invalid item type
     invalid_type = Item(
@@ -66,7 +66,7 @@ def test_has_links_data_precondition():
         format=Format.yaml,
         body=yaml_content,
     )
-    assert has_links_data(invalid_type) is False
+    assert is_links_data(invalid_type) is False
 
     # Test invalid format
     invalid_format = Item(
@@ -74,7 +74,7 @@ def test_has_links_data_precondition():
         format=Format.markdown,
         body=yaml_content,
     )
-    assert has_links_data(invalid_format) is False
+    assert is_links_data(invalid_format) is False
 
     # Test no body
     no_body = Item(
@@ -82,7 +82,7 @@ def test_has_links_data_precondition():
         format=Format.yaml,
         body=None,
     )
-    assert has_links_data(no_body) is False
+    assert is_links_data(no_body) is False
 
     # Test invalid YAML
     invalid_yaml = Item(
@@ -90,7 +90,7 @@ def test_has_links_data_precondition():
         format=Format.yaml,
         body="invalid: yaml: content:",
     )
-    assert has_links_data(invalid_yaml) is False
+    assert is_links_data(invalid_yaml) is False
 
     # Test missing links key
     missing_links = Item(
@@ -98,7 +98,7 @@ def test_has_links_data_precondition():
         format=Format.yaml,
         body="data: []\nother: value",
     )
-    assert has_links_data(missing_links) is False
+    assert is_links_data(missing_links) is False
 
     # Test invalid links structure
     invalid_links = Item(
@@ -106,4 +106,4 @@ def test_has_links_data_precondition():
         format=Format.yaml,
         body="links: not_a_list",
     )
-    assert has_links_data(invalid_links) is False
+    assert is_links_data(invalid_links) is False
