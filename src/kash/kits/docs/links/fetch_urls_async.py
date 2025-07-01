@@ -9,8 +9,9 @@ from kash.config.logger import get_logger
 from kash.exec.fetch_url_items import fetch_url_item
 from kash.kits.docs.links.links_model import Link, LinkDownloadResult, LinkError, LinkStatus
 from kash.shell.output.shell_output import multitask_status
-from kash.utils.api_utils.api_retries import RetrySettings, extract_http_status_code
+from kash.utils.api_utils.api_retries import RetrySettings
 from kash.utils.api_utils.gather_limited import FuncTask, Limit, TaskResult, gather_limited_sync
+from kash.utils.api_utils.http_utils import extract_http_status_code
 from kash.utils.common.url import Url
 from kash.utils.text_handling.markdown_utils import extract_links
 
@@ -128,10 +129,10 @@ async def fetch_urls_async(urls: list[Url], show_progress: bool = True) -> LinkD
     async with multitask_status() as status:
         task_results = await gather_limited_sync(
             *download_tasks,
+            limit=OVERALL_LIMIT,
+            bucket_limits={"*": PER_HOST_LIMIT},
             status=status,
             labeler=labeler,
-            global_limit=OVERALL_LIMIT,
-            bucket_limits={"*": PER_HOST_LIMIT},
             retry_settings=LINK_FETCH_RETRIES,
         )
 

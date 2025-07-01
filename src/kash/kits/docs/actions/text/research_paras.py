@@ -7,6 +7,7 @@ from chopdiff.docs import Paragraph, TextDoc, TextUnit
 from strif import abbrev_list, abbrev_str
 
 from kash.config.logger import get_logger
+from kash.config.settings import global_settings
 from kash.exec import kash_action
 from kash.exec.llm_transforms import llm_transform_str
 from kash.kits.docs.concepts.doc_annotations import (
@@ -17,7 +18,7 @@ from kash.kits.docs.concepts.doc_annotations import (
 from kash.llm_utils import Message, MessageTemplate
 from kash.model import Format, Item, ItemType, LLMOptions
 from kash.shell.output.shell_output import multitask_status
-from kash.utils.api_utils.gather_limited import FuncTask, gather_limited_sync
+from kash.utils.api_utils.gather_limited import FuncTask, Limit, gather_limited_sync
 from kash.utils.errors import InvalidInput
 from kash.utils.text_handling.markdown_utils import extract_bullet_points
 
@@ -364,9 +365,10 @@ async def research_paras_async(item: Item) -> Item:
         return f"Research {i + 1}/{len(paragraphs)}"
 
     # Execute research in parallel with rate limiting, retries, and progress tracking
+    limit = Limit(rps=global_settings().limit_rps, concurrency=global_settings().limit_concurrency)
     async with multitask_status() as status:
         paragraph_notes = await gather_limited_sync(
-            *research_tasks, status=status, labeler=research_labeler
+            *research_tasks, limit=limit, status=status, labeler=research_labeler
         )
 
     log.message(
@@ -395,6 +397,7 @@ async def research_paras_async(item: Item) -> Item:
     async with multitask_status() as status:
         annotated_paras = await gather_limited_sync(
             *annotation_tasks,
+            limit=limit,
             status=status,
             labeler=annotation_labeler,
         )
