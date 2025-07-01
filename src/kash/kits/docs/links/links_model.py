@@ -1,6 +1,43 @@
 from __future__ import annotations
 
+from enum import StrEnum
+
 from pydantic import BaseModel
+
+
+class LinkStatus(StrEnum):
+    """
+    The status of a link based on a fetch attempt.
+    Status should be None for new links.
+    """
+
+    fetched = "fetched"
+    not_found = "not_found"
+    forbidden = "forbidden"
+    fetch_error = "fetch_error"
+    disabled = "disabled"
+
+    @classmethod
+    def from_status_code(cls, status_code: int) -> LinkStatus:
+        """Create a LinkStatus from an HTTP status code."""
+        if status_code == 200:
+            return cls.fetched
+        elif status_code == 404:
+            return cls.not_found
+        elif status_code == 403:
+            return cls.forbidden
+        else:
+            return cls.fetch_error
+
+    @property
+    def is_error(self) -> bool:
+        """Whether the link should not be reported as a success."""
+        return self in (self.not_found, self.forbidden, self.fetch_error)
+
+    @property
+    def should_fetch(self) -> bool:
+        """Whether the link should be fetched or retried."""
+        return self in (self.forbidden, self.fetch_error)
 
 
 class Link(BaseModel):
@@ -9,6 +46,9 @@ class Link(BaseModel):
     url: str
     title: str | None = None
     description: str | None = None
+    summary: str | None = None
+    status: LinkStatus | None = None
+    status_code: int | None = None
 
 
 class LinkError(BaseModel):

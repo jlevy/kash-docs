@@ -2,17 +2,15 @@ from __future__ import annotations
 
 import asyncio
 
-from frontmatter_format import from_yaml_string, to_yaml_string
-from ruamel.yaml.error import YAMLError
-
 from kash.config.logger import get_logger
 from kash.exec import kash_action
-from kash.exec.preconditions import has_markdown_body
+from kash.exec.preconditions import has_html_body, has_markdown_body, has_markdown_with_html_body
 from kash.kits.docs.actions.text.extract_links import extract_links
 from kash.kits.docs.links.fetch_urls_async import fetch_urls_async
-from kash.kits.docs.links.links_model import Link, LinkResults
+from kash.kits.docs.links.links_model import LinkResults
 from kash.kits.docs.links.links_preconditions import is_links_data
-from kash.model import Format, Item, ItemType, TitleTemplate
+from kash.kits.docs.links.links_utils import read_links_from_yaml_item, write_links_to_yaml_item
+from kash.model import Item, TitleTemplate
 from kash.utils.common.url import Url
 from kash.utils.errors import InvalidInput
 
@@ -20,7 +18,7 @@ log = get_logger(__name__)
 
 
 @kash_action(
-    precondition=has_markdown_body | is_links_data,
+    precondition=has_markdown_body | has_markdown_with_html_body | has_html_body | is_links_data,
     title_template=TitleTemplate("Link metadata from {title}"),
     live_output=True,
 )
@@ -29,36 +27,23 @@ def fetch_links(item: Item) -> Item:
     Download metadata for links from either markdown content or a links data item.
     If the input is markdown, extracts links first then downloads metadata.
     If the input is already a links data item, downloads metadata for those links.
-    Returns a YAML config with URL, title, and description for each link.
+    Uses cache-aware rate limiting for faster processing of cached content.
+    Returns a YAML data item with URL, title, and description for each link.
     """
     # If input is markdown, first extract the links
-    if has_markdown_body(item):
+    if has_markdown_body(item) or has_markdown_with_html_body(item) or has_html_body(item):
         links_item = extract_links(item)
     elif is_links_data(item):
         links_item = item
     else:
         raise InvalidInput(f"Item must have markdown body or links data: {item}")
 
-    # Parse the links from the YAML data
-    if not links_item.body:
-        raise InvalidInput(f"Links item must have a body: {links_item}")
-
-    try:
-        data = from_yaml_string(links_item.body)
-        links_data = data.get("links", [])
-        urls: list[Url] = [
-            Url(link["url"]) for link in links_data if isinstance(link, dict) and "url" in link
-        ]
-    except (KeyError, TypeError, YAMLError) as e:
-        raise InvalidInput(f"Failed to parse links data: {e}")
+    links_data = read_links_from_yaml_item(links_item)
+    urls = [Url(link.url) for link in links_data.links]
 
     if not urls:
         log.message("No links found to download")
-        return item.derived_copy(
-            type=ItemType.data,
-            format=Format.yaml,
-            body=to_yaml_string(LinkResults(links=[]).model_dump()),
-        )
+        return write_links_to_yaml_item(LinkResults(links=[]), item)
 
     download_result = asyncio.run(fetch_urls_async(urls))
 
@@ -69,18 +54,18 @@ def fetch_links(item: Item) -> Item:
             download_result.total_attempted,
         )
         for error in download_result.errors:
-            log.warning("Error downloading %s: %s", error.url, error.error_message)
+            log.warning("Error fetching: %s", error.error_message)
 
     results = LinkResults(links=download_result.links)
-    yaml_content = to_yaml_string(results.model_dump())
-
-    return item.derived_copy(type=ItemType.data, format=Format.yaml, body=yaml_content)
+    return write_links_to_yaml_item(results, item)
 
 
 ## Tests
 
 
 def test_fetch_links_no_links():
+    from kash.model import Format, ItemType
+
     item = Item(
         type=ItemType.doc,
         format=Format.markdown,
@@ -115,21 +100,21 @@ def test_fetch_links_with_mock_links():
 
 def test_fetch_links_with_links_data():
     """Test fetch_links with a pre-existing links data item."""
+    from kash.kits.docs.links.links_model import Link
+    from kash.model import Format, ItemType
+
     links = [
         Link(url="https://example.com"),
         Link(url="https://test.com"),
     ]
     results = LinkResults(links=links)
-    yaml_content = to_yaml_string(results.model_dump())
 
-    item = Item(
-        type=ItemType.data,
-        format=Format.yaml,
-        body=yaml_content,
-    )
+    # Use utility function to create the test item
+    item = Item(type=ItemType.data, format=Format.yaml, body="dummy")
+    test_item = write_links_to_yaml_item(results, item)
 
     # Verify precondition works
-    assert is_links_data(item)
+    assert is_links_data(test_item)
 
     # Note: This test won't actually download since we're testing with fake URLs
     # The real download would happen with valid URLs

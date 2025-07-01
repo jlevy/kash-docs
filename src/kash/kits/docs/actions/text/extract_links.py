@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from frontmatter_format import to_yaml_string
+from prettyfmt import fmt_lines
 
 from kash.config.logger import get_logger
 from kash.exec import kash_action
-from kash.exec.preconditions import has_html_body, has_markdown_body
+from kash.exec.preconditions import has_html_body, has_markdown_body, has_markdown_with_html_body
 from kash.kits.docs.actions.text.markdownify_doc import markdownify_item
 from kash.kits.docs.links.links_model import Link, LinkResults
 from kash.model import Format, Item, ItemType, TitleTemplate
+from kash.utils.common.url import is_url
 from kash.utils.errors import InvalidInput
 from kash.utils.text_handling.markdown_utils import extract_links as extract_links_from_markdown
 
@@ -15,7 +17,7 @@ log = get_logger(__name__)
 
 
 @kash_action(
-    precondition=has_markdown_body | has_html_body,
+    precondition=has_markdown_body | has_markdown_with_html_body | has_html_body,
     title_template=TitleTemplate("Links from {title}"),
 )
 def extract_links(item: Item) -> Item:
@@ -42,7 +44,13 @@ def extract_links(item: Item) -> Item:
     if not urls:
         log.message("No links found in content")
 
-    links = [Link(url=url) for url in urls]
+    links = [Link(url=url) for url in urls if is_url(url)]
+    if len(urls) - len(links) > 0:
+        log.warning(
+            "Skipping %d invalid links:\n%s",
+            len(urls) - len(links),
+            fmt_lines(repr(url) for url in urls if not is_url(url)),
+        )
 
     results = LinkResults(links=links)
     yaml_content = to_yaml_string(results.model_dump())
