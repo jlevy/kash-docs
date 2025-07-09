@@ -39,7 +39,7 @@ classifiers = [
 
 dependencies = [
     # Main kash and doc-handling deps:
-    "kash-shell>=0.3.24",
+    "kash-shell>=0.3.25",
     # Pinning for now, saw some possible regressions with v1.1.0:
     "markdownify==0.13.1",
     # Utilities:
