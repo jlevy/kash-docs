@@ -48,8 +48,8 @@ dependencies = [
     "typing-extensions>=4.11.1",
     "cachetools>=5.5.2",
     # Content tools:
-    "flowmark>=0.4.2",
-    "chopdiff>=0.1.3",
+    "flowmark>=0.5.0",
+    "chopdiff>=0.2.3",
     # "simplemma>=1.1.2",  # Fairly large (70MB)
     # For printing. Note weasyprint has install dep issues on macos depending on the python version.
     # https://github.com/Kozea/WeasyPrint/issues/2112

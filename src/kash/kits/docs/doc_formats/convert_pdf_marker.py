@@ -2,16 +2,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from marker.converters.pdf import PdfConverter
-from marker.models import create_model_dict
-from marker.output import text_from_rendered
-
 
 def pdf_to_md_marker(pdf_path: Path) -> str:
     """
     Convert a PDF file to Markdown using Marker.
     Does not normalize the Markdown.
     """
+    from marker.converters.pdf import PdfConverter
+    from marker.models import create_model_dict
+    from marker.output import text_from_rendered
+
     converter = PdfConverter(
         artifact_dict=create_model_dict(),
     )
