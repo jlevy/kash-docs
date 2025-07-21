@@ -346,6 +346,7 @@ def map_notes_with_embeddings(
     Returns:
         AnnotatedParagraph with notes mapped to most similar sentences
     """
+    from kash.embeddings.embeddings import EmbValue, KeyVal
     from kash.kits.docs.concepts.similarity_cache import create_similarity_cache
 
     # Filter out empty notes and "(No results)" placeholder
@@ -364,8 +365,10 @@ def map_notes_with_embeddings(
         return annotated_para
 
     # Create similarity cache with all sentences and notes
-    sentence_keyvals = [(f"sent_{i}", text) for i, text in enumerate(sentence_texts)]
-    note_keyvals = [(f"note_{i}", note) for i, note in enumerate(filtered_notes)]
+    sentence_keyvals = [
+        KeyVal(f"sent_{i}", EmbValue(text)) for i, text in enumerate(sentence_texts)
+    ]
+    note_keyvals = [KeyVal(f"note_{i}", EmbValue(note)) for i, note in enumerate(filtered_notes)]
 
     all_keyvals = sentence_keyvals + note_keyvals
     similarity_cache = create_similarity_cache(all_keyvals)

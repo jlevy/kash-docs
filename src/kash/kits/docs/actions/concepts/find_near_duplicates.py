@@ -1,7 +1,7 @@
 from chopdiff.util import lemmatized_equal
 
 from kash.config.logger import get_logger
-from kash.embeddings.embeddings import Embeddings
+from kash.embeddings.embeddings import Embeddings, EmbValue, KeyVal
 from kash.exec import kash_action
 from kash.exec.preconditions import has_simple_text_body, is_concept
 from kash.kits.docs.concepts.concept_relations import (
@@ -24,7 +24,9 @@ def find_near_duplicates(input: ActionInput) -> ActionResult:
     """
     Look at input items and find near duplicate items using text embeddings, based on title or body.
     """
-    keyvals = [(not_none(item.store_path), item.full_text()) for item in input.items]
+    keyvals = [
+        KeyVal(not_none(item.store_path), EmbValue(item.full_text())) for item in input.items
+    ]
     item_map = {item.store_path: item for item in input.items}
 
     report_threshold = 0.65

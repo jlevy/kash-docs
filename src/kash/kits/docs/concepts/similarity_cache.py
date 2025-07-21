@@ -5,7 +5,7 @@ from typing import TypeAlias
 
 from kash.config.logger import get_logger
 from kash.embeddings.cosine import ArrayLike
-from kash.embeddings.embeddings import Embeddings, Key
+from kash.embeddings.embeddings import Embeddings, Key, KeyVal
 from kash.embeddings.text_similarity import cosine_relatedness
 
 log = get_logger(__name__)
@@ -83,7 +83,7 @@ class SimilarityCache:
 
 
 def create_similarity_cache(
-    keyvals: list[tuple[Key, str]], similarity_fn: SimilarityFn = cosine_relatedness
+    keyvals: list[KeyVal], similarity_fn: SimilarityFn = cosine_relatedness
 ) -> SimilarityCache:
     """
     Convenience function to create a SimilarityCache from key-value pairs.

@@ -94,14 +94,14 @@ dev = [
     "ruff>=0.11.0",
     "codespell>=2.4.1",
     "rich>=14.0.0",
-    "basedpyright>=1.28.2",
+    "basedpyright==1.29.5",  # TODO: Upgrade when Cursor supports it.
     "funlog>=0.2.0",
     "clideps>=0.1.2",
 ]
 
 [tool.uv.sources]
 # For bleeding edge:
-# kash-shell = { git = "https://github.com/jlevy/kash.git" }
+kash-shell = { git = "https://github.com/jlevy/kash.git" }
 # For local development:
 # kash-shell = { path = "../kash", editable = true }
 # chopdiff = { path = "../../github/chopdiff", editable = true }
