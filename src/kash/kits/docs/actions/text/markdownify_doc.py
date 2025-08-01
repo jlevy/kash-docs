@@ -56,6 +56,7 @@ def markdownify_item(item: Item, pdf_converter: str = "markitdown") -> Item:
             valid_str_values=["markitdown", "marker"],
         ),
     ),
+    mcp_tool=True,
 )
 def markdownify_doc(input: ActionInput, pdf_converter: str = "marker") -> ActionResult:
     """

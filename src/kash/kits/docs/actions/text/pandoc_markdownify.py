@@ -8,7 +8,7 @@ from kash.workspaces.workspaces import current_ws
 
 
 @kash_action(precondition=is_doc_resource, mcp_tool=True)
-def to_md_pandoc(item: Item) -> Item:
+def pandoc_markdownify(item: Item) -> Item:
     """
     Convert docs to markdown using Pandoc.
     """

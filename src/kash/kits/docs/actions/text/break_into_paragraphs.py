@@ -55,6 +55,7 @@ llm_options = LLMOptions(
             default_value=7,
         ),
     ),
+    mcp_tool=True,
 )
 def break_into_paragraphs(item: Item, max_sent_per_para: int = 7) -> Item:
     """

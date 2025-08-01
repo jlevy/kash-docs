@@ -412,7 +412,7 @@ async def research_paras_async(item: Item) -> Item:
     return item.derived_copy(type=ItemType.doc, body=final_output, format=Format.md_html)
 
 
-@kash_action(llm_options=llm_options, live_output=True)
+@kash_action(llm_options=llm_options, live_output=True, mcp_tool=True)
 def research_paras(item: Item) -> Item:
     """
     Fact checks and researches each paragraph of a text.

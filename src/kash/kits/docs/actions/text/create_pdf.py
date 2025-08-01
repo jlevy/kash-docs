@@ -12,8 +12,8 @@ log = get_logger(__name__)
 
 @kash_action(
     precondition=has_html_compatible_body,
-    mcp_tool=True,
     params=(Param("save_html", "Also save the HTML for generating the PDF.", type=bool),),
+    mcp_tool=True,
 )
 def create_pdf(item: Item, save_html: bool = False) -> Item:
     """
