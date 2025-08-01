@@ -30,7 +30,6 @@ PDF_PRINT_BACKGROUND = True
 USE_STEALTH = True
 USE_FINGERPRINT = True
 AUTO_INSTALL = True
-CONFIRM_INSTALL = True
 
 
 @kash_action(
@@ -146,7 +145,7 @@ def browser_fetch(
     if not is_installed:
         if AUTO_INSTALL:
             # Try to set up Playwright with interactive prompt
-            if not setup_playwright(confirm=CONFIRM_INSTALL):
+            if not setup_playwright(confirm=False):
                 raise InvalidInput(
                     "Playwright setup failed or was cancelled. "
                     "Please run manually: uv run playwright install chromium"

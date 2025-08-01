@@ -10,7 +10,6 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
-from playwright.async_api import async_playwright
 from prettyfmt import abbrev_obj, fmt_timedelta
 from typing_extensions import override
 
@@ -272,14 +271,14 @@ def install_playwright_browsers(browsers: list[str] | None = None) -> bool:
             deps_cmd = [sys.executable, "-m", "playwright", "install-deps"] + browsers
             subprocess.run(deps_cmd, capture_output=True, text=True, check=True)
 
-        log.warning("✔︎ Playwright browsers installed successfully!")
+        log.warning("Playwright browsers installed successfully!")
         return True
 
     except subprocess.CalledProcessError as e:
-        log.error("✘ Failed to install Playwright browsers: %s", e.stderr)
+        log.error("Failed to install Playwright browsers: %s", e.stderr)
         return False
     except Exception as e:
-        log.error("✘ Error installing Playwright browsers: %s", e)
+        log.error("Error installing Playwright browsers: %s", e)
         return False
 
 
@@ -444,9 +443,6 @@ async def wait_for_js_frameworks(page: Page, timeout: int = 5000) -> None:
                      document.querySelector('#__next') ||
                      document.querySelector('.app') ||
                      document.querySelector('[data-reactroot]') ||
-                     // For ChatGPT specifically
-                     document.querySelector('.overflow-y-auto') ||
-                     document.querySelector('[data-testid="conversation-turn"]') ||
                      // Vue.js apps
                      document.querySelector('#app') ||
                      document.querySelector('[data-v-]') ||
@@ -496,6 +492,8 @@ async def execute_browser_operation(
     Returns:
         BrowserOperationResult with complete operation metadata and content
     """
+    from playwright.async_api import async_playwright
+
     async with async_playwright() as p:
         # Launch browser with specific args for better stealth
         launch_args = [
@@ -525,7 +523,7 @@ async def execute_browser_operation(
             if use_stealth:
                 try:
                     # Import and use playwright_stealth
-                    from playwright_stealth.stealth import Stealth  # pyright: ignore
+                    from playwright_stealth.stealth import Stealth
 
                     stealth = Stealth()
                     await stealth.apply_stealth_async(page)

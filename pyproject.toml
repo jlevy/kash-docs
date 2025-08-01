@@ -74,16 +74,16 @@ dependencies = [
     # Docx support.
     "python-docx>=1.1.2",
     # "html-for-docx>=1.0.6",  # Had some issues, using our own for now.
-    # Browser automation:
-    "playwright>=1.54.0",
-    "playwright-stealth>=2.0.0",
-    "browserforge>=1.2.3",
 ]
 
 [project.optional-dependencies]
 full = [
     # Marker is more powerful but much bigger dependencies, models, etc.
-    "marker-pdf[full]>=1.7.5"
+    "marker-pdf[full]>=1.7.5",
+    # Browser automation:
+    "playwright>=1.54.0",
+    "playwright-stealth>=2.0.0",
+    "browserforge>=1.2.3",
 ]
 
 
