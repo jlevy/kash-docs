@@ -76,6 +76,10 @@ dependencies = [
     # Docx support.
     "python-docx>=1.1.2",
     # "html-for-docx>=1.0.6",  # Had some issues, using our own for now.
+    # Browser automation:
+    "playwright>=1.54.0",
+    "playwright-stealth>=2.0.0",
+    "browserforge>=1.2.3",
 ]
 
 [project.optional-dependencies]
@@ -101,11 +105,10 @@ dev = [
 
 [tool.uv.sources]
 # For bleeding edge:
-# kash-shell = { git = "https://github.com/jlevy/kash.git" }
+kash-shell = { git = "https://github.com/jlevy/kash.git" }
 # For local development:
 # kash-shell = { path = "../kash", editable = true }
 # chopdiff = { path = "../../github/chopdiff", editable = true }
-# minify-tw-html = { path = "../../github/minify-tw-html", editable = true }
 
 
 
