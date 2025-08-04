@@ -41,7 +41,9 @@ class LinkStatus(StrEnum):
 
 
 class Link(BaseModel):
-    """A single link with metadata."""
+    """
+    A single link with metadata.
+    """
 
     url: str
     title: str | None = None
@@ -52,7 +54,9 @@ class Link(BaseModel):
 
 
 class LinkError(BaseModel):
-    """An error that occurred while downloading a link."""
+    """
+    An error that occurred while downloading a link.
+    """
 
     url: str
     error_message: str
@@ -60,7 +64,7 @@ class LinkError(BaseModel):
 
 class LinkResults(BaseModel):
     """
-    Collection of successfully downloaded links (for backward compatibility).
+    Collection of successfully downloaded links.
     """
 
     links: list[Link]

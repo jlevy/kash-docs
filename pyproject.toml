@@ -48,7 +48,7 @@ dependencies = [
     "cachetools>=5.5.2",
     # Content tools:
     "flowmark>=0.5.0",
-    "chopdiff>=0.2.3",
+    "chopdiff>=0.2.4",
     # "simplemma>=1.1.2",  # Fairly large (70MB)
     # For printing. Note weasyprint has install dep issues on macos depending on the python version.
     # https://github.com/Kozea/WeasyPrint/issues/2112

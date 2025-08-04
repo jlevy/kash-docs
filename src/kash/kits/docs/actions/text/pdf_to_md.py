@@ -3,6 +3,7 @@ from kash.exec import kash_action
 from kash.exec.preconditions import is_pdf_resource
 from kash.model import Format, Item, ItemType, Param
 from kash.utils.errors import InvalidInput
+from kash.workspaces import current_ws
 
 log = get_logger(__name__)
 
@@ -19,6 +20,7 @@ log = get_logger(__name__)
             valid_str_values=["markitdown", "marker"],
         ),
     ),
+    live_output=True,  # Marker shows progress bars.
 )
 def pdf_to_md(item: Item, converter: str = "markitdown") -> Item:
     """
@@ -39,17 +41,35 @@ def pdf_to_md(item: Item, converter: str = "markitdown") -> Item:
         result = pdf_to_md_markitdown(item.absolute_path())
         title = result.title
         body = result.markdown
+
+        return item.derived_copy(
+            type=ItemType.doc,
+            format=Format.markdown,
+            title=title or item.title,  # Preserve original title (or none).
+            body=body,
+        )
     elif converter == "marker":
+        from sidematter_format import SidematterPath
+
         from kash.kits.docs.doc_formats.convert_pdf_marker import pdf_to_md_marker
 
         title = None
-        body = pdf_to_md_marker(item.absolute_path())
+        marker_result = pdf_to_md_marker(item.absolute_path())
+        body = marker_result.markdown
+
+        result = item.derived_copy(
+            type=ItemType.doc,
+            format=Format.markdown,
+            title=title or item.title,  # Preserve original title (or none).
+            body=body,
+        )
+
+        # Manually write images to the sidematter assets directory.
+        ws = current_ws()
+        target_path = ws.target_path_for(result)
+        assets_dir = SidematterPath(target_path).assets_dir
+        marker_result.write_images(assets_dir)
+
+        return result
     else:
         raise InvalidInput(f"Invalid converter: {converter}")
-
-    return item.derived_copy(
-        type=ItemType.doc,
-        format=Format.markdown,
-        title=title or item.title,  # Preserve original title (or none).
-        body=body,
-    )
