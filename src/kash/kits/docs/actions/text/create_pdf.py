@@ -23,22 +23,23 @@ def create_pdf(item: Item, save_html: bool = False) -> Item:
         raise InvalidInput(f"Item must have a body: {item}")
 
     pdf_item = item.derived_copy(type=ItemType.export, format=Format.pdf, file_ext=FileExt.pdf)
-    target_pdf_path = current_ws().target_path_for(pdf_item)
+    target_pdf_path = current_ws().assign_store_path(pdf_item)
     log.message("Will save PDF to: %s", fmt_loc(target_pdf_path))
 
+    ws = current_ws()
     if save_html:
         html_item = item.derived_copy(
             type=ItemType.export, format=Format.html, file_ext=FileExt.html
         )
-        target_html_path = current_ws().target_path_for(html_item)
+        target_html_path = ws.assign_store_path(html_item)
         log.message("Will save HTML to: %s", fmt_loc(target_html_path))
     else:
         target_html_path = None
 
     html = item.body_as_html()
 
-    # Add directly to the store.
+    # Add directly to the store and indicate that we've saved it.
     html_to_pdf(html, target_pdf_path, title=item.title, html_out_path=target_html_path)
-    pdf_item.external_path = str(target_pdf_path)
+    pdf_item.mark_as_saved(target_pdf_path)
 
     return pdf_item

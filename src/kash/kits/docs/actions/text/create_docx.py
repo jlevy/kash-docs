@@ -25,7 +25,8 @@ def create_docx(item: Item) -> Item:
     assert item.store_path
 
     docx_item = item.derived_copy(type=ItemType.export, format=Format.docx, file_ext=FileExt.docx)
-    target_docx_path = current_ws().target_path_for(docx_item)
+    ws = current_ws()
+    target_docx_path = ws.assign_store_path(docx_item)
 
     content_html = item.body_as_html()
 
@@ -41,6 +42,6 @@ def create_docx(item: Item) -> Item:
         docx.save(str(f))
 
     # Indicate that we've already saved the file.
-    docx_item.external_path = str(target_docx_path)
+    docx_item.mark_as_saved(target_docx_path)
 
     return docx_item

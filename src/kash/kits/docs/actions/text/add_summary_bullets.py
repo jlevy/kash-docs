@@ -63,7 +63,10 @@ def add_summary_bullets(
         )
         summary_tag = tag_with_attrs("summary", summary_title)
         details_tag = tag_with_attrs(
-            "details", summary_tag + "\n\n" + details_div, attrs=details_attrs, safe=True
+            "details",
+            summary_tag + "\n\n" + details_div,
+            attrs=details_attrs,
+            safe=True,
         )
         details_tags.append(details_tag)
     summary_html = "\n\n".join(details_tags)
@@ -71,10 +74,6 @@ def add_summary_bullets(
     assert item.body
     combined_body = summary_html + "\n\n" + div_wrapper(class_name=ORIGINAL)(item.body)
 
-    combined_item = item.derived_copy(
-        type=ItemType.doc,
-        format=Format.md_html,
-        body=combined_body,
-    )
+    combined_item = item.derived_copy(type=ItemType.doc, format=Format.md_html, body=combined_body)
 
     return combined_item

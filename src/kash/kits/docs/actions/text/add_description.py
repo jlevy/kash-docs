@@ -5,7 +5,6 @@ from kash.exec import kash_action
 from kash.exec.preconditions import has_simple_text_body
 from kash.kits.docs.actions.text.describe_briefly import describe_briefly
 from kash.model import Format, Item, ItemType
-from kash.utils.common.type_utils import not_none
 
 log = get_logger(__name__)
 
@@ -16,9 +15,7 @@ ORIGINAL = "original"
 """Class name for the original content."""
 
 
-@kash_action(
-    precondition=has_simple_text_body,
-)
+@kash_action(precondition=has_simple_text_body)
 def add_description(item: Item) -> Item:
     """
     Add a brief description (from `describe_briefly`) of the content above the full text of
@@ -26,19 +23,13 @@ def add_description(item: Item) -> Item:
     """
     description_item = describe_briefly(item)
 
-    wrap_description = div_wrapper(class_name=DESCRIPTION)
-    wrap_original = div_wrapper(class_name=ORIGINAL)
-
+    assert description_item.body and item.body
     combined_body = (
-        wrap_description(not_none(description_item.body))
+        div_wrapper(class_name=DESCRIPTION)(description_item.body)
         + "\n\n"
-        + wrap_original(not_none(item.body))
+        + div_wrapper(class_name=ORIGINAL)(item.body)
     )
 
-    output_item = item.derived_copy(
-        type=ItemType.doc,
-        format=Format.md_html,
-        body=combined_body,
-    )
+    output_item = item.derived_copy(type=ItemType.doc, format=Format.md_html, body=combined_body)
 
     return output_item

@@ -155,6 +155,8 @@ def browser_fetch(
 
     url = item.url
 
+    ws = current_ws()
+
     # Set up format defaults and create appropriate output item
     if output_mode == "html":
         # For HTML mode, return content in the body
@@ -163,7 +165,7 @@ def browser_fetch(
             format=Format.html,
             file_ext=FileExt.html,
         )
-        output_path_obj = None
+        target_path = None
     else:
         # For screenshot/PDF modes, create export items with proper format
         if output_mode == "screenshot":
@@ -193,8 +195,8 @@ def browser_fetch(
             format=file_format,
             file_ext=file_ext,
         )
-        output_path_obj = current_ws().target_path_for(output_item)
-        log.message("Will save %s to: %s", output_mode, fmt_loc(output_path_obj))
+        target_path = ws.assign_store_path(output_item, absolute=True)
+        log.message("Will save %s to: %s", output_mode, fmt_loc(target_path))
 
     log.message(
         "Fetching %s with browser (mode: %s, wait_for: %s, load_state: %s)...",
@@ -234,7 +236,7 @@ def browser_fetch(
                 viewport_height=viewport_height,
                 use_stealth=USE_STEALTH,
                 use_fingerprint=USE_FINGERPRINT,
-                output_path=output_path_obj,
+                output_path=target_path,
                 **operation_kwargs,
             )
         )
@@ -261,12 +263,12 @@ def browser_fetch(
             log.message(
                 "Successfully generated %s: %s (%d bytes)",
                 output_mode,
-                output_path_obj,
+                target_path,
                 len(result.content),
             )
 
-            # Set external path on the item
-            output_item.external_path = str(output_path_obj)
+            if target_path:
+                output_item.mark_as_saved(target_path)
 
         # Update URL if there were redirects
         if result.final_url != url:

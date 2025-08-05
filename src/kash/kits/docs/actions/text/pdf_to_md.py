@@ -49,7 +49,7 @@ def pdf_to_md(item: Item, converter: str = "markitdown") -> Item:
             body=body,
         )
     elif converter == "marker":
-        from sidematter_format import SidematterPath
+        from sidematter_format import Sidematter
 
         from kash.kits.docs.doc_formats.convert_pdf_marker import pdf_to_md_marker
 
@@ -66,8 +66,7 @@ def pdf_to_md(item: Item, converter: str = "markitdown") -> Item:
 
         # Manually write images to the sidematter assets directory.
         ws = current_ws()
-        target_path = ws.target_path_for(result)
-        assets_dir = SidematterPath(target_path).assets_dir
+        assets_dir = Sidematter(ws.assign_store_path(result)).assets_dir
         marker_result.write_images(assets_dir)
 
         return result

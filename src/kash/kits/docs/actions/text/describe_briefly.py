@@ -41,7 +41,7 @@ llm_options = LLMOptions(
 )
 
 
-@kash_action(llm_options=llm_options, title_template=TitleTemplate("Summary of {title}"))
+@kash_action(llm_options=llm_options, title_template=TitleTemplate("Description of {title}"))
 def describe_briefly(item: Item) -> Item:
     """
     Write a brief description of a text, in at most three sentences.
