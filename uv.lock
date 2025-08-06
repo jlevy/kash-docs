@@ -1533,8 +1533,8 @@ dev = [
 
 [[package]]
 name = "kash-shell"
-version = "0.3.29.dev15+4b8e0e4"
-source = { git = "https://github.com/jlevy/kash.git#4b8e0e4f91c35638769e0e36c8ab86a496203c4e" }
+version = "0.3.29.dev16+15a7c53"
+source = { git = "https://github.com/jlevy/kash.git#15a7c5312e6174303b61ad339369fc8fb4d77848" }
 dependencies = [
     { name = "aiolimiter" },
     { name = "anyio" },
@@ -2574,7 +2574,7 @@ wheels = [
 
 [[package]]
 name = "prettyfmt"
-version = "0.4.0"
+version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "humanize" },
@@ -2582,9 +2582,9 @@ dependencies = [
     { name = "strif" },
     { name = "text-unidecode" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/47/2b/677609a417ecc2cd4f25bda7a0eb6de422e1e3197b11cf98bed513787b41/prettyfmt-0.4.0.tar.gz", hash = "sha256:6ef431bb04d443c3ebaa190e0fa58bd41cc5b205a3c9a9ea232c7dbafc5ac87d", size = 31838, upload-time = "2025-05-17T17:55:38.874Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/18/23/2ee755747f6cc814d7ba93766e01b004fbdbb8b4e4309f3f22fd7431667f/prettyfmt-0.4.1.tar.gz", hash = "sha256:e8f2f24826a109f410514a7d2a92ef25986942c75c4a5f2ba2d1ace216e2a39e", size = 32482, upload-time = "2025-08-06T21:02:40.298Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/44/d9/9e7c80717740ea298c8a4fddd33a959e194a38365c093c2a3536f9be80c0/prettyfmt-0.4.0-py3-none-any.whl", hash = "sha256:b45b32249760143fbfd4e93e80f395c3ab0e0b5002ae434e4a6a20cd83958849", size = 11377, upload-time = "2025-05-17T17:55:37.322Z" },
+    { url = "https://files.pythonhosted.org/packages/94/6f/fc869cbff55240bade75b71d14501ec6590206f8b69dc2140128b8c04899/prettyfmt-0.4.1-py3-none-any.whl", hash = "sha256:a15a2662d9477e289d197defd4a848fefa277b8eb2e647b01a15a86ade8c88c5", size = 11496, upload-time = "2025-08-06T21:02:38.844Z" },
 ]
 
 [[package]]
