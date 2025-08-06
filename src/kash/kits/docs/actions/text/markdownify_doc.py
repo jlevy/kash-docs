@@ -11,7 +11,7 @@ from kash.exec.preconditions import (
 )
 from kash.kits.docs.actions.text.docx_to_md import docx_to_md
 from kash.kits.docs.actions.text.pdf_to_md import pdf_to_md
-from kash.model import ActionInput, ActionResult, Item, Param
+from kash.model import Item, Param
 from kash.utils.errors import InvalidInput
 
 log = get_logger(__name__)
@@ -58,13 +58,11 @@ def markdownify_item(item: Item, pdf_converter: str = "markitdown") -> Item:
     ),
     mcp_tool=True,
 )
-def markdownify_doc(input: ActionInput, pdf_converter: str = "marker") -> ActionResult:
+def markdownify_doc(item: Item, pdf_converter: str = "marker") -> Item:
     """
     A more flexible `markdownify` action that converts documents of multiple formats
     to Markdown, handling HTML as well as PDF and .docx files.
     """
-    item = input.items[0]
-
     try:
         result_item = markdownify_item(item, pdf_converter=pdf_converter)
     except InvalidInput:
@@ -80,4 +78,4 @@ def markdownify_doc(input: ActionInput, pdf_converter: str = "marker") -> Action
         else:
             raise InvalidInput(f"Not a recognized format or URL we can convert to Markdown: {item}")
 
-    return ActionResult(items=[result_item])
+    return result_item

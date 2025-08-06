@@ -65,7 +65,8 @@ def fetch_links(item: Item, refetch: bool = False) -> Item:
             log.warning("Error fetching: %s", error.error_message)
 
     results = LinkResults(links=download_result.links)
-    return write_links_to_yaml_item(results, item)
+    result_item = write_links_to_yaml_item(results, item)
+    return result_item
 
 
 ## Tests

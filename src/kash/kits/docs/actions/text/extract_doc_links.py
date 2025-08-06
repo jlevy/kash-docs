@@ -20,7 +20,7 @@ log = get_logger(__name__)
     precondition=has_markdown_body | has_markdown_with_html_body | has_html_body,
     title_template=TitleTemplate("Links from {title}"),
 )
-def extract_links(item: Item) -> Item:
+def extract_doc_links(item: Item) -> Item:
     """
     Extract links from markdown or HTML content and return a data item with the list of URLs.
     HTML content is first converted to markdown before link extraction.
@@ -67,7 +67,7 @@ def test_extract_links_no_links():
         format=Format.markdown,
         body="This is just plain text with no links at all.",
     )
-    result = extract_links(item)
+    result = extract_doc_links(item)
     assert result.type == ItemType.data
     assert result.format == Format.yaml
     assert result.body is not None
@@ -92,7 +92,7 @@ def test_extract_links_with_urls():
         body=markdown_content,
     )
 
-    result = extract_links(item)
+    result = extract_doc_links(item)
     assert result.type == ItemType.data
     assert result.format == Format.yaml
     assert result.body is not None
