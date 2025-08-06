@@ -195,7 +195,7 @@ def browser_fetch(
             format=file_format,
             file_ext=file_ext,
         )
-        target_path = ws.assign_store_path(output_item, absolute=True)
+        target_path = ws.assign_store_path(output_item)
         log.message("Will save %s to: %s", output_mode, fmt_loc(target_path))
 
     log.message(

@@ -5,12 +5,12 @@ import asyncio
 from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.preconditions import has_html_body, has_markdown_body, has_markdown_with_html_body
-from kash.kits.docs.actions.text.extract_links import extract_links
+from kash.kits.docs.actions.text.extract_doc_links import extract_doc_links
 from kash.kits.docs.links.fetch_urls_async import fetch_urls_async
 from kash.kits.docs.links.links_model import LinkResults
 from kash.kits.docs.links.links_preconditions import is_links_data
 from kash.kits.docs.links.links_utils import read_links_from_yaml_item, write_links_to_yaml_item
-from kash.model import Item, TitleTemplate
+from kash.model import Item, Param, TitleTemplate
 from kash.utils.common.url import Url
 from kash.utils.errors import InvalidInput
 
@@ -21,8 +21,15 @@ log = get_logger(__name__)
     precondition=has_markdown_body | has_markdown_with_html_body | has_html_body | is_links_data,
     title_template=TitleTemplate("Link metadata from {title}"),
     live_output=True,
+    params=(
+        Param(
+            name="refetch",
+            description="Whether to refetch links that have already been fetched.",
+            type=bool,
+        ),
+    ),
 )
-def fetch_links(item: Item) -> Item:
+def fetch_links(item: Item, refetch: bool = False) -> Item:
     """
     Download metadata for links from either markdown content or a links data item.
     If the input is markdown, extracts links first then downloads metadata.
@@ -32,14 +39,15 @@ def fetch_links(item: Item) -> Item:
     """
     # If input is markdown, first extract the links
     if has_markdown_body(item) or has_markdown_with_html_body(item) or has_html_body(item):
-        links_item = extract_links(item)
+        links_item = extract_doc_links(item)
     elif is_links_data(item):
         links_item = item
     else:
         raise InvalidInput(f"Item must have markdown body or links data: {item}")
 
     links_data = read_links_from_yaml_item(links_item)
-    urls = [Url(link.url) for link in links_data.links]
+    # Don't fetch links that are already fetched or have permanent errors.
+    urls = [Url(link.url) for link in links_data.links if refetch or link.status.should_fetch]
 
     if not urls:
         log.message("No links found to download")
