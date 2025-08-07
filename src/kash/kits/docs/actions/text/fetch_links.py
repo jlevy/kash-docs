@@ -55,14 +55,13 @@ def fetch_links(item: Item, refetch: bool = False) -> Item:
 
     download_result = asyncio.run(fetch_urls_async(urls))
 
+    log.message(f"Downloaded {len(download_result.links)} links")
     if download_result.has_errors:
         log.warning(
             "Failed to download %d out of %d links",
             len(download_result.errors),
             download_result.total_attempted,
         )
-        for error in download_result.errors:
-            log.warning("Error fetching: %s", error.error_message)
 
     results = LinkResults(links=download_result.links)
     result_item = write_links_to_yaml_item(results, item)

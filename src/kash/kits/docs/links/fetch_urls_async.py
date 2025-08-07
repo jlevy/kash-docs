@@ -42,7 +42,9 @@ def fetch_url_task(
     """
 
     try:
-        fetch_result = fetch_url_item(url, save_content=save_content, refetch=refetch, cache=True)
+        fetch_result = fetch_url_item(
+            url, save_content=save_content, refetch=refetch, cache=True, overwrite=True
+        )
 
         # Successful fetch
         status_code = 200

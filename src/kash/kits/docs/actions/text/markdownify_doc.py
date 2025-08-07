@@ -17,9 +17,27 @@ from kash.utils.errors import InvalidInput
 log = get_logger(__name__)
 
 
-def markdownify_item(item: Item, pdf_converter: str = "markitdown") -> Item:
+@kash_action(
+    precondition=is_url_resource
+    | is_docx_resource
+    | is_pdf_resource
+    | has_html_body
+    | has_simple_text_body,
+    params=(
+        Param(
+            name="pdf_converter",
+            description="The converter to use to convert the PDF to Markdown.",
+            type=str,
+            default_value="marker",
+            valid_str_values=["markitdown", "marker"],
+        ),
+    ),
+    mcp_tool=True,
+)
+def markdownify_doc(item: Item, pdf_converter: str = "marker") -> Item:
     """
-    Convert an item with content already present to Markdown.
+    A more flexible `markdownify` action that converts documents of multiple formats
+    to Markdown, handling HTML as well as PDF and .docx files.
     """
     if is_url_resource(item):
         log.message("Converting URL to Markdown with custom Markdownify...")
@@ -43,28 +61,3 @@ def markdownify_item(item: Item, pdf_converter: str = "markitdown") -> Item:
         raise InvalidInput(f"Don't know how to convert this content to Markdown: {item}")
 
     return result_item
-
-
-@kash_action(
-    precondition=is_url_resource
-    | is_docx_resource
-    | is_pdf_resource
-    | has_html_body
-    | has_simple_text_body,
-    params=(
-        Param(
-            name="pdf_converter",
-            description="The converter to use to convert the PDF to Markdown.",
-            type=str,
-            default_value="marker",
-            valid_str_values=["markitdown", "marker"],
-        ),
-    ),
-    mcp_tool=True,
-)
-def markdownify_doc(item: Item, pdf_converter: str = "marker") -> Item:
-    """
-    A more flexible `markdownify` action that converts documents of multiple formats
-    to Markdown, handling HTML as well as PDF and .docx files.
-    """
-    return markdownify_item(item, pdf_converter=pdf_converter)

@@ -6,7 +6,7 @@ from prettyfmt import fmt_lines
 from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.preconditions import has_html_body, has_markdown_body, has_markdown_with_html_body
-from kash.kits.docs.actions.text.markdownify_doc import markdownify_item
+from kash.kits.docs.actions.text.markdownify_doc import markdownify_doc
 from kash.kits.docs.links.links_model import Link, LinkResults
 from kash.model import Format, Item, ItemType, TitleTemplate
 from kash.utils.common.url import is_url
@@ -32,7 +32,7 @@ def extract_doc_links(item: Item) -> Item:
     # Convert HTML to markdown if needed
     if has_html_body(item):
         log.message("Converting HTML to markdown before extracting links")
-        item = markdownify_item(item)
+        item = markdownify_doc(item)
         if not item.body:
             raise InvalidInput(f"HTML conversion resulted in empty content: {item}")
 
