@@ -9,7 +9,7 @@ from kash.kits.docs.actions.text.extract_doc_links import extract_doc_links
 from kash.kits.docs.links.fetch_urls_async import fetch_urls_async
 from kash.kits.docs.links.links_model import LinkResults
 from kash.kits.docs.links.links_preconditions import is_links_data
-from kash.kits.docs.links.links_utils import read_links_from_yaml_item, write_links_to_yaml_item
+from kash.kits.docs.links.links_utils import add_link_results_to_item, link_results_from_item
 from kash.model import Item, Param, TitleTemplate
 from kash.utils.common.url import Url
 from kash.utils.errors import InvalidInput
@@ -45,13 +45,13 @@ def fetch_links(item: Item, refetch: bool = False) -> Item:
     else:
         raise InvalidInput(f"Item must have markdown body or links data: {item}")
 
-    links_data = read_links_from_yaml_item(links_item)
+    links_data = link_results_from_item(links_item)
     # Don't fetch links that are already fetched or have permanent errors.
     urls = [Url(link.url) for link in links_data.links if refetch or link.status.should_fetch]
 
     if not urls:
         log.message("No links found to download")
-        return write_links_to_yaml_item(LinkResults(links=[]), item)
+        return add_link_results_to_item(LinkResults(links=[]), item)
 
     download_result = asyncio.run(fetch_urls_async(urls))
 
@@ -64,7 +64,7 @@ def fetch_links(item: Item, refetch: bool = False) -> Item:
         )
 
     results = LinkResults(links=download_result.links)
-    result_item = write_links_to_yaml_item(results, item)
+    result_item = add_link_results_to_item(results, item)
     return result_item
 
 
@@ -80,7 +80,6 @@ def test_fetch_links_no_links():
         body="This is just plain text with no links at all.",
     )
     result = fetch_links(item)
-    assert result.type == ItemType.data
     assert result.format == Format.yaml
     assert result.body is not None
     assert "links: []" in result.body
@@ -119,7 +118,7 @@ def test_fetch_links_with_links_data():
 
     # Use utility function to create the test item
     item = Item(type=ItemType.data, format=Format.yaml, body="dummy")
-    test_item = write_links_to_yaml_item(results, item)
+    test_item = add_link_results_to_item(results, item)
 
     # Verify precondition works
     assert is_links_data(test_item)

@@ -16,7 +16,7 @@ log = get_logger(__name__)
 # TODO: Move to general data item serialization in items_model.py
 
 
-def read_links_from_yaml_item(item: Item) -> LinkResults:
+def link_results_from_item(item: Item) -> LinkResults:
     """
     Parse LinkResults from a links data item body.
     Raises InvalidInput if parsing fails or body is missing.
@@ -33,14 +33,14 @@ def read_links_from_yaml_item(item: Item) -> LinkResults:
         raise InvalidInput(f"Invalid links data format: {e}")
 
 
-def write_links_to_yaml_item(links_results: LinkResults, source_item: Item) -> Item:
+def add_link_results_to_item(links_results: LinkResults, source_item: Item) -> Item:
     """
     Convert LinkResults to a YAML data item.
     """
-    from kash.model import Format, ItemType
+    from kash.model import Format
 
     yaml_content = to_yaml_string(links_results.model_dump())
-    return source_item.derived_copy(type=ItemType.data, format=Format.yaml, body=yaml_content)
+    return source_item.derived_copy(format=Format.yaml, body=yaml_content)
 
 
 def bucket_for_url(url: str | Url) -> str:
