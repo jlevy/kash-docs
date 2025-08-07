@@ -3,7 +3,7 @@ from kash.exec.preconditions import is_docx_resource
 from kash.kits.docs.doc_formats import markitdown_convert
 from kash.kits.docs.doc_formats.doc_cleanups import gemini_cleanups
 from kash.kits.docs.doc_formats.markdown_footnotes import convert_endnotes_to_footnotes
-from kash.model import Format, Item, ItemType
+from kash.model import Format, Item
 
 
 @kash_action(precondition=is_docx_resource, mcp_tool=True)
@@ -28,7 +28,6 @@ def docx_to_md(item: Item) -> Item:
     final_body = convert_endnotes_to_footnotes(body)
 
     return item.derived_copy(
-        type=ItemType.doc,
         format=Format.markdown,
         title=result.title or item.title,  # Preserve original title (or none).
         body=final_body,

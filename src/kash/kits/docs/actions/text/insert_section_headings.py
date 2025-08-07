@@ -1,7 +1,10 @@
+import re
+
 from chopdiff.transforms import WINDOW_128_PARA, adds_headings
 
 from kash.config.logger import get_logger
 from kash.exec import kash_action, llm_transform_item
+from kash.exec.preconditions import has_markdown_body, has_markdown_with_html_body
 from kash.llm_utils import LLM, Message, MessageTemplate
 from kash.model import Item, LLMOptions
 
@@ -53,9 +56,15 @@ llm_options = LLMOptions(
 )
 
 
-@kash_action(llm_options=llm_options)
+@kash_action(llm_options=llm_options, precondition=has_markdown_body | has_markdown_with_html_body)
 def insert_section_headings(item: Item) -> Item:
     """
-    Insert headings into a text as <h2> tags.
+    Insert headings into a Markdown (or Markdown+HTML) text as ## headings.
     """
-    return llm_transform_item(item)
+    # We use tags because that's easier to filter via LLM insertions.
+    # The we convert <h2> tags to markdown headings for consistency for Markdown tooling.
+    result_item = llm_transform_item(item)
+    if result_item.body:
+        result_item.body = re.sub(r"<h2>(.*?)</h2>", r"## \1\n\n", result_item.body)
+
+    return result_item

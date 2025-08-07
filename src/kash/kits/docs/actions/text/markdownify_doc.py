@@ -21,7 +21,11 @@ def markdownify_item(item: Item, pdf_converter: str = "markitdown") -> Item:
     """
     Convert an item with content already present to Markdown.
     """
-    if has_fullpage_html_body(item):
+    if is_url_resource(item):
+        log.message("Converting URL to Markdown with custom Markdownify...")
+        content_result = fetch_url_item_content(item)
+        result_item = markdownify_html(content_result.item)
+    elif has_fullpage_html_body(item):
         log.message("Converting to Markdown with custom Markdownify...")
         # Web formats should be converted to Markdown.
         result_item = markdownify_html(item)
@@ -36,7 +40,7 @@ def markdownify_item(item: Item, pdf_converter: str = "markitdown") -> Item:
         log.message("Document already simple text so not converting further.")
         result_item = item
     else:
-        raise InvalidInput(f"Don't know how to convert this content to Markdown: {item.type}")
+        raise InvalidInput(f"Don't know how to convert this content to Markdown: {item}")
 
     return result_item
 
@@ -63,19 +67,4 @@ def markdownify_doc(item: Item, pdf_converter: str = "marker") -> Item:
     A more flexible `markdownify` action that converts documents of multiple formats
     to Markdown, handling HTML as well as PDF and .docx files.
     """
-    try:
-        result_item = markdownify_item(item, pdf_converter=pdf_converter)
-    except InvalidInput:
-        if is_url_resource(item):
-            log.message("Converting URL to Markdown with custom Markdownify...")
-            content_result = fetch_url_item_content(item)
-            try:
-                result_item = markdownify_item(content_result.item, pdf_converter=pdf_converter)
-            except InvalidInput as e:
-                raise InvalidInput(
-                    f"Downloaded content doesn't seem to be a format we can convert to Markdown: {content_result.item}"
-                ) from e
-        else:
-            raise InvalidInput(f"Not a recognized format or URL we can convert to Markdown: {item}")
-
-    return result_item
+    return markdownify_item(item, pdf_converter=pdf_converter)
