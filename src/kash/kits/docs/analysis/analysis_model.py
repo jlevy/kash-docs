@@ -62,11 +62,70 @@ class ClaimSupport(BaseModel):
         return cls(ref_id=ref_id, stance=stance, support_score=score_mapping[stance])
 
 
-class DocAnalysis(BaseModel):
+class RigorAnalysis(BaseModel):
     """
-    Structured data holding analysis of a document.
+    Structured analysis of the rigor of the document.
     """
+
+    factuality: int = Field(description="Factuality score (1 to 5)")
+    rigor: int = Field(description="Rigor score (1 to 5)")
+    depth: int = Field(description="Depth score (1 to 5)")
+    thoroughness: int = Field(description="Thoroughness score (1 to 5)")
+
+
+class ClaimLabel(StrEnum):
+    """
+    Label for a claim.
+    """
+
+    insightful = "insightful"
+    """Something non-obvious that seems likely to be true"""
+
+    weak_support = "weak_support"
+    """A claim that has weak supporting evidence"""
+
+    inconsistent = "inconsistent"
+    """A claim that appears to be inconsistent with other claims"""
+
+    controversial = "controversial"
+    """A claim that is controversial where there is varied evidence or conflictingexpert opinion"""
+
+
+class ClaimAnalysis(BaseModel):
+    """
+    Structured analysis of a claim.
+    """
+
+    claim: str = Field(description="A key assertion")
+
+    chunk_ids: list[str] = Field(
+        description="List of ids to pieces of text in the document that are relevant"
+    )
+
+    rigor_analysis: RigorAnalysis = Field(description="Rigor analysis of the claim")
 
     claim_support: list[ClaimSupport] = Field(
         description="List of claim support evidence from references", default_factory=list
     )
+
+    labels: list[ClaimLabel] = Field(
+        description="List of labels for the claim", default_factory=list
+    )
+
+
+class DocAnalysis(BaseModel):
+    """
+    Structured analysis of a document.
+    """
+
+    key_claims: list[ClaimAnalysis] = Field(description="Key claims made in a document")
+
+
+if __name__ == "__main__":
+    import json
+    import sys
+
+    schema_dict = DocAnalysis.model_json_schema()
+
+    json.dump(schema_dict, sys.stdout, indent=2, sort_keys=True)
+    sys.stdout.write("\n")
