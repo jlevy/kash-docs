@@ -83,13 +83,13 @@ llm_options = LLMOptions(
 
       - Do fact check any factual assertion that is not obviously true.
 
-      - Only include HELPFUL annotations for concepts. The more specific, obscure, or rare the concept,
-        the more likely it is to need an annotation.
-        DO NOT include obvious or common concepts or entities like "America" or
+      - Only include HELPFUL annotations for concepts. The more specific, obscure, or
+        rare the concept, the more likely it is to need an annotation.
+      
+      - DO NOT include obvious or common concepts or entities like "America" or
         "biology" or "elephants" or "software".
         Only mention concepts where additional detail would help the reader and contain
-        important details they likely may not already know, like "HTTP" or "Nuremberg"
-        or "Alan Kay".
+        important details they likely may not already know.
 
       - Only define or link UNAMBIGUOUSLY RELEVANT concepts.
         DO NOT make comments if the concept reference is ambiguous in the given context 
@@ -100,6 +100,9 @@ llm_options = LLMOptions(
       - Do NOT mention or include language *about* the text or the author of the text.
         The reader can see the text and know the context is the paragraph.
         Do not say "The text refers to..." or "X refers to ...". Simply say "X is ...".
+
+      - Use ONLY ONE LINK per item. If there are multiple links that are important, create an
+        item summarizing and linking to each one.
       
       Additional guidelines:
 
@@ -126,7 +129,7 @@ llm_options = LLMOptions(
       Example output text #1:
 
         - [Tashkent](https://en.wikipedia.org/wiki/Tashkent) is the capital of
-          [Uzbekistan](https://en.wikipedia.org/wiki/Uzbekistan).
+          Uzbekistan.
 
       Example input text #2:
 
@@ -135,11 +138,13 @@ llm_options = LLMOptions(
 
       Sample output text #2:
 
-        - This quote is often misattributed to
-          [Albert Einstein](https://en.wikipedia.org/wiki/Albert_Einstein) but appears in the
-          2003 book *[Still Life with
-          Crows](https://www.google.com/books/edition/Still_Life_with_Crows/yE7SYGtSOgMC?hl=en&gbpv=1&bsq=%22the%20only%20thing%20more%20dangerous%20than%20ignorance%20is%20arrogance%22)*.
-          ([Snopes](https://www.snopes.com/fact-check/einstein-dangerous-ignorance-arrogance/))
+        - [Albert Einstein](https://en.wikipedia.org/wiki/Albert_Einstein)
+          (14 March 1879 – 18 April 1955) was a German-born theoretical physicist
+          who is best known for developing the theory of relativity.
+
+        - This quote is often misattributed to Albert Einstein but appears in the
+          2003 book *Still Life with Crows*
+          ([Snopes](https://www.snopes.com/fact-check/einstein-dangerous-ignorance-arrogance/)).
 
         - [Conway's Law](https://en.wikipedia.org/wiki/Conway%27s_law) describes the link
           between communication structure of organizations and the systems they design
@@ -158,31 +163,27 @@ llm_options = LLMOptions(
       Sample output text #3:
 
       - [Johannes Gutenberg](https://en.wikipedia.org/wiki/Johannes_Gutenberg), a goldsmith
-        from Mainz, Germany, introduced movable-type printing around 1440, igniting Europe's
-        "printing revolution" ([Wikipedia](https://en.wikipedia.org/wiki/Printing_press)).
+         from Mainz, Germany, introduced movable-type printing
+         around 1440, igniting Europe's "printing revolution".
 
       - Modelled on screw wine-presses, a single Renaissance hand-press could deliver roughly
         3,600 pages in a work-day—nearly 100 times faster than manual copying
         ([Wikipedia](https://en.wikipedia.org/wiki/Printing_press)).
 
       - By 1500, presses were active in more than 200 cities across twenty European territories
-        ([Wikipedia](https://en.wikipedia.org/wiki/Printing_press),
-        [History of Information](https://www.historyofinformation.com/detail.php?id=27)).
+        ([History of Information](https://www.historyofinformation.com/detail.php?id=27)).
 
       - Early centres such as Mainz, Venice, Nuremberg, and Paris established presses within
         two decades of the Gutenberg Bible and became prolific producers of early books
-        ([Wikipedia](https://en.wikipedia.org/wiki/Incunable),
-        [Britannica](https://www.britannica.com/topic/publishing/The-age-of-early-printing-1450-1550)).
+        ([Britannica](https://www.britannica.com/topic/publishing/The-age-of-early-printing-1450-1550)).
 
       - [Incunabula](https://en.wikipedia.org/wiki/Incunable) are works printed in Europe
         before 1501; about 30,000 editions survive, with Germany and Italy accounting for the
-        majority ([Britannica](https://www.britannica.com/topic/incunabula),
-        [Christie's](https://www.christies.com/en/stories/collecting-guide-to-incunabula-earliest-printed-books-77562cac88854d00826550bfe969d900)).
+        majority.
 
       - Famous incunabula include the *Gutenberg Bible* (Mainz 1455), the *Nuremberg
         Chronicle* (Nuremberg 1493), and *Hypnerotomachia Poliphili* (Venice 1499)
-        ([Britannica](https://www.britannica.com/biography/Johannes-Gutenberg),
-        [Wikipedia](https://en.wikipedia.org/wiki/Incunable)).
+        ([Britannica](https://www.britannica.com/biography/Johannes-Gutenberg)).
 
       - Elizabeth L. Eisenstein's classic study *The Printing Press as an Agent of Change*
         (1979-80) explores how Gutenberg's technology reshaped Renaissance, Reformation, and
@@ -202,18 +203,15 @@ llm_options = LLMOptions(
 
       - [Push-up](https://en.wikipedia.org/wiki/Push-up) is a classic body-weight calisthenics
         exercise that raises and lowers the torso with the arms, engaging the chest, anterior
-        deltoids, triceps and core ([Wikipedia](https://en.wikipedia.org/wiki/Push-up)).
+        deltoids, triceps and core.
 
       - Trainers call push-ups "underrated" because they combine upper-body strength work with
         core stabilization and require no gear, making them an efficient full-body move
-        ([Simon Jarvis Movement
-        Specialist](https://www.simonjarvismovementspecialist.com/new-blog-4/2024/4/3/the-power-of-push-ups-why-theyre-underrated-and-how-to-maximize-their-benefits),
-        [The Guardian](https://www.theguardian.com/lifeandstyle/2025/mar/09/push-up-power-the-exercise-you-need-for-a-healthy-happy-life-and-eight-ways-to-make-it-easier)).
+        ([The Guardian](https://www.theguardian.com/lifeandstyle/2025/mar/09/push-up-power-the-exercise-you-need-for-a-healthy-happy-life-and-eight-ways-to-make-it-easier)).
 
       - Form faults such as flared elbows, sagging hips, or shallow depth are so common that
         multiple guides list them among the top push-up mistakes to fix ([Nerd
-        Fitness](https://www.nerdfitness.com/blog/5-common-push-up-mistakes-to-avoid/),
-        [Livestrong](https://www.livestrong.com/article/13721448-push-up-mistakes/)).
+        Fitness](https://www.nerdfitness.com/blog/5-common-push-up-mistakes-to-avoid/)).
 
       - Electromyography studies find push-ups elicit muscle-activation patterns comparable to
         the bench press, supporting their use as a strength-building substitute when free
@@ -244,7 +242,7 @@ llm_options = LLMOptions(
         Smalltalk project at Xerox PARC, framing it as a core goal for user-friendly yet
         powerful programming systems.
 
-      - [Tim O'Reilly](https://en.wikipedia.org/wiki/Tim_O%27Reilly) states in his book
+      - Tim O'Reilly states in his book
         *WTF?: What's the Future and Why It's Up to Us* that "technology is the solution to
         human problems, and we won't run out of work till we run out of problems," urging
         technologists to aim innovations at real societal needs
@@ -263,8 +261,7 @@ llm_options = LLMOptions(
 
       - [GitHub Copilot](https://github.com/features/copilot), first previewed in 2021 and now
         integrated into major IDEs, uses LLMs to suggest edits to code, exemplifying AI's
-        widening role in everyday software development
-        ([Wikipedia](https://en.wikipedia.org/wiki/GitHub_Copilot)).
+        widening role in everyday software development.
 
       - Amazon founder Jeff Bezos advises strategists to focus on "what's **not** going to
         change in the next 10 years," arguing that stable customer needs matter more than
@@ -279,11 +276,10 @@ llm_options = LLMOptions(
 
       Sample output text #6:
 
-      - The [Model spec](https://cdn.openai.com/spec/model-spec-2024-05-08.pdf) is OpenAI's
+      - The [Model spec](https://openai.com/index/introducing-the-model-spec/) is OpenAI's
         specification document that outlines desired model behavior and safety guidelines.
-        ([OpenAI](https://openai.com/index/introducing-the-model-spec/)).
 
-      - [Deliberative alignment](https://arxiv.org/abs/2406.11976) is a research approach
+      - Deliberative alignment is a research approach
         where AI models are trained to reason through ethical considerations and
         stakeholder perspectives before making decisions ([arXiv](https://arxiv.org/abs/2406.11976)).
 
