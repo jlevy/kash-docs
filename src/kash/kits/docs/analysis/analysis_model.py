@@ -4,6 +4,35 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
+## IDs and HTML Conventions
+
+
+KEY_CLAIMS = "key-claims"
+"""Class name for the key claims."""
+
+CLAIM = "claim"
+"""Class name for individual claims."""
+
+CLAIM_MAPPING = "claim-mapping"
+"""Class name for the mapping of a claim to its related chunks."""
+
+
+def claim_id(index: int) -> str:
+    """
+    Generate a consistent claim ID from an index.
+    """
+    return f"claim-{index}"
+
+
+def chunk_id(i: int) -> str:
+    """
+    Get the ID for a chunk of paragraphs.
+    """
+    return f"chunk-{i}"
+
+
+## Analysis Models and Rubrics
+
 
 class Stance(StrEnum):
     """
