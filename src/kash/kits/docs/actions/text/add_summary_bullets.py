@@ -38,6 +38,8 @@ def add_summary_bullets(
     Typically you'd use a single model, but for convenience, you may specify
     multiple models to use, so you can compare the different summaries.
     """
+    starts_open = False  # Closing since we have other key claims etc above this.
+
     models: list[LLMName] = []
     if model_list:
         models = [LLMName(model.strip()) for model in model_list.split(",")]
@@ -53,7 +55,8 @@ def add_summary_bullets(
         # If there's only one summary, make the title simply "Summary" and expand it by default.
         details_attrs: Attrs = {}
         if one_summary:
-            details_attrs = {"open": True}
+            if starts_open:
+                details_attrs = {"open": True}
             summary_title = "Summary"
         else:
             summary_title = f"Summary ({model})"
