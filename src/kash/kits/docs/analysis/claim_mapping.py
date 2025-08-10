@@ -148,11 +148,11 @@ def extract_mapped_claims(
         )
 
     # Add chunks
-    for chunk_id, paragraphs in chunked_doc.chunks.items():
+    for cid, paragraphs in chunked_doc.chunks.items():
         chunk_text = " ".join(para.reassemble() for para in paragraphs)
         keyvals.append(
             KeyVal(
-                key=chunk_id,
+                key=cid,
                 value=EmbValue(
                     emb_text=chunk_text,
                     data={"type": "chunk", "num_paragraphs": len(paragraphs)},

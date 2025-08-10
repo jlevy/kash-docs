@@ -18,9 +18,16 @@ class ChunkedTextDoc:
     doc: TextDoc
     chunks: dict[str, list[Paragraph]]
 
+    def is_content_chunk(self, cid: str) -> bool:
+        """
+        XXX Heuristic to verify a chunk is content and not a header or markup like a div.
+        """
+        return not any(not p.is_markup() and not p.is_header() for p in self.chunks[cid])
+
     def reassemble(self, class_name: str = CHUNK) -> str:
         """
-        Reassemble the chunked document as HTML divs with chunk IDs.
+        Reassemble the chunked document as HTML divs with chunk IDs,
+        skipping any headers or markup chunks like divs.
 
         Each chunk becomes a div with its chunk ID, containing the
         reassembled paragraphs from that chunk.
@@ -28,8 +35,13 @@ class ChunkedTextDoc:
         result_divs = []
         for cid, paragraphs in self.chunks.items():
             # Reassemble all paragraphs in this chunk
-            chunk_str = "\n\n".join(para.reassemble() for para in paragraphs)
-            result_divs.append(div(class_name, chunk_str, attrs={"id": cid}))
+            para_strs = [para.reassemble() for para in paragraphs]
+            chunk_str = "\n\n".join(para_strs)
+
+            if self.is_content_chunk(cid):
+                result_divs.append(div(class_name, chunk_str, attrs={"id": cid}))
+            else:
+                result_divs.append(chunk_str)
 
         return "\n\n".join(result_divs)
 
