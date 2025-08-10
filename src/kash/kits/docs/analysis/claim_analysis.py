@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from textwrap import dedent
 from typing import Any
 
 from strif import abbrev_str
@@ -17,7 +18,7 @@ from kash.kits.docs.analysis.analysis_model import (
 )
 from kash.kits.docs.analysis.chunk_docs import ChunkedTextDoc
 from kash.kits.docs.analysis.claim_mapping import TOP_K_RELATED, MappedClaims, RelatedChunks
-from kash.llm_utils import Message, MessageTemplate
+from kash.llm_utils import Message, MessageTemplate, llm_template_completion
 from kash.model import LLMOptions
 from kash.shell.output.shell_output import multitask_status
 from kash.utils.api_utils.gather_limited import FuncTask, Limit, gather_limited_sync
@@ -25,7 +26,7 @@ from kash.utils.api_utils.gather_limited import FuncTask, Limit, gather_limited_
 log = get_logger(__name__)
 
 # LLM options for analyzing claim support
-claim_analysis_llm_options = LLMOptions(
+claim_support_options = LLMOptions(
     system_message=Message(
         """
         You are an expert editor and analyst who gives careful, unbiased assessments of
@@ -73,22 +74,12 @@ claim_analysis_llm_options = LLMOptions(
 
 
 def analyze_claim_support(
-    llm_options: LLMOptions,
     related: RelatedChunks,
     chunked_doc: ChunkedTextDoc,
     top_k: int = TOP_K_RELATED,
 ) -> list[ClaimSupport]:
     """
-    Analyze the support stance of related chunks for a single claim.
-
-    Args:
-        llm_options: LLM configuration for the analysis
-        related: RelatedChunks containing the claim and its related chunks
-        chunked_doc: The chunked document to retrieve chunk text from
-        top_k: Number of top related chunks to analyze
-
-    Returns:
-        List of ClaimSupport objects with stance analysis
+    Analyze a claim and its related chunks.
     """
     # Take only the top K most relevant chunks
     relevant_chunks = related.related_chunks[:top_k]
@@ -116,13 +107,19 @@ def analyze_claim_support(
 
     # Call LLM to analyze stances
     # Format the input body with the claim and passages
-    input_body = f"""**The Claim:**
-{related.claim_text}
+    input_body = dedent(f"""
+        **The Claim:** {related.claim_text}
 
-**Related Passages:**
-{passages_text}"""
+        **Related Passages:**
+        {passages_text}
+        """)
 
-    llm_response = llm_transform_str(llm_options, input_body)
+    llm_response = llm_template_completion(
+        model=claim_support_options.model,
+        system_message=claim_support_options.system_message,
+        body_template=claim_support_options.body_template,
+        input=input_body,
+    ).content
 
     # Parse the response to extract stances
     claim_supports = []
@@ -130,27 +127,27 @@ def analyze_claim_support(
 
     for i, (chunk_id, score) in enumerate(relevant_chunks, 1):
         # Parse stance from response
-        stance_str = Stance.unrelated  # Default if parsing fails
+        stance = Stance.error  # Default if parsing fails
 
         for line in lines:
             if line.startswith(f"passage_{i}:"):
                 stance_value = line.split(":", 1)[1].strip()
                 try:
-                    stance_str = Stance[stance_value]
+                    stance = Stance[stance_value]
                 except (KeyError, ValueError):
                     log.warning("Invalid stance value: %s", stance_value)
-                    stance_str = Stance.unrelated
+                    stance = Stance.error
                 break
 
         # Create ClaimSupport object
-        support = ClaimSupport.create(ref_id=chunk_id, stance=stance_str)
+        support = ClaimSupport.create(ref_id=chunk_id, stance=stance)
         claim_supports.append(support)
 
         log.info(
             "Claim %s -> Chunk %s: %s (score: %d)",
             related.claim_id,
             chunk_id,
-            stance_str,
+            stance,
             support.support_score,
         )
 
@@ -177,7 +174,7 @@ async def analyze_claims_async(
     analysis_tasks = [
         FuncTask(
             analyze_claim_support,
-            (claim_analysis_llm_options, related, mapped_claims.chunked_doc, top_k_chunks),
+            (claim_support_options, related, mapped_claims.chunked_doc, top_k_chunks),
         )
         for related in mapped_claims.related_chunks_list
     ]

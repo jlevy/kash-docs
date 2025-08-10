@@ -61,6 +61,7 @@ class Stance(StrEnum):
     mixed = "mixed"
     unrelated = "unrelated"
     invalid = "invalid"
+    error = "error"
 
 
 class ClaimSupport(BaseModel):
@@ -101,6 +102,7 @@ class ClaimSupport(BaseModel):
             Stance.mixed: 0,
             Stance.unrelated: 0,
             Stance.invalid: 0,
+            Stance.error: 0,
         }
         return cls(ref_id=ref_id, stance=stance, support_score=score_mapping[stance])
 

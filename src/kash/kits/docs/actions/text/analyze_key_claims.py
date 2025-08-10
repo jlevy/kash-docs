@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from chopdiff.divs import div
+from prettyfmt import fmt_lines
+from sidematter_format import Sidematter
 
 from kash.config.logger import get_logger
 from kash.exec import kash_action
@@ -10,6 +12,7 @@ from kash.kits.docs.analysis.claim_analysis import analyze_claims
 from kash.kits.docs.analysis.claim_mapping import TOP_K_RELATED, extract_mapped_claims
 from kash.llm_utils import LLM, LLMName
 from kash.model import Format, Item, ItemType, common_params
+from kash.workspaces.workspaces import current_ws
 
 log = get_logger(__name__)
 
@@ -70,6 +73,32 @@ def analyze_key_claims(item: Item, model: LLMName = LLM.default_standard) -> Ite
         type=ItemType.doc,
         format=Format.md_html,
         body=combined_body,
+    )
+
+    # Get workspace and assign store path
+    ws = current_ws()
+    result_path = ws.assign_store_path(combined_item)
+
+    # Write sidematter metadata combining item metadata with doc_analysis
+    sm = Sidematter(ws.base_dir / result_path)
+
+    # Get the item's metadata
+    metadata_dict = combined_item.metadata()
+
+    # Add the doc_analysis data to metadata using Pydantic's model_dump
+    analysis_metadata = {"doc_analysis": doc_analysis.model_dump()}
+
+    # Merge the analysis metadata with item metadata
+    metadata_dict = metadata_dict | analysis_metadata
+
+    # Write both JSON and YAML sidematter metadata
+    sm.write_meta(metadata_dict, formats="all", make_parents=True)
+
+    log.message(
+        "Wrote sidematter metadata:\n%s",
+        fmt_lines(
+            [sm.meta_json_path.relative_to(ws.base_dir), sm.meta_yaml_path.relative_to(ws.base_dir)]
+        ),
     )
 
     return combined_item
