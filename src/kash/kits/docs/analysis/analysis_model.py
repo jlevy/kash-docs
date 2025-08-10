@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import StrEnum
+from enum import Enum, StrEnum
 
 from pydantic import BaseModel, Field
 
@@ -105,6 +105,17 @@ class ClaimSupport(BaseModel):
             Stance.error: 0,
         }
         return cls(ref_id=ref_id, stance=stance, support_score=score_mapping[stance])
+
+
+class RigorDimension(Enum):
+    """
+    A dimension of rigor.
+    """
+
+    clarity = "clarity"
+    rigor = "rigor"
+    factuality = "factuality"
+    depth = "depth"
 
 
 class RigorAnalysis(BaseModel):

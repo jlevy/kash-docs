@@ -48,6 +48,8 @@ llm_options = LLMOptions(
       This will provide key context for the author to revise the writing and may help the
       readers who wish for context and relevant citations.
 
+      Use web searches to find the most relevant and authoritative sources.
+
       It is VERY important that writing and editorial notes are accurate and notable and
       always backed by reputable sources. NEVER give speculative information.
 
@@ -56,38 +58,37 @@ llm_options = LLMOptions(
       
       Each item should be ONE SENTENCE long and should cover one of the following:
 
-      1. background facts about people, places, things, software, and other entities mentioned
+      1. NON-OBVIOUS background facts about people, places, things, software, and other entities mentioned
          in the text that a reader may not already be familiar with
 
-      2. closely related concepts or notable work that is closely related to the text
+      2. NON-OBVIOUS and closely related concepts or notable work that is closely related to the text
 
       3. corroborating or contradicting sources for any factual statements or assertions
-
 
       Guidelines for the items: Each bullet should be one of the following:
 
       1. A brief link to places, things, software, entities, etc, include a brief summary and
-         link to the most relevant 1 or 2 pages on that entity, such as a Wikipedia page for a
+         link to the most relevant ONE LINK on that entity, such as a Wikipedia page for a
          person or company, a GitHub link for an open source project, or a website for a
          product.
 
-      2. For closely related work found during research, write a sentence with a link to the
-         work, mentioning the author or source.
+      2. For closely related items found during research, write a sentence with a link to
+         the work, mentioning the author or source.
 
       3. For fact assertions, if there are corroborating or contradicting sources, write a
          sentence with a link to the source and briefly state what the source says.
-
-      Use web searches to find the most relevant and authoritative sources.
 
       IMPORTANT:
 
       - Do fact check any factual assertion that is not obviously true.
 
-      - Only include HELPFUL annotations for concepts. The more specific, obscure, or
-        rare the concept, the more likely it is to need an annotation.
+      - Only include HIGHLY RELEVANT AND SPECIFIC annotations for concepts.
+        The more specific, obscure, or rare the concept, the more likely it is to need an annotation.
+
+      - Add AT MOST 10 annotations. Pick only the MOST IMPORTANT and RELEVANT annotations.
       
       - DO NOT include obvious or common concepts or entities like "America" or
-        "biology" or "elephants" or "software".
+        "biology" or "JavaScript" or "software".
         Only mention concepts where additional detail would help the reader and contain
         important details they likely may not already know.
 
@@ -180,19 +181,6 @@ llm_options = LLMOptions(
       - [Incunabula](https://en.wikipedia.org/wiki/Incunable) are works printed in Europe
         before 1501; about 30,000 editions survive, with Germany and Italy accounting for the
         majority.
-
-      - Famous incunabula include the *Gutenberg Bible* (Mainz 1455), the *Nuremberg
-        Chronicle* (Nuremberg 1493), and *Hypnerotomachia Poliphili* (Venice 1499)
-        ([Britannica](https://www.britannica.com/biography/Johannes-Gutenberg)).
-
-      - Elizabeth L. Eisenstein's classic study *The Printing Press as an Agent of Change*
-        (1979-80) explores how Gutenberg's technology reshaped Renaissance, Reformation, and
-        scientific discourse ([Cambridge University
-        Press](https://www.cambridge.org/core/books/printing-press-as-an-agent-of-change/7DC19878AB937940DE13075FE839BDBA)).
-
-      - Historians estimate European presses had issued over 20 million volumes by 1500,
-        demonstrating the explosive growth of print
-        ([Wikipedia](https://en.wikipedia.org/wiki/Printing_press)).
 
       Example input text #4:
 

@@ -11,7 +11,7 @@ from kash.kits.docs.analysis.analysis_model import CLAIM, CLAIM_MAPPING, KEY_CLA
 from kash.kits.docs.analysis.claim_analysis import analyze_claims
 from kash.kits.docs.analysis.claim_mapping import TOP_K_RELATED, extract_mapped_claims
 from kash.llm_utils import LLM, LLMName
-from kash.model import Format, Item, ItemType, common_params
+from kash.model import Format, Item, ItemType, Param, common_param
 from kash.workspaces.workspaces import current_ws
 
 log = get_logger(__name__)
@@ -19,9 +19,18 @@ log = get_logger(__name__)
 
 @kash_action(
     precondition=has_simple_text_body,
-    params=common_params("model"),
+    params=(
+        common_param("model"),
+        Param(
+            "include_debug",
+            description="Include debug info in output as divs with a debug class",
+            type=bool,
+        ),
+    ),
 )
-def analyze_key_claims(item: Item, model: LLMName = LLM.default_standard) -> Item:
+def analyze_key_claims(
+    item: Item, model: LLMName = LLM.default_standard, include_debug: bool = False
+) -> Item:
     """
     Analyze key claims in the document with related paragraphs found via embeddings.
 
@@ -39,18 +48,24 @@ def analyze_key_claims(item: Item, model: LLMName = LLM.default_standard) -> Ite
     # Add the key claims section with enhanced information
     claim_divs = []
     for i, related in enumerate(mapped_claims.related_chunks_list):
-        # Get the full debug summary for this claim
-        claim_debug = doc_analysis.get_claim_debug(i)
+        # Build claim content parts
+        claim_content = [related.claim_text]
+
+        # Only add debug info if include_debug is True
+        if include_debug:
+            # Get the full debug summary for this claim
+            claim_debug = doc_analysis.get_claim_debug(i)
+            claim_content.append(
+                div(
+                    [CLAIM_MAPPING, "debug"],
+                    claim_debug,
+                )
+            )
 
         claim_divs.append(
             div(
                 CLAIM,
-                related.claim_text,
-                # Meta content for debugging etc:
-                div(
-                    [CLAIM_MAPPING, "debug"],
-                    claim_debug,
-                ),
+                *claim_content,
                 attrs={"id": claim_id(i)},
             )
         )
@@ -63,9 +78,10 @@ def analyze_key_claims(item: Item, model: LLMName = LLM.default_standard) -> Ite
     chunked_body = mapped_claims.chunked_doc.reassemble()
     output_parts.append(chunked_body)
 
-    # Add similarity statistics as metadata
-    stats_content = mapped_claims.format_stats()
-    output_parts.append(div(["debug"], stats_content))
+    # Add similarity statistics as metadata only if include_debug is True
+    if include_debug:
+        stats_content = mapped_claims.format_stats()
+        output_parts.append(div(["debug"], stats_content))
 
     combined_body = "\n\n".join(output_parts)
 
