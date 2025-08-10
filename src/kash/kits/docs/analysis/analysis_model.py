@@ -96,6 +96,8 @@ class ClaimAnalysis(BaseModel):
     Structured analysis of a claim.
     """
 
+    claim_id: str
+
     claim: str = Field(description="A key assertion")
 
     chunk_ids: list[str] = Field(

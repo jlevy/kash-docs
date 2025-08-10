@@ -7,28 +7,96 @@ from typing import NewType
 from chopdiff.docs.text_doc import Paragraph, SentIndex, TextDoc
 
 from kash.utils.common.testing import enable_if
+from kash.utils.text_handling.markdown_footnotes import MarkdownFootnotes
 
 FootnoteId = NewType("FootnoteId", str)
 
 # Valid footnote ID pattern: Unicode word characters (letters, digits, underscore), period, or hyphen
 _FOOTNOTE_ID_PATTERN = re.compile(r"^[\w.-]+$")
 
+# Pattern to match footnote references in text: [^id] where id contains no whitespace
+# Matches: [^1], [^foo], [^note-1], [^ref.2]
+# Does not match: [^ spaces], [^], [^foo bar]
+_FOOTNOTE_REF_PATTERN = re.compile(r"\[\^([\w.-]+)\]")
+
+
+def _normalize_footnote_id(footnote_id: str) -> str:
+    """
+    Normalize a footnote ID to always include the ^ prefix.
+    """
+    return footnote_id if footnote_id.startswith("^") else f"^{footnote_id}"
+
+
+@dataclass(frozen=True)
+class Footnote:
+    """
+    Represents a footnote with its ID and content.
+    """
+
+    id: str
+    """The footnote ID (includes ^ prefix, e.g., "^123", "^foo")"""
+
+    content: str
+    """The footnote content/annotation text"""
+
+
+@dataclass
+class TextSpan:
+    """
+    Represents a span of text within a string.
+    """
+
+    start: int
+    """Start position of the span in the text"""
+
+    end: int
+    """End position of the span in the text"""
+
+    text: str
+    """The actual text content of the span"""
+
+    def __post_init__(self):
+        if self.start < 0 or self.end < self.start:
+            raise ValueError(f"Invalid span: start={self.start}, end={self.end}")
+
+
+@dataclass
+class FootnoteReference:
+    """
+    Represents a footnote reference found in text.
+    """
+
+    footnote_id: str
+    """The ID with the caret (e.g., "^123", "^foo")"""
+
+    span: TextSpan
+    """The location of the reference in the text"""
+
+    sentence_index: int
+    """Which sentence contains this reference"""
+
 
 def check_fn_id(footnote_id: str) -> FootnoteId:
     """
-    Validate and return a footnote ID.
+    Validate and return a footnote ID. IDs should include the ^ prefix.
     """
-    if len(footnote_id) > 20:
+    # Normalize to include ^ if not present
+    normalized_id = _normalize_footnote_id(footnote_id)
+
+    # Sanity check
+    if len(normalized_id) > 50:
         raise ValueError(
-            f"Not a valid footnote id (must be <=20 chars): '{footnote_id!r}' ({len(footnote_id)} chars)"
+            f"Not a valid footnote id (must be <=50 chars excluding ^): '{footnote_id!r}' ({len(normalized_id) - 1} chars)"
         )
 
-    if not _FOOTNOTE_ID_PATTERN.match(footnote_id):
+    # Validate the part after the ^
+    id_part = normalized_id[1:]  # Remove ^ for pattern matching
+    if not _FOOTNOTE_ID_PATTERN.match(id_part):
         raise ValueError(
             f"Not a valid footnote id (must contain only word chars, period, or hyphen): '{footnote_id!r}'"
         )
 
-    return FootnoteId(footnote_id)
+    return FootnoteId(normalized_id)
 
 
 @dataclass
@@ -42,10 +110,10 @@ class AnnotatedPara:
 
     paragraph: Paragraph
 
-    annotations: dict[int, list[str]]
+    annotations: dict[int, list[Footnote]]
     """
-    Mapping from sentence indices to lists of annotations (e.g. if a sentence has four
-    footnotes, it would have four entries in the list).
+    Mapping from sentence indices to lists of Footnote objects.
+    The Footnote.id preserves the original ID from the source (without ^).
     """
 
     fn_prefix: str = ""
@@ -61,11 +129,123 @@ class AnnotatedPara:
         """Create an AnnotatedParagraph from an existing Paragraph."""
         return cls(paragraph=paragraph, annotations={}, fn_prefix=fn_prefix, fn_start=fn_start)
 
+    @classmethod
+    def from_para_with_footnotes(
+        cls,
+        paragraph: Paragraph,
+        markdown_footnotes: MarkdownFootnotes | None = None,
+        fn_prefix: str = "",
+        fn_start: int = 1,
+    ) -> AnnotatedPara:
+        """
+        Create an AnnotatedParagraph from an existing Paragraph, automatically
+        extracting footnote references and creating annotations from them.
+
+        Always preserves original footnote IDs. Footnote IDs are normalized
+        to always include the ^ prefix when looking them up.
+
+        Args:
+            paragraph: The paragraph to annotate
+            markdown_footnotes: Optional MarkdownFootnotes object containing footnote definitions
+            fn_prefix: Prefix for footnote IDs (currently unused - preserves original IDs)
+            fn_start: Starting number for footnotes (currently unused - preserves original IDs)
+
+        Returns:
+            AnnotatedPara with footnotes extracted as annotations
+        """
+        ann_para = cls(paragraph=paragraph, annotations={}, fn_prefix=fn_prefix, fn_start=fn_start)
+
+        if markdown_footnotes is None:
+            return ann_para
+
+        # Extract footnote references from the paragraph
+        footnote_refs = ann_para.extract_footnote_references()
+
+        # Add annotations for each unique footnote reference
+        # We preserve original IDs and track which we've already processed
+        processed_footnotes: set[str] = set()
+        for ref in footnote_refs:
+            if ref.footnote_id not in processed_footnotes:
+                processed_footnotes.add(ref.footnote_id)
+
+                # Look up the footnote content (ref.footnote_id already has ^)
+                footnote_info = markdown_footnotes.get(ref.footnote_id)
+                if footnote_info:
+                    # Add the footnote content as an annotation for this sentence
+                    # Store with ID including ^ and content
+                    ann_para.add_annotation_with_id(
+                        ref.sentence_index, ref.footnote_id, footnote_info.content
+                    )
+
+        return ann_para
+
+    def extract_footnote_references(self) -> list[FootnoteReference]:
+        """
+        Extract all footnote references from the paragraph text.
+
+        Handles footnotes that appear:
+        - Within sentences
+        - After sentences (attached to preceding sentence)
+        - At the beginning of paragraphs (attached to first sentence)
+        - As the only content (treated as first sentence)
+
+        Returns:
+            List of FootnoteReference objects with positions and IDs
+        """
+        footnote_refs: list[FootnoteReference] = []
+
+        # Process each sentence individually
+        for sent_index, sentence in enumerate(self.paragraph.sentences):
+            # Find all footnote references in this sentence
+            for match in _FOOTNOTE_REF_PATTERN.finditer(sentence.text):
+                footnote_id = match.group(1)
+
+                # Check if footnote is at the very beginning of this sentence
+                # If so, and this isn't the first sentence, attach to previous
+                if match.start() == 0 and sent_index > 0:
+                    # Footnote at start of sentence should be attached to previous
+                    target_sentence_index = sent_index - 1
+                    # Calculate position as if it were at the end of previous sentence
+                    prev_sent_len = len(self.paragraph.sentences[target_sentence_index].text)
+                    span = TextSpan(
+                        start=prev_sent_len,  # Position at end of previous sentence
+                        end=prev_sent_len + len(match.group(0)),
+                        text=match.group(0),
+                    )
+                else:
+                    # Footnote belongs to current sentence
+                    target_sentence_index = sent_index
+                    span = TextSpan(
+                        start=match.start(),
+                        end=match.end(),
+                        text=match.group(0),
+                    )
+
+                footnote_refs.append(
+                    FootnoteReference(
+                        footnote_id=f"^{footnote_id}",
+                        span=span,
+                        sentence_index=target_sentence_index,
+                    )
+                )
+
+        return footnote_refs
+
     def add_annotation(self, sentence_index: int, annotation: str) -> None:
-        """Add an annotation to a specific sentence."""
+        """Add an annotation to a specific sentence with auto-generated ID."""
+        # Generate a sequential ID for manual annotations
+        next_id = str(self.fn_start + self.annotation_count())
+        self.add_annotation_with_id(sentence_index, next_id, annotation)
+
+    def add_annotation_with_id(
+        self, sentence_index: int, footnote_id: str, annotation: str
+    ) -> None:
+        """Add an annotation to a specific sentence with a specific footnote ID."""
         if sentence_index not in self.annotations:
             self.annotations[sentence_index] = []
-        self.annotations[sentence_index].append(annotation)
+        # Always normalize the ID to include ^
+        normalized_id = _normalize_footnote_id(footnote_id)
+        self.annotations[sentence_index].append(Footnote(id=normalized_id, content=annotation))
 
     def as_markdown_footnotes(self) -> str:
         """
@@ -77,26 +257,30 @@ class AnnotatedPara:
         if not self.annotations:
             return self.paragraph.reassemble()
 
-        # Build footnote counter
-        footnote_counter = self.fn_start
-        footnote_refs: dict[int, list[int]] = {}  # sentence_index -> list of footnote numbers
+        # Build footnote references and definitions
+        footnote_refs: dict[int, list[str]] = {}  # sentence_index -> list of footnote IDs
         footnotes: list[str] = []  # list of footnote texts
 
-        # Assign footnote numbers to each annotation
+        # Process annotations preserving original IDs
         for sentence_index in sorted(self.annotations.keys()):
             footnote_refs[sentence_index] = []
-            for annotation in self.annotations[sentence_index]:
-                footnote_refs[sentence_index].append(footnote_counter)
-                footnotes.append(f"[^{self.fn_prefix}{footnote_counter}]: {annotation}")
-                footnote_counter += 1
+            for footnote in self.annotations[sentence_index]:
+                # Use the preserved footnote ID with prefix if needed
+                # footnote.id already has ^, so strip it before adding prefix
+                base_id = footnote.id[1:] if footnote.id.startswith("^") else footnote.id
+                full_id = _normalize_footnote_id(
+                    f"{self.fn_prefix}{base_id}" if self.fn_prefix else footnote.id
+                )
+                footnote_refs[sentence_index].append(full_id)
+                footnotes.append(f"[{full_id}]: {footnote.content}")
 
         # Build the paragraph with footnote references
         annotated_sentences: list[str] = []
         for i, sentence in enumerate(self.paragraph.sentences):
             sentence_text = sentence.text
             if i in footnote_refs:
-                # Add footnote references to this sentence
-                refs = "".join(f"[^{self.fn_prefix}{num}]" for num in footnote_refs[i])
+                # Add footnote references to this sentence (IDs already have ^)
+                refs = "".join(f"[{fid}]" for fid in footnote_refs[i])
                 sentence_text = sentence_text.rstrip() + refs
             annotated_sentences.append(sentence_text)
 
@@ -116,7 +300,12 @@ class AnnotatedPara:
         return sum(len(annotations) for annotations in self.annotations.values())
 
     def get_sentence_annotations(self, sentence_index: int) -> list[str]:
-        """Get all annotations for a specific sentence."""
+        """Get all annotation texts for a specific sentence."""
+        # Return just the annotation texts, not the IDs
+        return [footnote.content for footnote in self.annotations.get(sentence_index, [])]
+
+    def get_sentence_annotations_with_ids(self, sentence_index: int) -> list[Footnote]:
+        """Get all annotations as Footnote objects for a specific sentence."""
         return self.annotations.get(sentence_index, [])
 
     def clear_annotations_for_sentence(self, sentence_index: int) -> None:
@@ -126,7 +315,9 @@ class AnnotatedPara:
 
     def footnote_id(self, index: int) -> FootnoteId:
         """Get the footnote id for a specific annotation."""
-        return check_fn_id(f"{self.fn_prefix}{index}")
+        base_id = str(index)
+        full_id = f"{self.fn_prefix}{base_id}" if self.fn_prefix else base_id
+        return check_fn_id(_normalize_footnote_id(full_id))
 
     def next_footnote_number(self) -> int:
         """Get the next footnote number after all current annotations."""
@@ -166,8 +357,6 @@ class AnnotatedDoc:
         if not ann_paras:
             return AnnotatedDoc(text_doc=TextDoc([]), annotations={}, footnote_mapping={})
 
-        # Track used footnote numbers by prefix
-        used_footnote_nums: dict[str, set[int]] = {}
         footnote_mapping: dict[FootnoteId, str] = {}
         annotations: dict[SentIndex, list[str]] = {}
 
@@ -175,37 +364,44 @@ class AnnotatedDoc:
         paragraphs = [ann_para.paragraph for ann_para in ann_paras]
         text_doc = TextDoc(paragraphs)
 
-        # Process annotations with uniquing
+        # Process annotations preserving original IDs
         for para_index, ann_para in enumerate(ann_paras):
             if not ann_para.has_annotations():
                 continue
 
-            # Initialize prefix tracking if needed
             prefix = ann_para.fn_prefix
-            if prefix not in used_footnote_nums:
-                used_footnote_nums[prefix] = set()
 
             # Process each sentence's annotations
             for sentence_index, sentence_annotations in ann_para.annotations.items():
                 sent_index = SentIndex(para_index, sentence_index)
 
-                for annotation in sentence_annotations:
-                    # Find next available footnote number for this prefix
-                    current_num = ann_para.fn_start
-                    while current_num in used_footnote_nums[prefix]:
-                        current_num += 1
+                for footnote in sentence_annotations:
+                    # Use the original footnote ID with prefix if provided
+                    # footnote.id already has ^, so strip it before adding prefix
+                    base_id = footnote.id.lstrip("^")
+                    full_footnote_id = _normalize_footnote_id(
+                        f"{prefix}{base_id}" if prefix else footnote.id
+                    )
 
-                    # Mark this number as used
-                    used_footnote_nums[prefix].add(current_num)
+                    # Create validated footnote ID
+                    footnote_id = check_fn_id(full_footnote_id)
 
-                    # Create footnote ID and store mapping
-                    footnote_id = check_fn_id(f"{prefix}{current_num}")
-                    footnote_mapping[footnote_id] = annotation
+                    # Check if this ID is already used and make unique if necessary
+                    base_id = full_footnote_id
+                    counter = 1
+                    while footnote_id in footnote_mapping:
+                        # If the same ID appears multiple times, append a counter
+                        full_footnote_id = f"{base_id}_{counter}"
+                        footnote_id = check_fn_id(full_footnote_id)
+                        counter += 1
+
+                    # Store the mapping
+                    footnote_mapping[footnote_id] = footnote.content
 
                     # Store annotation by SentIndex
                     if sent_index not in annotations:
                         annotations[sent_index] = []
-                    annotations[sent_index].append(annotation)
+                    annotations[sent_index].append(footnote.content)
 
         return AnnotatedDoc(
             text_doc=text_doc, annotations=annotations, footnote_mapping=footnote_mapping
@@ -249,9 +445,9 @@ class AnnotatedDoc:
             for sentence_index, sentence in enumerate(paragraph.sentences):
                 sentence_text = sentence.text
                 if sentence_index in para_footnote_refs:
-                    # Add footnote references to this sentence
+                    # Add footnote references to this sentence (IDs already have ^)
                     refs = "".join(
-                        f"[^{footnote_id}]" for footnote_id in para_footnote_refs[sentence_index]
+                        f"[{footnote_id}]" for footnote_id in para_footnote_refs[sentence_index]
                     )
                     sentence_text = sentence_text.rstrip() + refs
                 annotated_sentences.append(sentence_text)
@@ -260,9 +456,9 @@ class AnnotatedDoc:
 
         # Build output
         if self.footnote_mapping:
-            # Preserve insertion order of footnotes
+            # Preserve insertion order of footnotes (IDs already have ^)
             footnote_lines = [
-                f"[^{footnote_id}]: {self.footnote_mapping[footnote_id]}"
+                f"[{footnote_id}]: {self.footnote_mapping[footnote_id]}"
                 for footnote_id in self.footnote_mapping.keys()
             ]
 
@@ -291,18 +487,23 @@ class AnnotatedDoc:
             self.annotations[sent_index] = []
         self.annotations[sent_index].append(annotation)
 
-        # Update footnote mapping - find next available footnote number
-        used_nums = {
-            int(fid.replace(fn_prefix, ""))
-            for fid in self.footnote_mapping.keys()
-            if fid.startswith(fn_prefix) and fid.replace(fn_prefix, "").isdigit()
-        }
+        # Update footnote mapping: find next available footnote number
+        # Handle IDs that have ^ prefix
+        prefix_with_caret = f"^{fn_prefix}"
+        used_nums = set()
+        for fid in self.footnote_mapping.keys():
+            if fid.startswith(prefix_with_caret):
+                num_part = fid[len(prefix_with_caret) :]
+                if num_part.isdigit():
+                    used_nums.add(int(num_part))
 
         next_num = 1
         while next_num in used_nums:
             next_num += 1
 
-        footnote_id = check_fn_id(f"{fn_prefix}{next_num}")
+        # Add prefix if provided and normalize
+        full_id = f"{fn_prefix}{next_num}"
+        footnote_id = check_fn_id(_normalize_footnote_id(full_id))
         self.footnote_mapping[footnote_id] = annotation
 
     def get_sentence_annotations(self, sent_index: SentIndex) -> list[str]:
@@ -312,11 +513,14 @@ class AnnotatedDoc:
     def clear_annotations_for_sentence(self, sent_index: SentIndex) -> None:
         """Remove all annotations for a specific sentence."""
         if sent_index in self.annotations:
+            # Save the annotations before deleting them
+            annotations_to_remove = self.annotations[sent_index]
             del self.annotations[sent_index]
+
             # Also remove from footnote mapping
             footnote_ids_to_remove = []
             for footnote_id, annotation in self.footnote_mapping.items():
-                if annotation in self.annotations.get(sent_index, []):
+                if annotation in annotations_to_remove:
                     footnote_ids_to_remove.append(footnote_id)
             for footnote_id in footnote_ids_to_remove:
                 del self.footnote_mapping[footnote_id]
@@ -439,12 +643,12 @@ def test_markdown_footnotes() -> None:
 
     result = annotated.as_markdown_footnotes()
 
-    # Should contain footnote references
+    # Should contain footnote references (with ^)
     assert "[^1]" in result
     assert "[^2]" in result
     assert "[^3]" in result
 
-    # Should contain footnote definitions
+    # Should contain footnote definitions (with ^)
     assert "[^1]: First note" in result
     assert "[^2]: Second note" in result
     assert "[^3]: Third note" in result
@@ -525,10 +729,10 @@ def test_consolidate_ann_paras_with_prefixes() -> None:
     assert ann_doc.total_annotation_count() == 4
     assert len(ann_doc.footnote_mapping) == 4
 
-    # Check that we have the expected footnote IDs
+    # Check that we have the expected footnote IDs (all now start with ^)
     footnote_ids = set(ann_doc.footnote_mapping.keys())
-    a_ids = [fid for fid in footnote_ids if fid.startswith("a")]
-    b_ids = [fid for fid in footnote_ids if fid.startswith("b")]
+    a_ids = [fid for fid in footnote_ids if fid.startswith("^a")]
+    b_ids = [fid for fid in footnote_ids if fid.startswith("^b")]
 
     assert len(a_ids) == 3  # Three 'a' prefixed annotations
     assert len(b_ids) == 1  # One 'b' prefixed annotation
@@ -638,23 +842,20 @@ def test_sentence_index_operations() -> None:
 
 def test_footnote_id_validation() -> None:
     """Test footnote ID validation function."""
-    # Valid IDs
-    assert check_fn_id("abc123") == FootnoteId("abc123")
-    assert check_fn_id("ref_1") == FootnoteId("ref_1")
-    assert check_fn_id("note-1") == FootnoteId("note-1")
-    assert check_fn_id("fn.1") == FootnoteId("fn.1")
-    assert check_fn_id("αβγ123") == FootnoteId("αβγ123")  # Unicode letters
-    assert check_fn_id("中文1") == FootnoteId("中文1")  # Chinese characters
+    # Valid IDs (normalized to include ^)
+    assert check_fn_id("abc123") == FootnoteId("^abc123")
+    assert check_fn_id("ref_1") == FootnoteId("^ref_1")
+    assert check_fn_id("note-1") == FootnoteId("^note-1")
+    assert check_fn_id("fn.1") == FootnoteId("^fn.1")
+    assert check_fn_id("αβγ123") == FootnoteId("^αβγ123")  # Unicode letters
+    assert check_fn_id("中文1") == FootnoteId("^中文1")  # Chinese characters
 
-    # Valid ID with exactly 20 characters
-    assert check_fn_id("a" * 20) == FootnoteId("a" * 20)
+    # IDs that already have ^ should stay the same
+    assert check_fn_id("^abc123") == FootnoteId("^abc123")
+    assert check_fn_id("^ref_1") == FootnoteId("^ref_1")
 
-    # Invalid IDs - too long (over 20 chars)
-    try:
-        check_fn_id("a" * 21)
-        raise AssertionError("Expected ValueError for ID that is too long")
-    except ValueError as e:
-        assert "must be <=20 chars" in str(e)
+    # Valid ID with exactly 20 characters (plus ^)
+    assert check_fn_id("a" * 20) == FootnoteId("^" + "a" * 20)
 
     # Invalid IDs - invalid characters
     try:
@@ -683,7 +884,7 @@ def test_annotated_para_footnote_id_validation() -> None:
     # Valid prefix
     annotated = AnnotatedPara.from_para(para, fn_prefix="ref_", fn_start=1)
     footnote_id = annotated.footnote_id(1)
-    assert footnote_id == FootnoteId("ref_1")
+    assert footnote_id == FootnoteId("^ref_1")
 
     # Invalid prefix should raise error when creating footnote ID
     annotated_invalid = AnnotatedPara.from_para(para, fn_prefix="invalid@prefix", fn_start=1)
@@ -726,7 +927,9 @@ def test_markdown_footnote_order() -> None:
     ann_para2 = AnnotatedPara.from_para(para2, fn_prefix="b", fn_start=1)
     ann_para2.add_annotation(0, "Note B1")  # b1
 
-    ann_para3 = AnnotatedPara.from_para(para3, fn_prefix="a", fn_start=1)
+    ann_para3 = AnnotatedPara.from_para(
+        para3, fn_prefix="a", fn_start=2
+    )  # Start at 2 to avoid conflict
     ann_para3.add_annotation(0, "Note A2")  # a2
 
     ann_doc = AnnotatedDoc.consolidate_annotations([ann_para1, ann_para2, ann_para3])
