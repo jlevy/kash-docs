@@ -64,9 +64,54 @@ class MappedClaims:
 
         return result
 
+    def format_related_chunks_debug(self, claim_index: int, top_k: int | None = None) -> str:
+        """
+        Format related chunks for a claim as HTML with clickable links for debug output.
+
+        Args:
+            claim_index: Index of the claim
+            top_k: Number of top chunks to include (None for all)
+
+        Returns:
+            HTML formatted string with chunk links and similarity scores
+        """
+        if claim_index >= len(self.related_chunks_list):
+            return "Invalid claim index"
+
+        related = self.related_chunks_list[claim_index]
+        if not related.related_chunks:
+            return "No related chunks found"
+
+        chunks_to_format = related.related_chunks[:top_k] if top_k else related.related_chunks
+
+        chunk_links = []
+        for chunk_id, score in chunks_to_format:
+            link = f'<a href="#{chunk_id}">{chunk_id}</a>'
+            chunk_links.append(f"{link} ({score:.2f})")
+
+        return "Related chunks: " + ", ".join(chunk_links)
+
+    def format_stats(self) -> str:
+        """
+        Format analysis statistics for debug output.
+
+        Returns:
+            Formatted string with analysis statistics
+        """
+        cache_stats = self.similarity_cache.cache_stats()
+        return (
+            f"**Analysis complete:** {len(self.claims)} claims, "
+            f"{len(self.chunked_doc.chunks)} chunks, "
+            f"{cache_stats['cached_pairs']} similarities computed"
+        )
+
+
+TOP_K_RELATED = 8
+"""Default number of top related chunks to find for each claim."""
+
 
 def extract_mapped_claims(
-    item: Item, top_k_related: int = 5, model: LLMName = LLM.default_standard
+    item: Item, top_k: int = TOP_K_RELATED, model: LLMName = LLM.default_standard
 ) -> MappedClaims:
     """
     Extract key claims in a document and find related paragraphs using embeddings.
@@ -128,7 +173,7 @@ def extract_mapped_claims(
         cid = claim_id(i)
         # Find most similar chunks to this claim
         similar_chunks = similarity_cache.most_similar(
-            target_key=cid, n=top_k_related, candidates=chunk_ids
+            target_key=cid, n=top_k, candidates=chunk_ids
         )
 
         related_chunks_list.append(
@@ -142,7 +187,3 @@ def extract_mapped_claims(
         similarity_cache=similarity_cache,
         related_chunks_list=related_chunks_list,
     )
-
-
-TOP_K_RELATED = 8
-"""Default number of top related chunks to find for each claim."""
