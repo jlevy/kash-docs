@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from chopdiff.divs import CHUNK, chunk_paras, div
-from chopdiff.docs import Paragraph, TextDoc, TextUnit
+from chopdiff.docs import Paragraph, TextDoc, TextUnit, first_wordtok, is_tag
 
 from kash.kits.docs.analysis.analysis_model import chunk_id
 
@@ -22,7 +22,10 @@ class ChunkedTextDoc:
         """
         XXX Heuristic to verify a chunk is content and not a header or markup like a div.
         """
-        return not any(not p.is_markup() and not p.is_header() for p in self.chunks[cid])
+        return all(
+            not is_tag(first_wordtok(p.reassemble())) and not p.is_header()
+            for p in self.chunks[cid]
+        )
 
     def reassemble(self, class_name: str = CHUNK) -> str:
         """
