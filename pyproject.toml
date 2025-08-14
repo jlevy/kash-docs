@@ -39,7 +39,7 @@ classifiers = [
 
 dependencies = [
     # Main kash and doc-handling deps:
-    "kash-shell>=0.3.27",
+    "kash-shell>=0.3.30",
     "markdownify==0.13.1",  # TODO: Pinning for now, saw some possible regressions with v1.1.0
     # Utilities:
     "rich>=14.0.0",
@@ -102,7 +102,7 @@ dev = [
 
 [tool.uv.sources]
 # For bleeding edge:
-kash-shell = { git = "https://github.com/jlevy/kash.git" }
+# kash-shell = { git = "https://github.com/jlevy/kash.git" }
 # For local development:
 # kash-shell = { path = "../kash", editable = true }
 # chopdiff = { path = "../../github/chopdiff", editable = true }
