@@ -127,6 +127,7 @@ def extract_mapped_claims(
     # Extract key claims
     summary_item = summarize_key_claims(item, model=model)
     assert summary_item.body
+
     claims = extract_bullet_points(summary_item.body)
 
     # Chunk the document

@@ -7,7 +7,7 @@ from kash.utils.errors import InvalidInput
 from kash.workspaces.workspaces import current_ws
 
 
-@kash_action(precondition=is_doc_resource, mcp_tool=True)
+@kash_action(precondition=is_doc_resource)
 def pandoc_markdownify(item: Item) -> Item:
     """
     Convert docs to markdown using Pandoc.

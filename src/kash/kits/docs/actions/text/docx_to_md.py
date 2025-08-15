@@ -6,7 +6,7 @@ from kash.kits.docs.doc_formats.markdown_footnotes import convert_endnotes_to_fo
 from kash.model import Format, Item
 
 
-@kash_action(precondition=is_docx_resource, mcp_tool=True)
+@kash_action(precondition=is_docx_resource)
 def docx_to_md(item: Item) -> Item:
     """
     Convert a docx file to clean Markdown, hopefully in good enough shape

@@ -6,7 +6,7 @@ from kash.kits.docs.doc_formats.docx_dump import dump_mammoth_docx
 from kash.model import Format, Item, ItemType
 
 
-@kash_action(precondition=is_docx_resource, mcp_tool=True)
+@kash_action(precondition=is_docx_resource)
 def docx_dump_raw(item: Item) -> Item:
     """
     Dump the raw internal structure of a docx file (parsed by Mammoth)
