@@ -21,8 +21,8 @@ from kash.kits.docs.analysis.chunk_docs import ChunkedTextDoc
 from kash.kits.docs.analysis.claim_mapping import TOP_K_RELATED, MappedClaims, RelatedChunks
 from kash.llm_utils import Message, MessageTemplate, llm_template_completion
 from kash.model import LLMOptions
-from kash.shell.output.shell_output import multitask_status
-from kash.utils.api_utils.gather_limited import FuncTask, Limit, gather_limited_sync
+from kash.utils.api_utils.gather_limited import FuncTask, Limit
+from kash.utils.api_utils.multitask_gather import multitask_gather
 
 log = get_logger(__name__)
 
@@ -242,7 +242,7 @@ def analyze_rigor_dimension(
     Returns:
         Score from 1 to 5
     """
-    input_body = f"**Claim:** {related.claim_text}"
+    input_body = f"**Claim:** {related.claim.text}"
 
     if include_evidence:
         # Include top chunks as context
@@ -262,7 +262,7 @@ def analyze_rigor_dimension(
             evidence_label = "Document Context"
 
         input_body = dedent(f"""
-            **Claim:** {related.claim_text}
+            **Claim:** {related.claim.text}
             
             **{evidence_label} from Document:**
             {evidence_text if evidence_text else "No evidence found"}
@@ -297,7 +297,7 @@ def analyze_claim_support(
     relevant_chunks = related.related_chunks[:top_k]
 
     if not relevant_chunks:
-        log.warning("No related chunks found for claim: %s", abbrev_str(related.claim_text, 50))
+        log.warning("No related chunks found for claim: %s", abbrev_str(related.claim.text, 50))
         return []
 
     # Format passages for the LLM
@@ -320,7 +320,7 @@ def analyze_claim_support(
     # Call LLM to analyze stances
     # Format the input body with the claim and passages
     input_body = dedent(f"""
-        **The Claim:** {related.claim_text}
+        **The Claim:** {related.claim.text}
 
         **Related Passages:**
         {passages_text}
@@ -357,7 +357,7 @@ def analyze_claim_support(
 
         log.info(
             "Claim %s -> Chunk %s: %s (score: %d)",
-            related.claim_id,
+            related.claim.id,
             chunk_id,
             stance,
             support.support_score,
@@ -420,7 +420,7 @@ async def analyze_claims_async(
 
     # Combine all tasks while keeping track of their types for labeling
     all_tasks = []
-    task_types = []
+    task_types: list[tuple[str, RelatedChunks]] = []
 
     # Keep track of where each task type's results will be in the final results list
     task_result_slices = {}
@@ -449,18 +449,16 @@ async def analyze_claims_async(
     def analysis_labeler(i: int, spec: Any) -> str:
         if i < len(task_types):
             task_type, related = task_types[i]
-            claim_text = abbrev_str(related.claim_text, 30)
-            claim_num = int(related.claim_id.split("-")[1]) + 1
+            claim_text = abbrev_str(related.claim.text, 30)
+            assert related.claim.id
+            claim_num = int(related.claim.id.split("-")[1]) + 1
             return f"{task_type.capitalize()} {claim_num}/{claims_count}: {repr(claim_text)}"
         return f"Analyze task {i + 1}/{len(all_tasks)}"
 
     # Execute all analysis tasks in parallel with rate limiting
     limit = Limit(rps=global_settings().limit_rps, concurrency=global_settings().limit_concurrency)
 
-    async with multitask_status() as status:
-        all_results = await gather_limited_sync(
-            *all_tasks, limit=limit, status=status, labeler=analysis_labeler
-        )
+    all_results = await multitask_gather(all_tasks, labeler=analysis_labeler, limit=limit)
 
     # Extract and organize results for each claim
     claim_results_list: list[ClaimAnalysisResults] = []
@@ -488,9 +486,10 @@ async def analyze_claims_async(
         chunk_ids = [chunk_id for chunk_id, _ in relevant_chunks]
         chunk_scores = [score for _, score in relevant_chunks]
 
+        assert related.claim.id
         claim_analysis = ClaimAnalysis(
-            claim_id=related.claim_id,
-            claim=related.claim_text,
+            claim_id=related.claim.id,
+            claim=related.claim.text,
             chunk_ids=chunk_ids,
             chunk_scores=chunk_scores,
             rigor_analysis=results.rigor_analysis,
@@ -507,7 +506,7 @@ async def analyze_claims_async(
 
         log.info(
             "Claim %s analysis: support: %s, rigor: %s",
-            related.claim_id,
+            related.claim.id,
             ", ".join(f"{stance}={count}" for stance, count in support_counts.items()),
             results.rigor_analysis,
         )

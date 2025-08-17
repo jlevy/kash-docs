@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import Enum, StrEnum
 
 from pydantic import BaseModel, Field
@@ -48,9 +49,42 @@ def format_chunk_links(chunk_ids: list[str]) -> str:
 ## Analysis Models and Rubrics
 
 
+class ClaimType(Enum):
+    """
+    Type of claim.
+    """
+
+    granular = "granular"
+    """A granuar, specific claim."""
+
+    sentence = "sentence"
+    """A sentence from the original document."""
+
+    key = "key"
+    """An extracted "key" major claim from a document."""
+
+
+@dataclass(frozen=True)
+class Claim:
+    """
+    A claim or assertion, such as one extracted from a document.
+    """
+
+    text: str
+    id: str | None = None
+    claim_type: ClaimType = ClaimType.granular
+
+    def with_id(self, claim_id: str) -> Claim:
+        """
+        Create a claim with an id.
+        """
+        return Claim(text=self.text, id=claim_id, claim_type=self.claim_type)
+
+
 class Stance(StrEnum):
     """
-    Stance a given document has with respect to supporting a statement or to a claim.
+    Stance a given document has with respect to supporting a statement or claim.
+    Stance describes the position taken and does not imply truth or validity.
     """
 
     direct_refute = "direct_refute"
@@ -135,7 +169,7 @@ class ClaimLabel(StrEnum):
     """
 
     insightful = "insightful"
-    """Something non-obvious that seems likely to be true"""
+    """Something surprising or non-obvious that also seems likely to be true"""
 
     weak_support = "weak_support"
     """A claim that has weak supporting evidence"""

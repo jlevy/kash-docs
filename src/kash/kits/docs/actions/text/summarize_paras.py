@@ -13,8 +13,8 @@ from kash.exec import kash_action, kash_precondition
 from kash.exec.llm_transforms import llm_transform_str
 from kash.llm_utils import Message, MessageTemplate
 from kash.model import Format, Item, ItemType, LLMOptions
-from kash.shell.output.shell_output import multitask_status
-from kash.utils.api_utils.gather_limited import FuncTask, Limit, gather_limited_sync
+from kash.utils.api_utils.gather_limited import FuncTask, Limit
+from kash.utils.api_utils.multitask_gather import multitask_gather
 from kash.utils.errors import InvalidInput
 
 log = get_logger(__name__)
@@ -149,12 +149,9 @@ async def summarize_paras_async(item: Item) -> Item:
                 return f"Summarize {i + 1}/{len(paragraphs)}: {para_text}"
         return f"Summarize paragraph {i + 1}/{len(paragraphs)}"
 
-    # Execute in parallel with rate limiting, retries, and progress tracking
+    # Execute in parallel with progress and default rate limits
     limit = Limit(rps=global_settings().limit_rps, concurrency=global_settings().limit_concurrency)
-    async with multitask_status() as status:
-        paragraph_summarys = await gather_limited_sync(
-            *summary_tasks, limit=limit, status=status, labeler=labeler
-        )
+    paragraph_summarys = await multitask_gather(summary_tasks, labeler=labeler, limit=limit)
 
     log.message(
         "Step 2: Applying %d summarys to %d paragraphs",

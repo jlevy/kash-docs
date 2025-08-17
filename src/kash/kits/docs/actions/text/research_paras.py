@@ -7,7 +7,6 @@ from chopdiff.docs import Paragraph, TextDoc, TextUnit
 from strif import abbrev_list, abbrev_str
 
 from kash.config.logger import get_logger
-from kash.config.settings import global_settings
 from kash.exec import kash_action
 from kash.exec.llm_transforms import llm_transform_str
 from kash.kits.docs.concepts.doc_annotations import (
@@ -17,8 +16,8 @@ from kash.kits.docs.concepts.doc_annotations import (
 )
 from kash.llm_utils import Message, MessageTemplate
 from kash.model import Format, Item, ItemType, LLMOptions
-from kash.shell.output.shell_output import multitask_status
-from kash.utils.api_utils.gather_limited import FuncTask, Limit, gather_limited_sync
+from kash.utils.api_utils.gather_limited import FuncTask
+from kash.utils.api_utils.multitask_gather import multitask_gather
 from kash.utils.errors import InvalidInput
 from kash.utils.text_handling.markdown_utils import extract_bullet_points
 
@@ -348,12 +347,8 @@ async def research_paras_async(item: Item) -> Item:
                 return f"Research {i + 1}/{len(paragraphs)} ({nwords} words): {repr(para_text)}"
         return f"Research {i + 1}/{len(paragraphs)}"
 
-    # Execute research in parallel with rate limiting, retries, and progress tracking
-    limit = Limit(rps=global_settings().limit_rps, concurrency=global_settings().limit_concurrency)
-    async with multitask_status() as status:
-        paragraph_notes = await gather_limited_sync(
-            *research_tasks, limit=limit, status=status, labeler=research_labeler
-        )
+    # Execute research in parallel with progress and default rate limits
+    paragraph_notes = await multitask_gather(research_tasks, labeler=research_labeler)
 
     log.message(
         "Step 2: Applying %d sets of footnotes (%s total) to %d paragraphs",
@@ -377,14 +372,8 @@ async def research_paras_async(item: Item) -> Item:
                 return f"Annotate {i + 1}/{len(paragraphs)} ({nwords} words): {repr(para_text)}"
         return f"Annotate {i + 1}/{len(paragraphs)}"
 
-    # Execute annotations in parallel (no rate limiting needed for local processing)
-    async with multitask_status() as status:
-        annotated_paras = await gather_limited_sync(
-            *annotation_tasks,
-            limit=limit,
-            status=status,
-            labeler=annotation_labeler,
-        )
+    # Execute annotations in parallel
+    annotated_paras = await multitask_gather(annotation_tasks, labeler=annotation_labeler)
 
     # Consolidate all annotations into a single document with footnotes at the end
     log.message("Step 3: Consolidating footnotes at end of document")

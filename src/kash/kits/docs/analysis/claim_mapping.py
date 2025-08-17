@@ -7,7 +7,7 @@ from chopdiff.docs import TextDoc
 from kash.config.logger import get_logger
 from kash.embeddings.embeddings import Embeddings, EmbValue, KeyVal
 from kash.kits.docs.actions.text.summarize_key_claims import summarize_key_claims
-from kash.kits.docs.analysis.analysis_model import claim_id
+from kash.kits.docs.analysis.analysis_model import Claim, claim_id
 from kash.kits.docs.analysis.chunk_docs import ChunkedTextDoc, chunk_paragraphs
 from kash.kits.docs.concepts.similarity_cache import SimilarityCache
 from kash.llm_utils import LLM, LLMName
@@ -23,8 +23,7 @@ class RelatedChunks:
     Chunks related to a claim with similarity scores.
     """
 
-    claim_id: str
-    claim_text: str
+    claim: Claim
     related_chunks: list[tuple[str, float]]  # (chunk_id, similarity_score)
 
 
@@ -37,7 +36,7 @@ class MappedClaims:
     for both claims and chunks, and mappings of which paragraphs relate to each claim.
     """
 
-    claims: list[str]
+    claims: list[Claim]
     chunked_doc: ChunkedTextDoc
     embeddings: Embeddings
     similarity_cache: SimilarityCache
@@ -51,7 +50,7 @@ class MappedClaims:
             raise IndexError(f"Claim index {claim_index} out of range")
 
         related = self.related_chunks_list[claim_index]
-        result = f"**Claim:** {related.claim_text}\n\n"
+        result = f"**Claim:** {related.claim.text}\n\n"
         result += "**Related passages:**\n\n"
 
         for chunk_id, score in related.related_chunks[:top_k]:
@@ -128,7 +127,7 @@ def extract_mapped_claims(
     summary_item = summarize_key_claims(item, model=model)
     assert summary_item.body
 
-    claims = extract_bullet_points(summary_item.body)
+    claims: list[Claim] = [Claim(c) for c in extract_bullet_points(summary_item.body)]
 
     # Chunk the document
     assert item.body
@@ -144,7 +143,7 @@ def extract_mapped_claims(
         keyvals.append(
             KeyVal(
                 key=cid,
-                value=EmbValue(emb_text=claim, data={"type": "claim", "index": i}),
+                value=EmbValue(emb_text=claim.text, data={"type": "claim", "index": i}),
             )
         )
 
@@ -178,7 +177,7 @@ def extract_mapped_claims(
         )
 
         related_chunks_list.append(
-            RelatedChunks(claim_id=cid, claim_text=claim, related_chunks=similar_chunks)
+            RelatedChunks(claim=claim.with_id(cid), related_chunks=similar_chunks)
         )
 
     return MappedClaims(

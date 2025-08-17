@@ -49,7 +49,7 @@ def analyze_key_claims(
     claim_divs = []
     for i, related in enumerate(mapped_claims.related_chunks_list):
         # Build claim content parts
-        claim_content = [related.claim_text]
+        claim_content = [related.claim.text]
 
         # Only add debug info if include_debug is True
         if include_debug:
