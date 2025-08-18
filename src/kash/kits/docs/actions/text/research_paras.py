@@ -353,7 +353,7 @@ async def research_paras_async(item: Item) -> Item:
     log.message(
         "Step 2: Applying %d sets of footnotes (%s total) to %d paragraphs",
         len(paragraph_notes),
-        sum(len(notes or []) for notes in paragraph_notes),
+        sum(len(notes or []) for notes in paragraph_notes if isinstance(notes, list)),
         len(paragraphs),
     )
 

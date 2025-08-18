@@ -13,12 +13,13 @@ from kash.kits.docs.analysis.analysis_model import (
     ClaimAnalysis,
     ClaimSupport,
     DocAnalysis,
+    MappedClaim,
     RigorAnalysis,
     RigorDimension,
     Stance,
 )
 from kash.kits.docs.analysis.chunk_docs import ChunkedTextDoc
-from kash.kits.docs.analysis.claim_mapping import TOP_K_RELATED, MappedClaims, RelatedChunks
+from kash.kits.docs.analysis.claim_mapping import TOP_K_RELATED, MappedClaims
 from kash.llm_utils import Message, MessageTemplate, llm_template_completion
 from kash.model import LLMOptions
 from kash.utils.api_utils.gather_limited import FuncTask, Limit
@@ -116,64 +117,62 @@ clarity_options = LLMOptions(
     ),
 )
 
-# LLM options for analyzing rigor
-rigor_options = LLMOptions(
+# LLM options for analyzing consistency
+consistency_options = LLMOptions(
     system_message=Message(
         """
-        You are an expert analyst evaluating the logical rigor and analytical quality of claims.
-        You assess the strength of reasoning and evidence presented.
+        You are an expert analyst evaluating the internal consistency of claims.
+        You assess whether statements and related evidence align without contradiction.
         """
     ),
     body_template=MessageTemplate(
         """
-        Evaluate the rigor of this claim and its supporting evidence on a scale of 1 to 5:
+        Evaluate the internal consistency of this claim with respect to itself and the provided evidence on a scale of 1 to 5:
         
         {body}
         
         **Scoring Guidelines:**
-        - 5: Highly rigorous with strong logical reasoning and robust evidence
-        - 4: Good rigor with solid reasoning and adequate evidence
-        - 3: Moderate rigor with acceptable reasoning but could use stronger evidence
-        - 2: Weak rigor with questionable reasoning or insufficient evidence
-        - 1: Very poor rigor with flawed logic or no supporting evidence
+        - 5: Fully consistent with no contradictions or tensions
+        - 4: Mostly consistent with only minor tensions or qualifications
+        - 3: Mixed consistency; some aspects align while others conflict or are unclear
+        - 2: Notably inconsistent; multiple statements or evidence elements conflict
+        - 1: Highly inconsistent or self-contradictory
         
         Consider:
-        - Is the reasoning logically sound?
-        - Is evidence provided to support the claim?
-        - Are potential counterarguments addressed?
-        - Is the methodology (if applicable) appropriate?
+        - Do statements about the same facts align across passages?
+        - Are there contradictions, hedges, or shifts in definitions/criteria?
+        - Do qualifiers meaningfully resolve apparent conflicts?
         
         Output ONLY a single integer from 1 to 5.
         """
     ),
 )
 
-# LLM options for analyzing factuality
-factuality_options = LLMOptions(
+# LLM options for analyzing completeness
+completeness_options = LLMOptions(
     system_message=Message(
         """
-        You are a fact-checker evaluating the factual accuracy and verifiability of claims.
-        You assess whether claims are supported by facts and evidence.
+        You are an expert analyst evaluating the completeness of claims.
+        You assess whether all key aspects, details, and necessary context are addressed.
         """
     ),
     body_template=MessageTemplate(
         """
-        Evaluate the factuality of this claim on a scale of 1 to 5:
+        Evaluate the completeness of this claim with respect to the provided evidence and expected scope on a scale of 1 to 5:
         
         {body}
         
         **Scoring Guidelines:**
-        - 5: Highly factual, verifiable with strong evidence from reliable sources
-        - 4: Generally factual with good supporting evidence
-        - 3: Partially factual or plausible but lacks complete verification
-        - 2: Questionable factuality with weak or contradictory evidence
-        - 1: Likely false or completely unverifiable
+        - 5: Fully complete; covers all essential aspects with sufficient detail and citations
+        - 4: Mostly complete; minor gaps but overall adequate coverage
+        - 3: Partially complete; covers main points but misses important aspects or specificity
+        - 2: Incomplete; significant gaps in reasoning, evidence, or necessary qualifiers
+        - 1: Very incomplete; superficial or missing core elements
         
         Consider:
-        - Can the claim be verified through evidence?
-        - Are sources credible and relevant?
-        - Does the evidence directly support the claim?
-        - Are there known facts that contradict this claim?
+        - Are necessary assumptions, definitions, and caveats present?
+        - Are key evidence and counterpoints addressed where relevant?
+        - Is the scope appropriate and sufficiently supported?
         
         Output ONLY a single integer from 1 to 5.
         """
@@ -214,14 +213,14 @@ depth_options = LLMOptions(
 
 RIGOR_DIMENSION_OPTIONS = {
     RigorDimension.clarity: clarity_options,
-    RigorDimension.rigor: rigor_options,
-    RigorDimension.factuality: factuality_options,
+    RigorDimension.consistency: consistency_options,
+    RigorDimension.completeness: completeness_options,
     RigorDimension.depth: depth_options,
 }
 
 
 def analyze_rigor_dimension(
-    related: RelatedChunks,
+    related: MappedClaim,
     chunked_doc: ChunkedTextDoc,
     llm_options: LLMOptions,
     dimension_name: str,
@@ -249,15 +248,15 @@ def analyze_rigor_dimension(
         relevant_chunks = related.related_chunks[:top_k]
         evidence_text = ""
 
-        for chunk_id, score in relevant_chunks:
-            if chunk_id in chunked_doc.chunks:
-                chunk_paras = chunked_doc.chunks[chunk_id]
+        for cs in relevant_chunks:
+            if cs.chunk_id in chunked_doc.chunks:
+                chunk_paras = chunked_doc.chunks[cs.chunk_id]
                 chunk_text = " ".join(p.reassemble() for p in chunk_paras)
                 if len(chunk_text) > 500:
                     chunk_text = chunk_text[:500] + "..."
                 evidence_text += f"\n- {chunk_text}\n"
 
-        evidence_label = "Supporting Evidence" if dimension_name == "rigor" else "Related Evidence"
+        evidence_label = "Related Evidence"
         if dimension_name == "depth":
             evidence_label = "Document Context"
 
@@ -286,7 +285,7 @@ def analyze_rigor_dimension(
 
 
 def analyze_claim_support(
-    related: RelatedChunks,
+    related: MappedClaim,
     chunked_doc: ChunkedTextDoc,
     top_k: int = TOP_K_RELATED,
 ) -> list[ClaimSupport]:
@@ -302,19 +301,19 @@ def analyze_claim_support(
 
     # Format passages for the LLM
     passages_text = ""
-    for i, (chunk_id, score) in enumerate(relevant_chunks, 1):
+    for i, cs in enumerate(relevant_chunks, 1):
         # Get the actual chunk text
-        if chunk_id in chunked_doc.chunks:
-            chunk_paras = chunked_doc.chunks[chunk_id]
+        if cs.chunk_id in chunked_doc.chunks:
+            chunk_paras = chunked_doc.chunks[cs.chunk_id]
             chunk_text = " ".join(p.reassemble() for p in chunk_paras)
             # Truncate very long chunks for the LLM
             if len(chunk_text) > 1000:
                 chunk_text = chunk_text[:1000] + "..."
         else:
             chunk_text = "[Chunk not found]"
-            log.warning("Chunk %s not found in document", chunk_id)
+            log.warning("Chunk %s not found in document", cs.chunk_id)
 
-        passages_text += f"\n**passage_{i}** (similarity: {score:.3f}):\n"
+        passages_text += f"\n**passage_{i}** (similarity: {cs.score:.3f}):\n"
         passages_text += f"{chunk_text}\n"
 
     # Call LLM to analyze stances
@@ -337,7 +336,7 @@ def analyze_claim_support(
     claim_supports = []
     lines = llm_response.strip().split("\n")
 
-    for i, (chunk_id, score) in enumerate(relevant_chunks, 1):
+    for i, cs in enumerate(relevant_chunks, 1):
         # Parse stance from response
         stance = Stance.error  # Default if parsing fails
 
@@ -352,13 +351,13 @@ def analyze_claim_support(
                 break
 
         # Create ClaimSupport object
-        support = ClaimSupport.create(ref_id=chunk_id, stance=stance)
+        support = ClaimSupport.create(ref_id=cs.chunk_id, stance=stance)
         claim_supports.append(support)
 
         log.info(
             "Claim %s -> Chunk %s: %s (score: %d)",
             related.claim.id,
-            chunk_id,
+            cs.chunk_id,
             stance,
             support.support_score,
         )
@@ -366,9 +365,9 @@ def analyze_claim_support(
     return claim_supports
 
 
-async def analyze_claims_async(
+async def analyze_key_claims_async(
     mapped_claims: MappedClaims, top_k_chunks: int = TOP_K_RELATED
-) -> DocAnalysis:
+) -> list[ClaimAnalysis]:
     """
     Analyze all claims concurrently to determine their support stances and rigor scores.
 
@@ -379,7 +378,7 @@ async def analyze_claims_async(
     Returns:
         DocAnalysis with ClaimAnalysis for each claim
     """
-    claims_count = len(mapped_claims.claims)
+    claims_count = len(mapped_claims.key_claims)
     log.message("Analyzing support and rigor for %d claims", claims_count)
 
     # Create support tasks
@@ -388,14 +387,14 @@ async def analyze_claims_async(
             analyze_claim_support,
             (related, mapped_claims.chunked_doc, top_k_chunks),
         )
-        for related in mapped_claims.related_chunks_list
+        for related in mapped_claims.key_claims
     ]
 
     # Define rigor dimensions with their configurations
     rigor_dimension_configs = [
         (RigorDimension.clarity, False, 0),
-        (RigorDimension.rigor, True, min(3, top_k_chunks)),
-        (RigorDimension.factuality, True, min(3, top_k_chunks)),
+        (RigorDimension.consistency, True, min(3, top_k_chunks)),
+        (RigorDimension.completeness, True, min(3, top_k_chunks)),
         (RigorDimension.depth, True, min(3, top_k_chunks)),
     ]
 
@@ -415,12 +414,12 @@ async def analyze_claims_async(
                     evidence_top_k,
                 ),
             )
-            for related in mapped_claims.related_chunks_list
+            for related in mapped_claims.key_claims
         ]
 
     # Combine all tasks while keeping track of their types for labeling
     all_tasks = []
-    task_types: list[tuple[str, RelatedChunks]] = []
+    task_types: list[tuple[str, MappedClaim]] = []
 
     # Keep track of where each task type's results will be in the final results list
     task_result_slices = {}
@@ -428,21 +427,19 @@ async def analyze_claims_async(
 
     # Add support tasks
     all_tasks.extend(support_tasks)
-    task_types.extend([("support", related) for related in mapped_claims.related_chunks_list])
+    task_types.extend([("support", related) for related in mapped_claims.key_claims])
     task_result_slices["support"] = slice(current_index, current_index + claims_count)
     current_index += claims_count
 
     # Add rigor dimension tasks
     for dimension in [
         RigorDimension.clarity,
-        RigorDimension.rigor,
-        RigorDimension.factuality,
+        RigorDimension.consistency,
+        RigorDimension.completeness,
         RigorDimension.depth,
     ]:
         all_tasks.extend(rigor_tasks_by_dimension[dimension])
-        task_types.extend(
-            [(dimension.value, related) for related in mapped_claims.related_chunks_list]
-        )
+        task_types.extend([(dimension.value, related) for related in mapped_claims.key_claims])
         task_result_slices[dimension] = slice(current_index, current_index + claims_count)
         current_index += claims_count
 
@@ -466,8 +463,8 @@ async def analyze_claims_async(
     for i in range(claims_count):
         rigor_analysis = RigorAnalysis(
             clarity=all_results[task_result_slices[RigorDimension.clarity]][i],
-            rigor=all_results[task_result_slices[RigorDimension.rigor]][i],
-            factuality=all_results[task_result_slices[RigorDimension.factuality]][i],
+            consistency=all_results[task_result_slices[RigorDimension.consistency]][i],
+            completeness=all_results[task_result_slices[RigorDimension.completeness]][i],
             depth=all_results[task_result_slices[RigorDimension.depth]][i],
         )
         claim_results = ClaimAnalysisResults(
@@ -477,19 +474,16 @@ async def analyze_claims_async(
         claim_results_list.append(claim_results)
 
     # Build ClaimAnalysis objects
-    claim_analyses = []
-    for related, results in zip(
-        mapped_claims.related_chunks_list, claim_results_list, strict=False
-    ):
+    claim_analyses: list[ClaimAnalysis] = []
+    for related, results in zip(mapped_claims.key_claims, claim_results_list, strict=False):
         # Get chunk IDs and scores from the related chunks
         relevant_chunks = related.related_chunks[:top_k_chunks]
-        chunk_ids = [chunk_id for chunk_id, _ in relevant_chunks]
-        chunk_scores = [score for _, score in relevant_chunks]
+        chunk_ids = [cs.chunk_id for cs in relevant_chunks]
+        chunk_scores = [cs.score for cs in relevant_chunks]
 
         assert related.claim.id
         claim_analysis = ClaimAnalysis(
-            claim_id=related.claim.id,
-            claim=related.claim.text,
+            claim=related.claim,
             chunk_ids=chunk_ids,
             chunk_scores=chunk_scores,
             rigor_analysis=results.rigor_analysis,
@@ -511,7 +505,7 @@ async def analyze_claims_async(
             results.rigor_analysis,
         )
 
-    return DocAnalysis(key_claims=claim_analyses)
+    return claim_analyses
 
 
 def analyze_claims(mapped_claims: MappedClaims, top_k: int = TOP_K_RELATED) -> DocAnalysis:
@@ -530,4 +524,7 @@ def analyze_claims(mapped_claims: MappedClaims, top_k: int = TOP_K_RELATED) -> D
     Returns:
         DocAnalysis containing ClaimAnalysis for each claim with support stances and rigor scores
     """
-    return asyncio.run(analyze_claims_async(mapped_claims, top_k))
+    claim_analyses = asyncio.run(analyze_key_claims_async(mapped_claims, top_k))
+
+    granular_claims = mapped_claims.granular_claims
+    return DocAnalysis(key_claims=claim_analyses, granular_claims=granular_claims)

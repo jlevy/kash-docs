@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from chopdiff.divs import CHUNK, chunk_paras, div
 from chopdiff.docs import Paragraph, TextDoc, TextUnit, first_wordtok, is_tag
 
-from kash.kits.docs.analysis.analysis_model import chunk_id
+from kash.kits.docs.analysis.analysis_model import chunk_id_str
 
 
 @dataclass
@@ -17,6 +17,8 @@ class ChunkedTextDoc:
 
     doc: TextDoc
     chunks: dict[str, list[Paragraph]]
+
+    # TODO: Add static parse method to read from Markdown+HTML divs.
 
     def is_content_chunk(self, cid: str) -> bool:
         """
@@ -49,7 +51,7 @@ class ChunkedTextDoc:
         return "\n\n".join(result_divs)
 
 
-def chunk_paragraphs(doc: TextDoc, min_size: int) -> ChunkedTextDoc:
+def chunk_doc_paragraphs(doc: TextDoc, min_size: int) -> ChunkedTextDoc:
     """
     Chunk a TextDoc's paragraphs into groups and return a ChunkedTextDoc.
 
@@ -62,9 +64,9 @@ def chunk_paragraphs(doc: TextDoc, min_size: int) -> ChunkedTextDoc:
     # TODO: Also handle section headers intelligently.
     doc_chunks = list(chunk_paras(doc, min_size, TextUnit.paragraphs))
 
-    chunks = {}
+    chunks: dict[str, list[Paragraph]] = {}
     for i, chunk_doc in enumerate(doc_chunks):
-        cid = chunk_id(i)
+        cid = chunk_id_str(i)
         chunks[cid] = chunk_doc.paragraphs
 
     return ChunkedTextDoc(doc=doc, chunks=chunks)

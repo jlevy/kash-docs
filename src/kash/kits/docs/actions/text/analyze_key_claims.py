@@ -1,17 +1,23 @@
 from __future__ import annotations
 
 from chopdiff.divs import div
+from chopdiff.docs import TextDoc
 from prettyfmt import fmt_lines
 from sidematter_format import Sidematter
 
 from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.preconditions import has_simple_text_body
-from kash.kits.docs.analysis.analysis_model import CLAIM, CLAIM_MAPPING, KEY_CLAIMS, claim_id
+from kash.kits.docs.analysis.analysis_model import CLAIM, CLAIM_MAPPING, KEY_CLAIMS, claim_id_str
+from kash.kits.docs.analysis.chunk_docs import chunk_doc_paragraphs
 from kash.kits.docs.analysis.claim_analysis import analyze_claims
-from kash.kits.docs.analysis.claim_mapping import TOP_K_RELATED, extract_mapped_claims
+from kash.kits.docs.analysis.claim_mapping import (
+    TOP_K_RELATED,
+    extract_mapped_claims,
+)
 from kash.llm_utils import LLM, LLMName
 from kash.model import Format, Item, ItemType, Param, common_param
+from kash.utils.errors import InvalidInput
 from kash.workspaces.workspaces import current_ws
 
 log = get_logger(__name__)
@@ -36,8 +42,14 @@ def analyze_key_claims(
 
     Returns an enhanced document with claims and their related context.
     """
-    # Perform the claim extraction and mapping
-    mapped_claims = extract_mapped_claims(item, top_k=TOP_K_RELATED, model=model)
+    if not item.body:
+        raise InvalidInput(f"Item must have a body: {item}")
+
+    text_doc = TextDoc.from_text(item.body)
+
+    chunked_doc = chunk_doc_paragraphs(text_doc, min_size=1)
+
+    mapped_claims = extract_mapped_claims(chunked_doc, top_k=TOP_K_RELATED)
 
     # Analyze the claims for support stances (using top 5 chunks per claim)
     doc_analysis = analyze_claims(mapped_claims, top_k=5)
@@ -47,14 +59,14 @@ def analyze_key_claims(
 
     # Add the key claims section with enhanced information
     claim_divs = []
-    for i, related in enumerate(mapped_claims.related_chunks_list):
+    for i, related in enumerate(mapped_claims.key_claims):
         # Build claim content parts
         claim_content = [related.claim.text]
 
         # Only add debug info if include_debug is True
         if include_debug:
             # Get the full debug summary for this claim
-            claim_debug = doc_analysis.get_claim_debug(i)
+            claim_debug = doc_analysis.get_key_claim_debug(i)
             claim_content.append(
                 div(
                     [CLAIM_MAPPING, "debug"],
@@ -66,7 +78,7 @@ def analyze_key_claims(
             div(
                 CLAIM,
                 *claim_content,
-                attrs={"id": claim_id(i)},
+                attrs={"id": claim_id_str(i)},
             )
         )
 

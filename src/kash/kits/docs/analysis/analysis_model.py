@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, StrEnum
+from typing import NewType
 
 from pydantic import BaseModel, Field
 
@@ -18,28 +19,33 @@ CLAIM_MAPPING = "claim-mapping"
 """Class name for the mapping of a claim to its related chunks."""
 
 
-def claim_id(index: int) -> str:
+ClaimId = NewType("ClaimId", str)
+
+ChunkId = NewType("ChunkId", str)
+
+
+def claim_id_str(index: int) -> ClaimId:
     """
     Generate a consistent claim ID from an index.
     """
-    return f"claim-{index}"
+    return ClaimId(f"claim-{index}")
 
 
-def chunk_id(i: int) -> str:
+def chunk_id_str(index: int) -> ChunkId:
     """
     Get the ID for a chunk (one or more paragraphs).
     """
-    return f"chunk-{i}"
+    return ChunkId(f"chunk-{index}")
 
 
-def format_chunk_link(chunk_id: str) -> str:
+def format_chunk_link(chunk_id: ChunkId) -> str:
     """
     Format a chunk ID as a clickable HTML link.
     """
     return f'<a href="#{chunk_id}">{chunk_id}</a>'
 
 
-def format_chunk_links(chunk_ids: list[str]) -> str:
+def format_chunk_links(chunk_ids: list[ChunkId]) -> str:
     """
     Format a list of chunk IDs as clickable HTML links.
     """
@@ -47,6 +53,26 @@ def format_chunk_links(chunk_ids: list[str]) -> str:
 
 
 ## Analysis Models and Rubrics
+
+
+@dataclass(frozen=True)
+class ChunkScore:
+    """
+    Similarity score for a specific chunk.
+    """
+
+    chunk_id: ChunkId
+    score: float
+
+
+@dataclass
+class MappedClaim:
+    """
+    A claim along with a mapping to related chunks in the document.
+    """
+
+    claim: Claim
+    related_chunks: list[ChunkScore]
 
 
 class ClaimType(Enum):
@@ -147,9 +173,16 @@ class RigorDimension(Enum):
     """
 
     clarity = "clarity"
-    rigor = "rigor"
-    factuality = "factuality"
+    """Is this clearly written and are statements well-expressed?"""
+
+    consistency = "consistency"
+    """Are the statements consistent with each other and are citations consistent with the statements?"""
+
+    completeness = "completeness"
+    """Are all the details relevant to the document's claimsincluded, cited, and addressed?"""
+
     depth = "depth"
+    """Are the content and citations deep and comprehensive?"""
 
 
 class RigorAnalysis(BaseModel):
@@ -158,8 +191,8 @@ class RigorAnalysis(BaseModel):
     """
 
     clarity: int = Field(description="Clarity score (1 to 5)")
-    rigor: int = Field(description="Rigor score (1 to 5)")
-    factuality: int = Field(description="Factuality score (1 to 5)")
+    consistency: int = Field(description="Consistency score (1 to 5)")
+    completeness: int = Field(description="Completeness score (1 to 5)")
     depth: int = Field(description="Depth score (1 to 5)")
 
 
@@ -186,11 +219,9 @@ class ClaimAnalysis(BaseModel):
     Structured analysis of a claim.
     """
 
-    claim_id: str
+    claim: Claim = Field(description="The claim")
 
-    claim: str = Field(description="A key assertion")
-
-    chunk_ids: list[str] = Field(
+    chunk_ids: list[ChunkId] = Field(
         description="List of ids to pieces of text in the document that are relevant"
     )
 
@@ -201,7 +232,8 @@ class ClaimAnalysis(BaseModel):
     rigor_analysis: RigorAnalysis = Field(description="Rigor analysis of the claim")
 
     claim_support: list[ClaimSupport] = Field(
-        description="List of claim support evidence from references", default_factory=list
+        description="List of claim support evidence from the doc or other sources",
+        default_factory=list,
     )
 
     labels: list[ClaimLabel] = Field(
@@ -248,7 +280,8 @@ class ClaimAnalysis(BaseModel):
             # Detailed support with clickable links
             detail_items = []
             for cs in self.claim_support:
-                link = format_chunk_link(cs.ref_id)
+                # TODO: Update this to handle other claims, footnotes, crawled docs, etc.
+                link = format_chunk_link(chunk_id=ChunkId(cs.ref_id))
                 detail_items.append(f"{link}: {cs.stance.value} ({cs.support_score:+d})")
             parts.append(f"**Detailed support:** {', '.join(detail_items)}")
         else:
@@ -256,8 +289,8 @@ class ClaimAnalysis(BaseModel):
 
         r = self.rigor_analysis
         parts.append(
-            f"**Rigor scores:** clarity={r.clarity}, rigor={r.rigor}, "
-            f"factuality={r.factuality}, depth={r.depth}"
+            f"**Rigor scores:** clarity={r.clarity}, consistency={r.consistency}, "
+            f"completeness={r.completeness}, depth={r.depth}"
         )
 
         # Labels if any
@@ -275,6 +308,8 @@ class DocAnalysis(BaseModel):
 
     key_claims: list[ClaimAnalysis] = Field(description="Key claims made in a document")
 
+    granular_claims: list[MappedClaim] = Field(description="Granular claims made in a document")
+
     def debug_summary(self) -> str:
         """
         Generate a full debug summary of the document analysis.
@@ -289,13 +324,19 @@ class DocAnalysis(BaseModel):
 
         # Add each claim's debug summary with its ID as header
         for claim_analysis in self.key_claims:
-            claim_header = f"**{claim_analysis.claim_id}:**"
+            claim_header = f"**{claim_analysis.claim.id}:**"
             claim_summary = claim_analysis.debug_summary()
             sections.append(f"{claim_header}\n\n{claim_summary}")
 
+        for granular_claim in self.granular_claims:
+            claim_header = f"**{granular_claim.claim.id}:**"
+            sections.append(
+                f"{claim_header} {granular_claim.claim.text} {granular_claim.related_chunks}"
+            )
+
         return "\n\n".join(sections)
 
-    def get_claim_debug(self, claim_index: int) -> str:
+    def get_key_claim_debug(self, claim_index: int) -> str:
         """
         Get the debug summary for a specific claim by index.
 
