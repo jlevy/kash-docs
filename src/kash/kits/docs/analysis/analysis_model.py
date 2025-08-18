@@ -27,7 +27,7 @@ def claim_id(index: int) -> str:
 
 def chunk_id(i: int) -> str:
     """
-    Get the ID for a chunk of paragraphs.
+    Get the ID for a chunk (one or more paragraphs).
     """
     return f"chunk-{i}"
 

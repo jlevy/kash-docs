@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 
+from frontmatter_format import to_yaml_string
+
 from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.preconditions import has_html_body, has_markdown_body, has_markdown_with_html_body
@@ -9,8 +11,8 @@ from kash.kits.docs.actions.text.extract_doc_links import extract_doc_links
 from kash.kits.docs.links.fetch_urls_async import fetch_urls_async
 from kash.kits.docs.links.links_model import LinkResults
 from kash.kits.docs.links.links_preconditions import is_links_data
-from kash.kits.docs.links.links_utils import add_link_results_to_item, link_results_from_item
-from kash.model import Item, Param, TitleTemplate
+from kash.kits.docs.links.links_utils import parse_links_results_item
+from kash.model import Format, Item, Param, TitleTemplate
 from kash.utils.common.url import Url
 from kash.utils.errors import InvalidInput
 
@@ -45,26 +47,28 @@ def fetch_links(item: Item, refetch: bool = False) -> Item:
     else:
         raise InvalidInput(f"Item must have markdown body or links data: {item}")
 
-    links_data = link_results_from_item(links_item)
+    links_data = parse_links_results_item(links_item)
     # Don't fetch links that are already fetched or have permanent errors.
     urls = [Url(link.url) for link in links_data.links if refetch or link.status.should_fetch]
 
     if not urls:
         log.message("No links found to download")
-        return add_link_results_to_item(LinkResults(links=[]), item)
+        return item.derived_copy(
+            format=Format.yaml, body=to_yaml_string(LinkResults(links=[]).model_dump())
+        )
 
     download_result = asyncio.run(fetch_urls_async(urls))
 
     log.message(f"Downloaded {len(download_result.links)} links")
-    if download_result.has_errors:
+    if download_result.total_errors > 0:
         log.warning(
             "Failed to download %d out of %d links",
-            len(download_result.errors),
+            download_result.total_errors,
             download_result.total_attempted,
         )
 
     results = LinkResults(links=download_result.links)
-    result_item = add_link_results_to_item(results, item)
+    result_item = item.derived_copy(format=Format.yaml, body=to_yaml_string(results.model_dump()))
     return result_item
 
 
@@ -118,7 +122,7 @@ def test_fetch_links_with_links_data():
 
     # Use utility function to create the test item
     item = Item(type=ItemType.data, format=Format.yaml, body="dummy")
-    test_item = add_link_results_to_item(results, item)
+    test_item = item.derived_copy(format=Format.yaml, body=to_yaml_string(results.model_dump()))
 
     # Verify precondition works
     assert is_links_data(test_item)

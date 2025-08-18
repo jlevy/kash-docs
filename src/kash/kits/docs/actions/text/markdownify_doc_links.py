@@ -11,7 +11,7 @@ from kash.kits.docs.actions.text.fetch_links import fetch_links
 from kash.kits.docs.actions.text.markdownify_doc import markdownify_doc
 from kash.kits.docs.links.links_model import Link
 from kash.kits.docs.links.links_preconditions import is_links_data
-from kash.kits.docs.links.links_utils import link_results_from_item
+from kash.kits.docs.links.links_utils import parse_links_results_item
 from kash.model import (
     Item,
     ItemType,
@@ -41,7 +41,7 @@ def markdownify_doc_links(item: Item) -> Item:
         links_item = item
 
     # Read the links data
-    links_data = link_results_from_item(links_item)
+    links_data = parse_links_results_item(links_item)
 
     if not links_data.links:
         log.message("No links found to process")

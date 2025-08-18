@@ -115,7 +115,9 @@ async def fetch_urls_async(urls: list[Url], show_progress: bool = True) -> LinkD
 
     log.message("Downloading %d links...", len(urls))
 
-    download_tasks = [FuncTask(fetch_url_task, (url,), bucket=bucket_for(url)) for url in urls]
+    download_tasks: list[FuncTask[Link]] = [
+        FuncTask(fetch_url_task, (url,), bucket=bucket_for(url)) for url in urls
+    ]
 
     def labeler(i: int, spec: Any) -> str:
         if isinstance(spec, FuncTask) and len(spec.args) >= 1:
@@ -128,7 +130,7 @@ async def fetch_urls_async(urls: list[Url], show_progress: bool = True) -> LinkD
         OVERALL_LIMIT,
         PER_HOST_LIMIT,
     )
-    task_results = await multitask_gather(
+    task_results: list[Link] = await multitask_gather(
         download_tasks,
         labeler=labeler,
         limit=OVERALL_LIMIT,
@@ -136,33 +138,28 @@ async def fetch_urls_async(urls: list[Url], show_progress: bool = True) -> LinkD
         retry_settings=LINK_FETCH_RETRIES,
     )
 
-    successful_links = []
-    errors = []
+    links: list[Link] = []
+    errors: list[LinkError] = []
 
-    for i, result in enumerate(task_results):
-        url = urls[i]
-        if isinstance(result, Exception):
-            errors.append(LinkError(url=url, error_message=str(result)))
-            log.warning("Failed to fetch URL %s: %s", url, result)
-        else:
-            link = result
-            if link.status and link.status.is_error:
-                errors.append(
-                    LinkError(
-                        url=link.url,
-                        error_message=f"Status: {link.status_code} ({link.status.value})",
-                    )
+    for link in task_results:
+        assert isinstance(link, Link)
+        if link.status.is_error:
+            errors.append(
+                LinkError(
+                    url=link.url,
+                    error_message=f"Status: {link.status_code} ({link.status.value})",
                 )
-                log.warning(
-                    "Failed to fetch URL %s: Status %s (%s)",
-                    link.url,
-                    link.status_code,
-                    link.status.value,
-                )
-            else:
-                successful_links.append(link)
+            )
+            log.warning(
+                "Failed to fetch URL %s: Status %s (%s)",
+                link.url,
+                link.status_code,
+                link.status.value,
+            )
 
-    return LinkDownloadResult(links=successful_links, errors=errors)
+        links.append(link)
+
+    return LinkDownloadResult(links=links, errors=errors)
 
 
 ## Tests
@@ -191,4 +188,5 @@ def test_fetch_urls_async_empty_behavior():
     result = asyncio.run(fetch_urls_async([]))
     assert len(result.links) == 0
     assert len(result.errors) == 0
-    assert not result.has_errors
+    assert result.total_errors == 0
+    assert result.total_successes == 0

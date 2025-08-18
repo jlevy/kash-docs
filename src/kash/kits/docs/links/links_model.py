@@ -100,11 +100,16 @@ class LinkDownloadResult(BaseModel):
     errors: list[LinkError]
 
     @property
-    def has_errors(self) -> bool:
-        """Whether any errors occurred during download."""
-        return len(self.errors) > 0
-
-    @property
     def total_attempted(self) -> int:
         """Total number of links that were attempted to download."""
-        return len(self.links) + len(self.errors)
+        return len(self.links)
+
+    @property
+    def total_errors(self) -> int:
+        """Total number of links that were successfully downloaded."""
+        return len([link for link in self.links if link.status.is_error])
+
+    @property
+    def total_successes(self) -> int:
+        """Total number of links that were successfully downloaded."""
+        return self.total_attempted - self.total_errors

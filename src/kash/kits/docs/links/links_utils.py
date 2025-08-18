@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
-from frontmatter_format import from_yaml_string, to_yaml_string
+from frontmatter_format import from_yaml_string
 from ruamel.yaml.error import YAMLError
 
 from kash.config.logger import get_logger
@@ -16,7 +16,7 @@ log = get_logger(__name__)
 # TODO: Move to general data item serialization in items_model.py
 
 
-def link_results_from_item(item: Item) -> LinkResults:
+def parse_links_results_item(item: Item) -> LinkResults:
     """
     Parse LinkResults from a links data item body.
     Raises InvalidInput if parsing fails or body is missing.
@@ -31,16 +31,6 @@ def link_results_from_item(item: Item) -> LinkResults:
         raise InvalidInput(f"Failed to parse links data: {e}")
     except ValueError as e:
         raise InvalidInput(f"Invalid links data format: {e}")
-
-
-def add_link_results_to_item(links_results: LinkResults, source_item: Item) -> Item:
-    """
-    Convert LinkResults to a YAML data item.
-    """
-    from kash.model import Format
-
-    yaml_content = to_yaml_string(links_results.model_dump())
-    return source_item.derived_copy(format=Format.yaml, body=yaml_content)
 
 
 def bucket_for_url(url: str | Url) -> str:
