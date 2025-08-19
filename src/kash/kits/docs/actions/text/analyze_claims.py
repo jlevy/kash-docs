@@ -7,10 +7,17 @@ from sidematter_format import Sidematter
 
 from kash.config.logger import get_logger
 from kash.exec import kash_action
-from kash.exec.preconditions import has_simple_text_body
+from kash.exec.preconditions import (
+    has_html_body,
+    has_simple_text_body,
+    is_docx_resource,
+    is_pdf_resource,
+    is_url_resource,
+)
+from kash.kits.docs.actions.text.markdownify_doc import markdownify_doc
 from kash.kits.docs.analysis.analysis_model import CLAIM, CLAIM_MAPPING, KEY_CLAIMS, claim_id_str
 from kash.kits.docs.analysis.chunk_docs import chunk_doc_paragraphs
-from kash.kits.docs.analysis.claim_analysis import analyze_claims
+from kash.kits.docs.analysis.claim_analysis import analyze_mapped_claims
 from kash.kits.docs.analysis.claim_mapping import (
     TOP_K_RELATED,
     extract_mapped_claims,
@@ -24,7 +31,11 @@ log = get_logger(__name__)
 
 
 @kash_action(
-    precondition=has_simple_text_body,
+    precondition=is_url_resource
+    | is_docx_resource
+    | is_pdf_resource
+    | has_html_body
+    | has_simple_text_body,
     params=(
         common_param("model"),
         Param(
@@ -34,7 +45,7 @@ log = get_logger(__name__)
         ),
     ),
 )
-def analyze_key_claims(
+def analyze_claims(
     item: Item, model: LLMName = LLM.default_standard, include_debug: bool = False
 ) -> Item:
     """
@@ -45,14 +56,18 @@ def analyze_key_claims(
     if not item.body:
         raise InvalidInput(f"Item must have a body: {item}")
 
-    text_doc = TextDoc.from_text(item.body)
+    as_markdown = markdownify_doc(item)
 
+    # Chunk the doc before mapping claims.
+    assert as_markdown.body
+    text_doc = TextDoc.from_text(as_markdown.body)
     chunked_doc = chunk_doc_paragraphs(text_doc, min_size=1)
 
+    # Extract and map all claims.
     mapped_claims = extract_mapped_claims(chunked_doc, top_k=TOP_K_RELATED)
 
     # Analyze the claims for support stances (using top 5 chunks per claim)
-    doc_analysis = analyze_claims(mapped_claims, top_k=5)
+    doc_analysis = analyze_mapped_claims(mapped_claims, top_k=5)
 
     # Format output with claims and their related chunks
     output_parts = []

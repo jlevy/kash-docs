@@ -185,7 +185,7 @@ def extract_granular_claims(
     chunked_doc: ChunkedTextDoc,
 ) -> list[tuple[ChunkId, list[Claim]]]:
     """
-    Simplified granular claim mapping: extract per-chunk and map each claim to its own chunk.
+    Concurrent extraction of granular claims for each chunk.
     """
     return asyncio.run(extract_granular_claims_async(chunked_doc))
 
@@ -194,7 +194,7 @@ async def extract_granular_claims_async(
     chunked_doc: ChunkedTextDoc,
 ) -> list[tuple[ChunkId, list[Claim]]]:
     """
-    Concurrent granular claim mapping: extract per-chunk and map each claim to its own chunk.
+    Extract granular claims for each chunk, each mapped to the single chunk it belongs to.
     """
     # Prepare (cid, text) pairs to avoid passing Paragraph objects to task workers
     chunk_texts: list[tuple[str, str]] = [

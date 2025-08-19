@@ -508,7 +508,7 @@ async def analyze_key_claims_async(
     return claim_analyses
 
 
-def analyze_claims(mapped_claims: MappedClaims, top_k: int = TOP_K_RELATED) -> DocAnalysis:
+def analyze_mapped_claims(mapped_claims: MappedClaims, top_k: int = TOP_K_RELATED) -> DocAnalysis:
     """
     Analyze claims to determine their support stances and rigor scores from related document chunks.
 

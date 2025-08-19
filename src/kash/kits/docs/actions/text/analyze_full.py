@@ -9,7 +9,7 @@ from kash.exec.preconditions import (
     is_pdf_resource,
     is_url_resource,
 )
-from kash.kits.docs.actions.text.analyze_key_claims import analyze_key_claims
+from kash.kits.docs.actions.text.analyze_claims import analyze_claims
 from kash.kits.docs.actions.text.markdownify_doc import markdownify_doc
 from kash.kits.docs.actions.text.research_paras import research_paras
 from kash.llm_utils import LLM, LLMName
@@ -38,12 +38,12 @@ def analyze_full(
     item: Item, model: LLMName = LLM.default_standard, include_debug: bool = False
 ) -> Item:
     """
-    Do a full analysis of a document with research, key claims, and evidence.
+    Do a full analysis of a document with additional research plus calling `analyze_claims`.
     """
     as_markdown = markdownify_doc(item)
 
     with_research = research_paras(as_markdown)
 
-    with_claims_analysis = analyze_key_claims(with_research)
+    with_claims_analysis = analyze_claims(with_research)
 
     return with_claims_analysis
