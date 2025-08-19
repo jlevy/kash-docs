@@ -130,13 +130,17 @@ async def fetch_urls_async(urls: list[Url], show_progress: bool = True) -> LinkD
         OVERALL_LIMIT,
         PER_HOST_LIMIT,
     )
-    task_results: list[Link] = await multitask_gather(
+    gather_result = await multitask_gather(
         download_tasks,
         labeler=labeler,
         limit=OVERALL_LIMIT,
         bucket_limits={"*": PER_HOST_LIMIT},
         retry_settings=LINK_FETCH_RETRIES,
     )
+    if len(gather_result.successes) == 0:
+        raise RuntimeError("fetch_urls_async: no successful downloads")
+
+    task_results: list[Link] = gather_result.successes
 
     links: list[Link] = []
     errors: list[LinkError] = []

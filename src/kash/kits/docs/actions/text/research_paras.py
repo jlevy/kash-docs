@@ -336,7 +336,9 @@ async def research_paras_async(item: Item) -> Item:
     paragraphs = [para for para in doc.paragraphs if para.size(TextUnit.words) > 0]
 
     log.message("Step 1: Researching %d paragraphs", len(paragraphs))
-    research_tasks = [FuncTask(research_paragraph, (llm_options, para)) for para in paragraphs]
+    research_tasks: list[FuncTask[list[str] | None]] = [
+        FuncTask(research_paragraph, (llm_options, para)) for para in paragraphs
+    ]
 
     def research_labeler(i: int, spec: Any) -> str:
         if isinstance(spec, FuncTask) and len(spec.args) >= 2:
@@ -348,17 +350,23 @@ async def research_paras_async(item: Item) -> Item:
         return f"Research {i + 1}/{len(paragraphs)}"
 
     # Execute research in parallel with progress and default rate limits
-    paragraph_notes = await multitask_gather(research_tasks, labeler=research_labeler)
+    research_results = await multitask_gather(research_tasks, labeler=research_labeler)
+    if len(research_results.successes) == 0:
+        raise RuntimeError("No successful research tasks")
+
+    # Preserve alignment with input paragraphs; treat failures as None
+    paragraph_notes = research_results.successes_or_none
 
     log.message(
-        "Step 2: Applying %d sets of footnotes (%s total) to %d paragraphs",
-        len(paragraph_notes),
+        "Step 2: Applying %d sets of footnotes (%s errors, %s total notes) to %d paragraphs",
+        len(research_results.successes),
+        len(research_results.errors),
         sum(len(notes or []) for notes in paragraph_notes if isinstance(notes, list)),
         len(paragraphs),
     )
 
     # Create annotation tasks
-    annotation_tasks = [
+    annotation_tasks: list[FuncTask[AnnotatedPara]] = [
         FuncTask(annotate_paragraph, (para, notes))
         for para, notes in zip(paragraphs, paragraph_notes, strict=False)
     ]
@@ -373,7 +381,8 @@ async def research_paras_async(item: Item) -> Item:
         return f"Annotate {i + 1}/{len(paragraphs)}"
 
     # Execute annotations in parallel
-    annotated_paras = await multitask_gather(annotation_tasks, labeler=annotation_labeler)
+    annotated_results = await multitask_gather(annotation_tasks, labeler=annotation_labeler)
+    annotated_paras = annotated_results.successes
 
     # Consolidate all annotations into a single document with footnotes at the end
     log.message("Step 3: Consolidating footnotes at end of document")

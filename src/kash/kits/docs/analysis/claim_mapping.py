@@ -216,8 +216,8 @@ async def extract_granular_claims_async(
         return f"Extract granular claims {i + 1}/{len(tasks)}"
 
     limit = Limit(rps=global_settings().limit_rps, concurrency=global_settings().limit_concurrency)
-    results: list[tuple[ChunkId, list[Claim]]] = await multitask_gather(
-        tasks, labeler=labeler, limit=limit
-    )
+    gather_result = await multitask_gather(tasks, labeler=labeler, limit=limit)
+    if len(gather_result.successes) == 0:
+        raise RuntimeError("extract_granular_claims_async: no successful extractions")
 
-    return results
+    return gather_result.successes

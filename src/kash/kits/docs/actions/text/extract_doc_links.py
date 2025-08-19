@@ -39,7 +39,7 @@ def extract_doc_links(item: Item) -> Item:
     try:
         urls = extract_links_from_markdown(item.body, include_internal=False)
     except Exception as e:
-        raise InvalidInput(f"Failed to parse markdown content: {e}")
+        raise InvalidInput(f"Failed to parse markdown content: {e}") from e
 
     if not urls:
         log.message("No links found in content")
@@ -53,9 +53,9 @@ def extract_doc_links(item: Item) -> Item:
         )
 
     results = LinkResults(links=links)
-    yaml_content = to_yaml_string(results.model_dump())
-
-    return item.derived_copy(type=ItemType.data, format=Format.yaml, body=yaml_content)
+    return item.derived_copy(
+        type=ItemType.data, format=Format.yaml, body=to_yaml_string(results.model_dump())
+    )
 
 
 ## Tests

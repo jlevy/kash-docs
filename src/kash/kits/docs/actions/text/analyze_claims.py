@@ -53,13 +53,12 @@ def analyze_claims(
 
     Returns an enhanced document with claims and their related context.
     """
-    if not item.body:
+    # Convert to markdown if needed.
+    as_markdown = markdownify_doc(item)
+    if not as_markdown.body:
         raise InvalidInput(f"Item must have a body: {item}")
 
-    as_markdown = markdownify_doc(item)
-
     # Chunk the doc before mapping claims.
-    assert as_markdown.body
     text_doc = TextDoc.from_text(as_markdown.body)
     chunked_doc = chunk_doc_paragraphs(text_doc, min_size=1)
 
@@ -135,7 +134,7 @@ def analyze_claims(
     metadata_dict = metadata_dict | analysis_metadata
 
     # Write both JSON and YAML sidematter metadata
-    sm.write_meta(metadata_dict, formats="all", make_parents=True)
+    sm.write_meta(metadata_dict, formats="all")
 
     log.message(
         "Wrote sidematter metadata:\n%s",

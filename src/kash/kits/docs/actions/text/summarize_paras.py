@@ -151,11 +151,16 @@ async def summarize_paras_async(item: Item) -> Item:
 
     # Execute in parallel with progress and default rate limits
     limit = Limit(rps=global_settings().limit_rps, concurrency=global_settings().limit_concurrency)
-    paragraph_summarys = await multitask_gather(summary_tasks, labeler=labeler, limit=limit)
+    gather_result = await multitask_gather(summary_tasks, labeler=labeler, limit=limit)
+    if len(gather_result.successes) == 0:
+        raise RuntimeError("summarize_paras_async: no successful paragraph summaries")
+
+    # Preserve alignment with input paragraphs; treat failures as None summaries
+    paragraph_summarys = gather_result.successes_or_none
 
     log.message(
         "Step 2: Applying %d summarys to %d paragraphs",
-        len(paragraph_summarys),
+        len(gather_result.successes),
         len(paragraphs),
     )
     output: list[str] = []

@@ -3,16 +3,18 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from textwrap import dedent
-from typing import Any
+from typing import Any, Literal
 
 from strif import abbrev_str
 
 from kash.config.logger import get_logger
 from kash.config.settings import global_settings
 from kash.kits.docs.analysis.analysis_model import (
+    INT_SCORE_INVALID,
     ClaimAnalysis,
     ClaimSupport,
     DocAnalysis,
+    IntScore,
     MappedClaim,
     RigorAnalysis,
     RigorDimension,
@@ -226,7 +228,7 @@ def analyze_rigor_dimension(
     dimension_name: str,
     include_evidence: bool = False,
     top_k: int = 3,
-) -> int:
+) -> IntScore:
     """
     Analyze a single rigor dimension for a claim.
 
@@ -277,11 +279,11 @@ def analyze_rigor_dimension(
     try:
         score = int(llm_response.strip())
         if 1 <= score <= 5:
-            return score
+            return IntScore(score)
     except (ValueError, TypeError):
         log.warning("Invalid %s score: %s", dimension_name, llm_response)
 
-    return 3  # Default to mid-range if parsing fails
+    return INT_SCORE_INVALID  # Fallback score when parsing fails
 
 
 def analyze_claim_support(
@@ -422,7 +424,7 @@ async def analyze_key_claims_async(
     task_types: list[tuple[str, MappedClaim]] = []
 
     # Keep track of where each task type's results will be in the final results list
-    task_result_slices = {}
+    task_result_slices: dict[RigorDimension | Literal["support"], slice] = {}
     current_index = 0
 
     # Add support tasks
@@ -455,20 +457,27 @@ async def analyze_key_claims_async(
     # Execute all analysis tasks in parallel with rate limiting
     limit = Limit(rps=global_settings().limit_rps, concurrency=global_settings().limit_concurrency)
 
-    all_results = await multitask_gather(all_tasks, labeler=analysis_labeler, limit=limit)
+    gather_result = await multitask_gather(all_tasks, labeler=analysis_labeler, limit=limit)
+    if len(gather_result.successes) == 0:
+        raise RuntimeError("analyze_key_claims_async: no successful analysis tasks")
+
+    all_results = gather_result.successes_or_none
+
+    def score_for(dimension: RigorDimension) -> IntScore:
+        return all_results[task_result_slices[dimension]][i] or INT_SCORE_INVALID
 
     # Extract and organize results for each claim
     claim_results_list: list[ClaimAnalysisResults] = []
 
     for i in range(claims_count):
         rigor_analysis = RigorAnalysis(
-            clarity=all_results[task_result_slices[RigorDimension.clarity]][i],
-            consistency=all_results[task_result_slices[RigorDimension.consistency]][i],
-            completeness=all_results[task_result_slices[RigorDimension.completeness]][i],
-            depth=all_results[task_result_slices[RigorDimension.depth]][i],
+            clarity=score_for(RigorDimension.clarity),
+            consistency=score_for(RigorDimension.consistency),
+            completeness=score_for(RigorDimension.completeness),
+            depth=score_for(RigorDimension.depth),
         )
         claim_results = ClaimAnalysisResults(
-            claim_support=all_results[task_result_slices["support"]][i],
+            claim_support=all_results[task_result_slices["support"]][i] or [],
             rigor_analysis=rigor_analysis,
         )
         claim_results_list.append(claim_results)

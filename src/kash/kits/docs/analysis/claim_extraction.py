@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from kash.exec.llm_transforms import llm_transform_str
 from kash.kits.docs.analysis.analysis_model import Claim, ClaimType, claim_id_str
-from kash.llm_utils import Message, MessageTemplate
+from kash.llm_utils import LLM, Message, MessageTemplate
 from kash.model import LLMOptions
 from kash.utils.text_handling.markdown_utils import extract_bullet_points
 
@@ -69,6 +69,7 @@ def extract_key_claims_text(text: str, start_index: int = 0) -> ExtractedClaims:
 
 
 granular_claims_llm_options = LLMOptions(
+    model=LLM.default_fast,
     system_message=Message(
         """
         You are a careful and precise editor.

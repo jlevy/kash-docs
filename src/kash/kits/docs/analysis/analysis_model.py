@@ -185,15 +185,23 @@ class RigorDimension(Enum):
     """Are the content and citations deep and comprehensive?"""
 
 
+IntScore = NewType("IntScore", int)
+"""
+A score between 1 and 5, with 5 highest. 0 is used for invalid or missing data.
+"""
+
+INT_SCORE_INVALID = IntScore(0)
+
+
 class RigorAnalysis(BaseModel):
     """
     Structured analysis of the rigor of the document.
     """
 
-    clarity: int = Field(description="Clarity score (1 to 5)")
-    consistency: int = Field(description="Consistency score (1 to 5)")
-    completeness: int = Field(description="Completeness score (1 to 5)")
-    depth: int = Field(description="Depth score (1 to 5)")
+    clarity: IntScore = Field(description="Clarity score (1 to 5)")
+    consistency: IntScore = Field(description="Consistency score (1 to 5)")
+    completeness: IntScore = Field(description="Completeness score (1 to 5)")
+    depth: IntScore = Field(description="Depth score (1 to 5)")
 
 
 class ClaimLabel(StrEnum):
