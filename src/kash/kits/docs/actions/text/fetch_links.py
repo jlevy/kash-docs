@@ -93,6 +93,8 @@ def test_fetch_links_with_mock_links():
     """Test the link extraction part without actually downloading URLs."""
     from textwrap import dedent
 
+    from kash.utils.text_handling.markdown_utils import extract_urls
+
     markdown_content = dedent("""
         # Test Document
         
@@ -101,9 +103,7 @@ def test_fetch_links_with_mock_links():
         You can also visit [Python.org](https://python.org) for documentation.
         """).strip()
 
-    from kash.utils.text_handling.markdown_utils import extract_links as extract_links_from_markdown
-
-    links = extract_links_from_markdown(markdown_content, include_internal=False)
+    links = extract_urls(markdown_content, include_internal=False)
     assert len(links) == 2
     assert "https://github.com" in links
     assert "https://python.org" in links

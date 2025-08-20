@@ -13,7 +13,7 @@ from kash.utils.api_utils.gather_limited import FuncTask, Limit, TaskResult
 from kash.utils.api_utils.http_utils import extract_http_status_code
 from kash.utils.api_utils.multitask_gather import multitask_gather
 from kash.utils.common.url import Url
-from kash.utils.text_handling.markdown_utils import extract_links
+from kash.utils.text_handling.markdown_utils import extract_urls
 
 log = get_logger(__name__)
 
@@ -181,7 +181,7 @@ def test_fetch_links_with_mock_links():
         You can also visit [Python.org](https://python.org) for documentation.
         """).strip()
 
-    links = extract_links(markdown_content, include_internal=False)
+    links = extract_urls(markdown_content, include_internal=False)
     assert len(links) == 2
     assert "https://github.com" in links
     assert "https://python.org" in links

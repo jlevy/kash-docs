@@ -11,7 +11,7 @@ from kash.kits.docs.links.links_model import Link, LinkResults
 from kash.model import Format, Item, ItemType, TitleTemplate
 from kash.utils.common.url import is_url
 from kash.utils.errors import InvalidInput
-from kash.utils.text_handling.markdown_utils import extract_links as extract_links_from_markdown
+from kash.utils.text_handling.markdown_utils import extract_urls
 
 log = get_logger(__name__)
 
@@ -37,7 +37,7 @@ def extract_doc_links(item: Item) -> Item:
             raise InvalidInput(f"HTML conversion resulted in empty content: {item}")
 
     try:
-        urls = extract_links_from_markdown(item.body, include_internal=False)
+        urls = extract_urls(item.body, include_internal=False)
     except Exception as e:
         raise InvalidInput(f"Failed to parse markdown content: {e}") from e
 
