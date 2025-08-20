@@ -15,7 +15,6 @@ from kash.exec.preconditions import (
     is_url_resource,
 )
 from kash.kits.docs.actions.text.markdownify_doc import markdownify_doc
-from kash.kits.docs.analysis.analysis_model import CLAIM, CLAIM_MAPPING, KEY_CLAIMS, claim_id_str
 from kash.kits.docs.analysis.chunk_docs import chunk_doc_paragraphs
 from kash.kits.docs.analysis.claim_analysis import analyze_mapped_claims
 from kash.kits.docs.analysis.claim_mapping import (
@@ -39,6 +38,16 @@ log = get_logger(__name__)
     params=(
         common_param("model"),
         Param(
+            "granular_only",
+            description="Only include granular claims, not key claims.",
+            type=bool,
+        ),
+        Param(
+            "key_only",
+            description="Only include key claims, not granular claims.",
+            type=bool,
+        ),
+        Param(
             "include_debug",
             description="Include debug info in output as divs with a debug class",
             type=bool,
@@ -46,7 +55,11 @@ log = get_logger(__name__)
     ),
 )
 def analyze_claims(
-    item: Item, model: LLMName = LLM.default_standard, include_debug: bool = False
+    item: Item,
+    model: LLMName = LLM.default_standard,
+    include_debug: bool = False,
+    key_only: bool = False,
+    granular_only: bool = False,
 ) -> Item:
     """
     Analyze key claims in the document with related paragraphs found via embeddings.
@@ -59,49 +72,30 @@ def analyze_claims(
         raise InvalidInput(f"Item must have a body: {item}")
 
     # Chunk the doc before mapping claims.
+    log.message("Chunking document...")
     text_doc = TextDoc.from_text(as_markdown.body)
     chunked_doc = chunk_doc_paragraphs(text_doc, min_size=1)
 
     # Extract and map all claims.
-    mapped_claims = extract_mapped_claims(chunked_doc, top_k=TOP_K_RELATED)
+    mapped_claims = extract_mapped_claims(
+        chunked_doc,
+        top_k=TOP_K_RELATED,
+        include_key_claims=not granular_only,
+        include_granular_claims=not key_only,
+    )
 
     # Analyze the claims for support stances (using top 5 chunks per claim)
+    log.message("Analyzing claims...")
     doc_analysis = analyze_mapped_claims(mapped_claims, top_k=5)
 
     # Format output with claims and their related chunks
     output_parts = []
 
-    # Add the key claims section with enhanced information
-    claim_divs = []
-    for i, related in enumerate(mapped_claims.key_claims):
-        # Build claim content parts
-        claim_content = [related.claim.text]
-
-        # Only add debug info if include_debug is True
-        if include_debug:
-            # Get the full debug summary for this claim
-            claim_debug = doc_analysis.get_key_claim_debug(i)
-            claim_content.append(
-                div(
-                    [CLAIM_MAPPING, "debug"],
-                    claim_debug,
-                )
-            )
-
-        claim_divs.append(
-            div(
-                CLAIM,
-                *claim_content,
-                attrs={"id": claim_id_str(i)},
-            )
-        )
-
-    claims_content = "\n\n".join(claim_divs)
-    summary_div = div(KEY_CLAIMS, claims_content)
+    summary_div = doc_analysis.format_key_claims_div(include_debug)
     output_parts.append(summary_div)
 
     # Add the chunked body
-    chunked_body = mapped_claims.chunked_doc.reassemble()
+    chunked_body = chunked_doc.reassemble()
     output_parts.append(chunked_body)
 
     # Add similarity statistics as metadata only if include_debug is True

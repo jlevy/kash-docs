@@ -4,53 +4,18 @@ from dataclasses import dataclass
 from enum import Enum, StrEnum
 from typing import NewType
 
+from chopdiff.divs import div
 from pydantic import BaseModel, Field
 
-## IDs and HTML Conventions
-
-
-KEY_CLAIMS = "key-claims"
-"""Class name for the key claims."""
-
-CLAIM = "claim"
-"""Class name for individual claims."""
-
-CLAIM_MAPPING = "claim-mapping"
-"""Class name for the mapping of a claim to its related chunks."""
-
-
-ClaimId = NewType("ClaimId", str)
-
-ChunkId = NewType("ChunkId", str)
-
-
-def claim_id_str(index: int) -> ClaimId:
-    """
-    Generate a consistent claim ID from an index.
-    """
-    return ClaimId(f"claim-{index}")
-
-
-def chunk_id_str(index: int) -> ChunkId:
-    """
-    Get the ID for a chunk (one or more paragraphs).
-    """
-    return ChunkId(f"chunk-{index}")
-
-
-def format_chunk_link(chunk_id: ChunkId) -> str:
-    """
-    Format a chunk ID as a clickable HTML link.
-    """
-    return f'<a href="#{chunk_id}">{chunk_id}</a>'
-
-
-def format_chunk_links(chunk_ids: list[ChunkId]) -> str:
-    """
-    Format a list of chunk IDs as clickable HTML links.
-    """
-    return ", ".join(format_chunk_link(cid) for cid in chunk_ids)
-
+from kash.kits.docs.analysis.analysis_types import (
+    CLAIM,
+    CLAIM_MAPPING,
+    KEY_CLAIMS,
+    ChunkId,
+    claim_id_str,
+    format_chunk_link,
+    format_chunk_links,
+)
 
 ## Analysis Models and Rubrics
 
@@ -63,16 +28,6 @@ class ChunkScore:
 
     chunk_id: ChunkId
     score: float
-
-
-@dataclass
-class MappedClaim:
-    """
-    A claim along with a mapping to related chunks in the document.
-    """
-
-    claim: Claim
-    related_chunks: list[ChunkScore]
 
 
 class ClaimType(Enum):
@@ -105,6 +60,16 @@ class Claim:
         Create a claim with an id.
         """
         return Claim(text=self.text, id=claim_id, claim_type=self.claim_type)
+
+
+@dataclass
+class MappedClaim:
+    """
+    A claim along with a mapping to related chunks in the document.
+    """
+
+    claim: Claim
+    related_chunks: list[ChunkScore]
 
 
 class Stance(StrEnum):
@@ -219,7 +184,7 @@ class ClaimLabel(StrEnum):
     """A claim that appears to be inconsistent with other claims"""
 
     controversial = "controversial"
-    """A claim that is controversial where there is varied evidence or conflictingexpert opinion"""
+    """A claim that is controversial where there is varied evidence or conflicting expert opinion"""
 
 
 class ClaimAnalysis(BaseModel):
@@ -317,6 +282,36 @@ class DocAnalysis(BaseModel):
     key_claims: list[ClaimAnalysis] = Field(description="Key claims made in a document")
 
     granular_claims: list[MappedClaim] = Field(description="Granular claims made in a document")
+
+    def format_key_claims_div(self, include_debug: bool) -> str:
+        # Add the key claims section with enhanced information
+        claim_divs = []
+        for i, related in enumerate(self.key_claims):
+            # Build claim content parts
+            claim_content = [related.claim.text]
+
+            # Only add debug info if include_debug is True
+            if include_debug:
+                # Get the full debug summary for this claim
+                claim_debug = self.get_key_claim_debug(i)
+                claim_content.append(
+                    div(
+                        [CLAIM_MAPPING, "debug"],
+                        claim_debug,
+                    )
+                )
+
+            claim_divs.append(
+                div(
+                    CLAIM,
+                    *claim_content,
+                    attrs={"id": claim_id_str(i)},
+                )
+            )
+
+        claims_content = "\n\n".join(claim_divs)
+        summary_div = div(KEY_CLAIMS, claims_content)
+        return summary_div
 
     def debug_summary(self) -> str:
         """

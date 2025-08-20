@@ -536,4 +536,5 @@ def analyze_mapped_claims(mapped_claims: MappedClaims, top_k: int = TOP_K_RELATE
     claim_analyses = asyncio.run(analyze_key_claims_async(mapped_claims, top_k))
 
     granular_claims = mapped_claims.granular_claims
+
     return DocAnalysis(key_claims=claim_analyses, granular_claims=granular_claims)

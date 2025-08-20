@@ -8,13 +8,11 @@ from kash.config.logger import get_logger
 from kash.config.settings import global_settings
 from kash.embeddings.embeddings import Embeddings, EmbValue, KeyVal
 from kash.kits.docs.analysis.analysis_model import (
-    ChunkId,
     ChunkScore,
     Claim,
     MappedClaim,
-    chunk_id_str,
-    claim_id_str,
 )
+from kash.kits.docs.analysis.analysis_types import ChunkId, chunk_id_str, claim_id_str
 from kash.kits.docs.analysis.chunk_docs import ChunkedTextDoc
 from kash.kits.docs.analysis.claim_extraction import (
     extract_granular_claims_text,
@@ -93,7 +91,10 @@ TOP_K_RELATED = 8
 
 
 def extract_mapped_claims(
-    chunked_doc: ChunkedTextDoc, top_k: int = TOP_K_RELATED, include_granular_claims: bool = True
+    chunked_doc: ChunkedTextDoc,
+    top_k: int = TOP_K_RELATED,
+    include_key_claims: bool = True,
+    include_granular_claims: bool = True,
 ) -> MappedClaims:
     """
     Extract key claims in a document and find related paragraphs using embeddings.
@@ -109,49 +110,55 @@ def extract_mapped_claims(
     embed_vals: list[KeyVal] = []
 
     # Extract key claims
-    claims_result = extract_key_claims_text(chunked_doc.doc.reassemble())
-    key_claims = claims_result.claims
+    key_claims: list[Claim] = []
+    if include_key_claims:
+        log.message("Extracting key claims...")
+        claims_result = extract_key_claims_text(chunked_doc.doc.reassemble())
+        key_claims = claims_result.claims
 
-    # Extract granular claims
-    granular_claims_list = extract_granular_claims(chunked_doc)
-    granular_claims: list[MappedClaim] = []
-    for chunk_id, claim_list in granular_claims_list:
-        for claim in claim_list:
-            granular_claims.append(
-                MappedClaim(
-                    claim=claim,
-                    related_chunks=[ChunkScore(chunk_id=ChunkId(chunk_id), score=1.0)],
+        # Prepare embeddings for mapping key claims to chunks, first adding key claims and then chunks
+        for i, claim in enumerate(key_claims):
+            claim_id = claim_id_str(i)
+            embed_vals.append(
+                KeyVal(
+                    key=claim_id,
+                    value=EmbValue(emb_text=claim.text, data={"type": "claim", "index": i}),
                 )
             )
 
-    # Prepare embeddings for mapping key claims to chunks, first adding key claims and then chunks
-    for i, claim in enumerate(key_claims):
-        claim_id = claim_id_str(i)
-        embed_vals.append(
-            KeyVal(
-                key=claim_id,
-                value=EmbValue(emb_text=claim.text, data={"type": "claim", "index": i}),
+        for chunk_id, paragraphs in chunked_doc.chunks.items():
+            chunk_text = " ".join(para.reassemble() for para in paragraphs)
+            embed_vals.append(
+                KeyVal(
+                    key=chunk_id,
+                    value=EmbValue(
+                        emb_text=chunk_text,
+                        data={"type": "chunk", "num_paragraphs": len(paragraphs)},
+                    ),
+                )
             )
-        )
 
-    for chunk_id, paragraphs in chunked_doc.chunks.items():
-        chunk_text = " ".join(para.reassemble() for para in paragraphs)
-        embed_vals.append(
-            KeyVal(
-                key=chunk_id,
-                value=EmbValue(
-                    emb_text=chunk_text,
-                    data={"type": "chunk", "num_paragraphs": len(paragraphs)},
-                ),
-            )
-        )
+    # Extract granular claims
+    granular_claims: list[MappedClaim] = []
+    if include_granular_claims:
+        log.message("Extracting granular claims...")
+        granular_claims_list = extract_granular_claims(chunked_doc)
+        for chunk_id, claim_list in granular_claims_list:
+            for claim in claim_list:
+                granular_claims.append(
+                    MappedClaim(
+                        claim=claim,
+                        related_chunks=[ChunkScore(chunk_id=ChunkId(chunk_id), score=1.0)],
+                    )
+                )
 
     # Create embeddings and similarity cache
-    log.info("Embedding %d claims and %d chunks", len(key_claims), len(chunked_doc.chunks))
+    log.info("Embedding %d key claims and %d chunks", len(key_claims), len(chunked_doc.chunks))
     embeddings = Embeddings.embed(embed_vals)
     similarity_cache = SimilarityCache(embeddings)
 
-    # TODO: Could embed granular claims here too.
+    # TODO: Could embed granular claims here too, to allow mapping between key and
+    # granular claims, etc.
 
     # Find related chunks for each key claim
     chunk_ids: list[str] = list(chunked_doc.chunks.keys())
