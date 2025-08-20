@@ -34,13 +34,13 @@ key_claims_options = LLMOptions(
         The goal is to summarize key claims. These should be the
         *most important* overall claims or arguments made by the document.
 
-        Each claim should be ONE SENTENCE. Keep them short!
+        IMPORTANT: Each claim should be ONE SENTENCE. Keep them short!
+        Organize the claims as Markdown bullet points, one sentence each.
 
         These should be very clear written with the same level of technical detail as the
         original text, including relevant terms and details.
 
-        The goal should be to have **3 to 10** key claims, organized as bullet points,
-        one sentence each.
+        The goal should be to have **3 to 10** key claims.
 
         If the document makes many claims, pick the most important or key ones an expert
         analyst who understands the material would pick as most relevant.
@@ -64,7 +64,7 @@ def extract_key_claims_text(text: str, start_index: int = 0) -> ExtractedClaims:
         text=claims_md,
         claims=[
             Claim(text=c, claim_type=ClaimType.key, id=claim_id_str(i + start_index))
-            for i, c in enumerate(extract_bullet_points(claims_md))
+            for i, c in enumerate(extract_bullet_points(claims_md, allow_paragraphs=True))
         ],
     )
 
@@ -84,7 +84,9 @@ granular_claims_llm_options = LLMOptions(
         The goal is to read the document (one or more paragraphs) and extract each separate,
         individual claim made.
 
-        Each claim should be ONE SENTENCE.
+        IMPORTANT: Each claim should be ONE SENTENCE. Keep them short!
+        Organize the claims as Markdown bullet points, one sentence each.
+
         These should be concise and very clear written with the same level of technical
         detail as the original text.
 
@@ -113,6 +115,6 @@ def extract_granular_claims_text(text: str, start_index: int = 0) -> ExtractedCl
         text=claims_md,
         claims=[
             Claim(text=c, claim_type=ClaimType.granular, id=claim_id_str(i + start_index))
-            for i, c in enumerate(extract_bullet_points(claims_md))
+            for i, c in enumerate(extract_bullet_points(claims_md, allow_paragraphs=True))
         ],
     )

@@ -5,7 +5,9 @@ from enum import Enum, StrEnum
 from typing import NewType
 
 from chopdiff.divs import div
+from prettyfmt import abbrev_obj
 from pydantic import BaseModel, Field
+from typing_extensions import override
 
 from kash.kits.docs.analysis.analysis_types import (
     CLAIM,
@@ -36,13 +38,13 @@ class ClaimType(Enum):
     """
 
     granular = "granular"
-    """A granuar, specific claim."""
-
-    sentence = "sentence"
-    """A sentence from the original document."""
+    """A granuar, specific claim, typically extracted/summarized from a paragraph."""
 
     key = "key"
-    """An extracted "key" major claim from a document."""
+    """An extracted "key" major claim from a document, typically extracted from an entire document."""
+
+    # TODO: Consider adding a claim type that is original sentence(s)
+    # from the text.
 
 
 @dataclass(frozen=True)
@@ -61,6 +63,10 @@ class Claim:
         """
         return Claim(text=self.text, id=claim_id, claim_type=self.claim_type)
 
+    @override
+    def __str__(self) -> str:
+        return abbrev_obj(self)
+
 
 @dataclass
 class MappedClaim:
@@ -70,6 +76,10 @@ class MappedClaim:
 
     claim: Claim
     related_chunks: list[ChunkScore]
+
+    @override
+    def __str__(self) -> str:
+        return abbrev_obj(self)
 
 
 class Stance(StrEnum):

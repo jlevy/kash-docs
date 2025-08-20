@@ -383,6 +383,10 @@ async def analyze_key_claims_async(
     claims_count = len(mapped_claims.key_claims)
     log.message("Analyzing support and rigor for %d claims", claims_count)
 
+    if not mapped_claims.key_claims:
+        log.warning("No key claims found. Skipping key claim analysis!")
+        return []
+
     # Create support tasks
     support_tasks = [
         FuncTask(

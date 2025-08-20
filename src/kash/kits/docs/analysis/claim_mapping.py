@@ -4,6 +4,8 @@ import asyncio
 from dataclasses import dataclass
 from typing import Any
 
+from prettyfmt import abbrev_list
+
 from kash.config.logger import get_logger
 from kash.config.settings import global_settings
 from kash.embeddings.embeddings import Embeddings, EmbValue, KeyVal
@@ -151,6 +153,11 @@ def extract_mapped_claims(
                         related_chunks=[ChunkScore(chunk_id=ChunkId(chunk_id), score=1.0)],
                     )
                 )
+        log.message(
+            "Extracted %d granular claims: %s",
+            len(granular_claims),
+            abbrev_list([c.claim.text for c in granular_claims]),
+        )
 
     # Create embeddings and similarity cache
     log.info("Embedding %d key claims and %d chunks", len(key_claims), len(chunked_doc.chunks))
@@ -213,7 +220,9 @@ async def extract_granular_claims_async(
         result = extract_granular_claims_text(text, start_index=len(chunked_doc.chunks))
         return chunk_id, result.claims
 
-    tasks = [FuncTask(extract_for_chunk, (cid, text)) for cid, text in chunk_texts]
+    tasks: list[FuncTask[tuple[ChunkId, list[Claim]]]] = [
+        FuncTask(extract_for_chunk, (cid, text)) for cid, text in chunk_texts
+    ]
 
     def labeler(i: int, spec: Any) -> str:
         if isinstance(spec, FuncTask) and len(spec.args) >= 2:

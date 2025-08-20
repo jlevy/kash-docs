@@ -1,6 +1,5 @@
 from typing import NewType
 
-
 ## ID types
 
 ClaimId = NewType("ClaimId", str)
