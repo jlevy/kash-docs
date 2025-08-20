@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass
 from functools import cached_property
 from typing import NewType
@@ -21,9 +22,6 @@ _FOOTNOTE_ID_PATTERN = re.compile(r"^[\w.-]+$")
 # Matches: [^1], [^foo], [^note-1], [^ref.2]
 # Does not match: [^ spaces], [^], [^foo bar]
 _FOOTNOTE_REF_PATTERN = re.compile(r"\[\^([\w.-]+)\]")
-
-
-_FOOTNOTE_DEF_RE = re.compile(r"^\[\^[^\]]+\]:")
 
 
 def _normalize_footnote_id(footnote_id: str) -> str:
@@ -355,15 +353,16 @@ class AnnotatedDoc:
     """
     A document with annotations that can be rendered with consolidated footnotes.
 
-    Wraps a TextDoc and stores annotations indexed by SentIndex, avoiding
-    duplication of document structure.
+    Wraps a TextDoc and stores annotations indexed by SentIndex. Also preserves
+    the original list of AnnotatedPara in full order so callers can choose to
+    include or exclude footnote-definition paragraphs at usage time.
     """
 
     text_doc: TextDoc
     """The original text doc, including footnote definitions."""
 
-    text_doc_without_fn: TextDoc
-    """The original text doc, without footnote definitions."""
+    ann_paras: list[AnnotatedPara]
+    """Annotated paragraphs preserving the exact original order."""
 
     annotations: dict[SentIndex, list[FootnoteId]]
     """Mapping from sentence index to list of FootnoteIds for that sentence."""
@@ -376,9 +375,8 @@ class AnnotatedDoc:
         """
         Create an AnnotatedDoc from a TextDoc with no annotations.
         """
-        return cls(
-            text_doc=text_doc, text_doc_without_fn=text_doc, annotations={}, footnote_mapping={}
-        )
+        ann_paras = [AnnotatedPara.from_para(p) for p in text_doc.paragraphs]
+        return cls(text_doc=text_doc, ann_paras=ann_paras, annotations={}, footnote_mapping={})
 
     @classmethod
     def from_doc_with_footnotes(cls, text_doc: TextDoc) -> AnnotatedDoc:
@@ -397,19 +395,16 @@ class AnnotatedDoc:
             fid = check_fn_id(fid_str)
             footnote_mapping[fid] = Footnote(id=str(fid), content=info.content)
 
-        # Build a cleaned TextDoc that excludes paragraphs that are footnote definition blocks
-        cleaned_paragraphs: list[Paragraph] = []
-        for paragraph in text_doc.paragraphs:
-            para_text = paragraph.reassemble().lstrip()
-            if _FOOTNOTE_DEF_RE.match(para_text):
-                # Skip definition blocks in the paragraph flow; we'll render from footnote_mapping
-                pass
-            else:
-                cleaned_paragraphs.append(paragraph)
+        # Preserve original paragraphs as AnnotatedPara list in original order
+        ann_paras: list[AnnotatedPara] = [
+            AnnotatedPara.from_para_with_footnotes(paragraph, markdown_footnotes)
+            for paragraph in text_doc.paragraphs
+        ]
 
-        # Walk remaining paragraphs to collect footnote references by sentence positions
-        for para_index, paragraph in enumerate(cleaned_paragraphs):
-            ann_para = AnnotatedPara.from_para_with_footnotes(paragraph, markdown_footnotes)
+        # Walk paragraphs (excluding footnote definition blocks) to collect references
+        for para_index, ann_para in enumerate(ann_paras):
+            if ann_para.paragraph.is_footnote_def():
+                continue
             if not ann_para.has_annotations():
                 continue
 
@@ -421,11 +416,9 @@ class AnnotatedDoc:
                         annotations[sent_index] = []
                     annotations[sent_index].append(fid)
 
-        cleaned_doc = TextDoc(cleaned_paragraphs)
-
         return AnnotatedDoc(
             text_doc=text_doc,
-            text_doc_without_fn=cleaned_doc,
+            ann_paras=ann_paras,
             annotations=annotations,
             footnote_mapping=footnote_mapping,
         )
@@ -441,7 +434,7 @@ class AnnotatedDoc:
         if not ann_paras:
             return AnnotatedDoc(
                 text_doc=TextDoc([]),
-                text_doc_without_fn=TextDoc([]),
+                ann_paras=[],
                 annotations={},
                 footnote_mapping={},
             )
@@ -491,10 +484,19 @@ class AnnotatedDoc:
 
         return AnnotatedDoc(
             text_doc=text_doc,
-            text_doc_without_fn=text_doc,
+            ann_paras=list(ann_paras),
             annotations=annotations,
             footnote_mapping=footnote_mapping,
         )
+
+    def non_footnote_paragraphs(self) -> Iterator[tuple[int, AnnotatedPara]]:
+        """
+        Iterate over (para_index, AnnotatedPara) for paragraphs that are not
+        footnote-definition blocks, preserving original order.
+        """
+        for index, ann_para in enumerate(self.ann_paras):
+            if not ann_para.paragraph.is_footnote_def():
+                yield index, ann_para
 
     def as_markdown_with_footnotes(
         self,
@@ -509,15 +511,16 @@ class AnnotatedDoc:
         if not self.annotations:
             return self.text_doc.reassemble()
 
-        # Render each paragraph with its annotations
-        para_texts = []
-        source_doc = self.text_doc_without_fn
-        for para_index, paragraph in enumerate(source_doc.paragraphs):
+        # Render each non-footnote paragraph with its annotations
+        para_texts: list[str] = []
+        for para_index, ann_para in self.non_footnote_paragraphs():
+            paragraph = ann_para.paragraph
+
             # Build footnote references for this paragraph
             para_footnote_refs: dict[int, list[FootnoteId]] = {}
 
             # Collect footnote IDs for sentences in this paragraph
-            for sentence_index, sentence in enumerate(paragraph.sentences):
+            for sentence_index, _sentence in enumerate(paragraph.sentences):
                 sent_index = SentIndex(para_index, sentence_index)
                 if sent_index in self.annotations:
                     para_footnote_refs[sentence_index] = list(self.annotations[sent_index])
@@ -561,11 +564,10 @@ class AnnotatedDoc:
 
     def add_annotation(self, sent_index: SentIndex, annotation: str, fn_prefix: str = "") -> None:
         """Add an annotation to a specific sentence."""
-        # Validate SentIndex is within bounds
-        source_doc = self.text_doc_without_fn
-        if sent_index.para_index >= len(source_doc.paragraphs):
+        # Validate SentIndex is within bounds (against original ann_paras)
+        if sent_index.para_index >= len(self.ann_paras):
             raise IndexError(f"Paragraph index {sent_index.para_index} out of range")
-        para = source_doc.paragraphs[sent_index.para_index]
+        para = self.ann_paras[sent_index.para_index].paragraph
         if sent_index.sent_index >= len(para.sentences):
             raise IndexError(
                 f"Sentence index {sent_index.sent_index} out of range in paragraph {sent_index.para_index}"
@@ -1064,7 +1066,7 @@ def test_markdown_roundtrip_with_footnotes() -> None:
     assert canonical_output == rendered
 
 
-def test_from_doc_with_footnotes_preserves_both_docs() -> None:
+def test_from_doc_with_footnotes_preserves_order_and_filters_defs_at_usage() -> None:
     from textwrap import dedent
 
     raw_md = dedent(
@@ -1080,14 +1082,19 @@ def test_from_doc_with_footnotes_preserves_both_docs() -> None:
     td = TextDoc.from_text(raw_md)
     ad = AnnotatedDoc.from_doc_with_footnotes(td)
 
+    # Original doc still contains footnote definition blocks
     original = ad.text_doc.reassemble()
-    cleaned = ad.text_doc_without_fn.reassemble()
-
     assert "[^a1]:" in original
-    assert "[^a1]:" not in cleaned
+
+    # Non-footnote paragraphs iterator excludes definition blocks
+    non_fn_text = "\n\n".join(
+        " ".join(sent.text for sent in ap.paragraph.sentences)
+        for _idx, ap in ad.non_footnote_paragraphs()
+    )
+    assert "[^a1]:" not in non_fn_text
 
 
-def test_consolidate_annotations_docs_equal_without_fn_block() -> None:
+def test_consolidate_annotations_iter_non_fn_matches_all_when_no_defs() -> None:
     para1 = Paragraph.from_text("One.")
     para2 = Paragraph.from_text("Two.")
 
@@ -1099,5 +1106,8 @@ def test_consolidate_annotations_docs_equal_without_fn_block() -> None:
 
     ad = AnnotatedDoc.consolidate_annotations([ap1, ap2])
 
-    # consolidate_annotations has no original fn definitions, so both docs are identical
-    assert ad.text_doc.reassemble() == ad.text_doc_without_fn.reassemble()
+    reconstructed = "\n\n".join(
+        " ".join(sent.text for sent in ap.paragraph.sentences)
+        for _idx, ap in ad.non_footnote_paragraphs()
+    )
+    assert reconstructed == ad.text_doc.reassemble()

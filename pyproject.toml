@@ -107,7 +107,7 @@ dev = [
 kash-shell = { git = "https://github.com/jlevy/kash.git" }
 # For local development:
 # kash-shell = { path = "../kash", editable = true }
-# chopdiff = { path = "../../github/chopdiff", editable = true }
+# chopdiff = { path = "../chopdiff", editable = true }
 
 
 
