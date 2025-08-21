@@ -212,10 +212,12 @@ class ClaimAnalysis(BaseModel):
         description="Similarity scores for each chunk in chunk_ids", default_factory=list
     )
 
-    rigor_analysis: RigorAnalysis = Field(description="Rigor analysis of the claim")
+    rigor_analysis: RigorAnalysis | None = Field(
+        description="Rigor analysis of the material supporting the claim"
+    )
 
     claim_support: list[ClaimSupport] = Field(
-        description="List of claim support evidence from the doc or other sources",
+        description="List of claim support evidence from the doc or supporting sources",
         default_factory=list,
     )
 
@@ -271,10 +273,11 @@ class ClaimAnalysis(BaseModel):
             parts.append("**Support analysis:** No support data")
 
         r = self.rigor_analysis
-        parts.append(
-            f"**Rigor scores:** clarity={r.clarity}, consistency={r.consistency}, "
-            f"completeness={r.completeness}, depth={r.depth}"
-        )
+        if r:
+            parts.append(
+                f"**Rigor scores:** clarity={r.clarity}, consistency={r.consistency}, "
+                f"completeness={r.completeness}, depth={r.depth}"
+            )
 
         # Labels if any
         if self.labels:
@@ -291,7 +294,7 @@ class DocAnalysis(BaseModel):
 
     key_claims: list[ClaimAnalysis] = Field(description="Key claims made in a document")
 
-    granular_claims: list[MappedClaim] = Field(description="Granular claims made in a document")
+    granular_claims: list[ClaimAnalysis] = Field(description="Granular claims made in a document")
 
     def format_key_claims_div(self, include_debug: bool) -> str:
         # Add the key claims section with enhanced information
@@ -338,13 +341,12 @@ class DocAnalysis(BaseModel):
         # Add each claim's debug summary with its ID as header
         for claim_analysis in self.key_claims:
             claim_header = f"**{claim_analysis.claim.id}:**"
-            claim_summary = claim_analysis.debug_summary()
-            sections.append(f"{claim_header}\n\n{claim_summary}")
+            sections.append(f"{claim_header}\n\n{claim_analysis.debug_summary()}")
 
-        for granular_claim in self.granular_claims:
-            claim_header = f"**{granular_claim.claim.id}:**"
+        for granular_analysis in self.granular_claims:
+            claim_header = f"**{granular_analysis.claim.id}:**"
             sections.append(
-                f"{claim_header} {granular_claim.claim.text} {granular_claim.related_chunks}"
+                f"{claim_header} {granular_analysis.claim.text} {granular_analysis.debug_summary()}"
             )
 
         return "\n\n".join(sections)

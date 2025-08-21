@@ -37,7 +37,7 @@ class ClaimAnalysisResults:
     """
 
     claim_support: list[ClaimSupport]
-    rigor_analysis: RigorAnalysis
+    rigor_analysis: RigorAnalysis | None
 
 
 # LLM options for analyzing claim support
@@ -367,61 +367,26 @@ def analyze_claim_support(
     return claim_supports
 
 
-async def analyze_key_claims_async(
-    mapped_claims: MappedClaims, top_k_chunks: int = TOP_K_RELATED
+async def analyze_claims_async(
+    chunked_doc: ChunkedTextDoc,
+    claims: list[MappedClaim],
+    *,
+    include_rigor: bool = False,
+    top_k_chunks: int = TOP_K_RELATED,
 ) -> list[ClaimAnalysis]:
     """
     Analyze all claims concurrently to determine their support stances and rigor scores.
 
     Args:
-        mapped_claims: The mapped claims with related chunks
+        claims: The claims to analyze, mapped to their related chunks
         top_k_chunks: Number of top chunks to analyze per claim
-
-    Returns:
-        DocAnalysis with ClaimAnalysis for each claim
     """
-    claims_count = len(mapped_claims.key_claims)
+    claims_count = len(claims)
     log.message("Analyzing support and rigor for %d claims", claims_count)
 
-    if not mapped_claims.key_claims:
-        log.warning("No key claims found. Skipping key claim analysis!")
+    if not claims:
+        log.warning("No claims included. Skipping claim analysis!")
         return []
-
-    # Create support tasks
-    support_tasks = [
-        FuncTask(
-            analyze_claim_support,
-            (related, mapped_claims.chunked_doc, top_k_chunks),
-        )
-        for related in mapped_claims.key_claims
-    ]
-
-    # Define rigor dimensions with their configurations
-    rigor_dimension_configs = [
-        (RigorDimension.clarity, False, 0),
-        (RigorDimension.consistency, True, min(3, top_k_chunks)),
-        (RigorDimension.completeness, True, min(3, top_k_chunks)),
-        (RigorDimension.depth, True, min(3, top_k_chunks)),
-    ]
-
-    # Create tasks for each rigor dimension
-    rigor_tasks_by_dimension = {}
-    for dimension, include_evidence, evidence_top_k in rigor_dimension_configs:
-        llm_opts = RIGOR_DIMENSION_OPTIONS[dimension]
-        rigor_tasks_by_dimension[dimension] = [
-            FuncTask(
-                analyze_rigor_dimension,
-                (
-                    related,
-                    mapped_claims.chunked_doc,
-                    llm_opts,
-                    dimension.value,  # Pass the string value for logging
-                    include_evidence,
-                    evidence_top_k,
-                ),
-            )
-            for related in mapped_claims.key_claims
-        ]
 
     # Combine all tasks while keeping track of their types for labeling
     all_tasks = []
@@ -432,22 +397,54 @@ async def analyze_key_claims_async(
     current_index = 0
 
     # Add support tasks
+    support_tasks = [
+        FuncTask(
+            analyze_claim_support,
+            (related, chunked_doc, top_k_chunks),
+        )
+        for related in claims
+    ]
     all_tasks.extend(support_tasks)
-    task_types.extend([("support", related) for related in mapped_claims.key_claims])
+    task_types.extend([("support", related) for related in claims])
     task_result_slices["support"] = slice(current_index, current_index + claims_count)
     current_index += claims_count
 
-    # Add rigor dimension tasks
-    for dimension in [
-        RigorDimension.clarity,
-        RigorDimension.consistency,
-        RigorDimension.completeness,
-        RigorDimension.depth,
-    ]:
-        all_tasks.extend(rigor_tasks_by_dimension[dimension])
-        task_types.extend([(dimension.value, related) for related in mapped_claims.key_claims])
-        task_result_slices[dimension] = slice(current_index, current_index + claims_count)
-        current_index += claims_count
+    if include_rigor:
+        # Create tasks for each rigor dimension
+        # Define rigor dimensions with their configurations
+        rigor_tasks_by_dimension: dict[RigorDimension, list[FuncTask]] = {}
+        for dimension, include_evidence, evidence_top_k in [
+            (RigorDimension.clarity, False, 0),
+            (RigorDimension.consistency, True, min(3, top_k_chunks)),
+            (RigorDimension.completeness, True, min(3, top_k_chunks)),
+            (RigorDimension.depth, True, min(3, top_k_chunks)),
+        ]:
+            llm_opts = RIGOR_DIMENSION_OPTIONS[dimension]
+            rigor_tasks_by_dimension[dimension] = [
+                FuncTask(
+                    analyze_rigor_dimension,
+                    (
+                        related,
+                        chunked_doc,
+                        llm_opts,
+                        dimension.value,  # Pass the string value for logging
+                        include_evidence,
+                        evidence_top_k,
+                    ),
+                )
+                for related in claims
+            ]
+
+        for dimension in [
+            RigorDimension.clarity,
+            RigorDimension.consistency,
+            RigorDimension.completeness,
+            RigorDimension.depth,
+        ]:
+            all_tasks.extend(rigor_tasks_by_dimension[dimension])
+            task_types.extend([(dimension.value, related) for related in claims])
+            task_result_slices[dimension] = slice(current_index, current_index + claims_count)
+            current_index += claims_count
 
     def analysis_labeler(i: int, spec: Any) -> str:
         if i < len(task_types):
@@ -467,19 +464,21 @@ async def analyze_key_claims_async(
 
     all_results = gather_result.successes_or_none
 
-    def score_for(dimension: RigorDimension) -> IntScore:
-        return all_results[task_result_slices[dimension]][i] or INT_SCORE_INVALID
-
     # Extract and organize results for each claim
     claim_results_list: list[ClaimAnalysisResults] = []
 
+    def score_for(dimension: RigorDimension) -> IntScore:
+        return all_results[task_result_slices[dimension]][i] or INT_SCORE_INVALID
+
     for i in range(claims_count):
-        rigor_analysis = RigorAnalysis(
-            clarity=score_for(RigorDimension.clarity),
-            consistency=score_for(RigorDimension.consistency),
-            completeness=score_for(RigorDimension.completeness),
-            depth=score_for(RigorDimension.depth),
-        )
+        rigor_analysis = None
+        if include_rigor:
+            rigor_analysis = RigorAnalysis(
+                clarity=score_for(RigorDimension.clarity),
+                consistency=score_for(RigorDimension.consistency),
+                completeness=score_for(RigorDimension.completeness),
+                depth=score_for(RigorDimension.depth),
+            )
         claim_results = ClaimAnalysisResults(
             claim_support=all_results[task_result_slices["support"]][i] or [],
             rigor_analysis=rigor_analysis,
@@ -488,7 +487,7 @@ async def analyze_key_claims_async(
 
     # Build ClaimAnalysis objects
     claim_analyses: list[ClaimAnalysis] = []
-    for related, results in zip(mapped_claims.key_claims, claim_results_list, strict=False):
+    for related, results in zip(claims, claim_results_list, strict=False):
         # Get chunk IDs and scores from the related chunks
         relevant_chunks = related.related_chunks[:top_k_chunks]
         chunk_ids = [cs.chunk_id for cs in relevant_chunks]
@@ -537,8 +536,22 @@ def analyze_mapped_claims(mapped_claims: MappedClaims, top_k: int = TOP_K_RELATE
     Returns:
         DocAnalysis containing ClaimAnalysis for each claim with support stances and rigor scores
     """
-    claim_analyses = asyncio.run(analyze_key_claims_async(mapped_claims, top_k))
+    claim_analyses = asyncio.run(
+        analyze_claims_async(
+            mapped_claims.chunked_doc,
+            mapped_claims.key_claims,
+            include_rigor=True,
+            top_k_chunks=top_k,
+        )
+    )
 
-    granular_claims = mapped_claims.granular_claims
+    granular_analyses = asyncio.run(
+        analyze_claims_async(
+            mapped_claims.chunked_doc,
+            mapped_claims.granular_claims,
+            include_rigor=False,
+            top_k_chunks=top_k,
+        )
+    )
 
-    return DocAnalysis(key_claims=claim_analyses, granular_claims=granular_claims)
+    return DocAnalysis(key_claims=claim_analyses, granular_claims=granular_analyses)

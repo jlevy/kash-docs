@@ -99,7 +99,8 @@ def extract_mapped_claims(
     include_granular_claims: bool = True,
 ) -> MappedClaims:
     """
-    Extract key claims in a document and find related paragraphs using embeddings.
+    Extract key claims and find related chunks using embeddings.
+    Extract granular claims for each chunk.
 
     Args:
         item: The document to analyze
