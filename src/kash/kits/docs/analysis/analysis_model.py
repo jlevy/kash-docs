@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import NewType
 
 from chopdiff.divs import div
 from prettyfmt import abbrev_obj
@@ -14,6 +13,7 @@ from kash.kits.docs.analysis.analysis_types import (
     CLAIM_MAPPING,
     KEY_CLAIMS,
     ChunkId,
+    IntScore,
     RefId,
     claim_id_str,
     format_chunk_link,
@@ -161,14 +161,6 @@ class RigorDimension(Enum):
 
     depth = "depth"
     """Are the content and citations deep and comprehensive?"""
-
-
-IntScore = NewType("IntScore", int)
-"""
-A score between 1 and 5, with 5 highest. 0 is used for invalid or missing data.
-"""
-
-INT_SCORE_INVALID = IntScore(0)
 
 
 class RigorAnalysis(BaseModel):

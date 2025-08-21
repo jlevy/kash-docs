@@ -8,6 +8,7 @@ from sidematter_format import Sidematter
 from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.preconditions import (
+    has_div_chunks,
     has_html_body,
     has_simple_text_body,
     is_docx_resource,
@@ -15,6 +16,7 @@ from kash.exec.preconditions import (
     is_url_resource,
 )
 from kash.kits.docs.actions.text.markdownify_doc import markdownify_doc
+from kash.kits.docs.analysis.analysis_types import ORIGINAL
 from kash.kits.docs.analysis.chunked_doc import ChunkedDoc
 from kash.kits.docs.analysis.claim_analysis import analyze_mapped_claims
 from kash.kits.docs.analysis.claim_mapping import (
@@ -30,11 +32,10 @@ log = get_logger(__name__)
 
 
 @kash_action(
-    precondition=is_url_resource
-    | is_docx_resource
-    | is_pdf_resource
-    | has_html_body
-    | has_simple_text_body,
+    precondition=(
+        is_url_resource | is_docx_resource | is_pdf_resource | has_html_body | has_simple_text_body
+    )
+    & ~has_div_chunks,
     params=(
         common_param("model"),
         Param(
@@ -96,7 +97,7 @@ def analyze_claims(
 
     # Add the chunked body
     chunked_body = chunked_doc.reassemble()
-    output_parts.append(div(["original"], chunked_body))
+    output_parts.append(div([ORIGINAL], chunked_body))
 
     # Add similarity statistics as metadata only if include_debug is True
     if include_debug:

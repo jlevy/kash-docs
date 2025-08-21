@@ -1,18 +1,14 @@
+from chopdiff.divs.div_elements import ORIGINAL
 from chopdiff.html.html_in_md import div_wrapper
 
 from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.preconditions import has_simple_text_body
 from kash.kits.docs.actions.text.describe_briefly import describe_briefly
+from kash.kits.docs.analysis.analysis_types import DESCRIPTION
 from kash.model import Format, Item, ItemType
 
 log = get_logger(__name__)
-
-DESCRIPTION = "description"
-"""Class name for the description."""
-
-ORIGINAL = "original"
-"""Class name for the original content."""
 
 
 @kash_action(precondition=has_simple_text_body)

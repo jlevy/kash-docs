@@ -14,6 +14,13 @@ FootnoteId = NewType("FootnoteId", str)
 RefId = FootnoteId | ChunkId
 """A chunk id or other referenced id in the document, such as a footnote id."""
 
+IntScore = NewType("IntScore", int)
+"""
+A score between 1 and 5, with 5 highest. 0 is used for invalid or missing data.
+"""
+
+INT_SCORE_INVALID = IntScore(0)
+
 
 def claim_id_str(index: int) -> ClaimId:
     """
@@ -45,6 +52,8 @@ def format_chunk_links(chunk_ids: list[ChunkId]) -> str:
 
 ## HTML Conventions
 
+ORIGINAL = "original"
+"""Class name for the original document."""
 
 KEY_CLAIMS = "key-claims"
 """Class name for the key claims."""
@@ -54,3 +63,12 @@ CLAIM = "claim"
 
 CLAIM_MAPPING = "claim-mapping"
 """Class name for the mapping of a claim to its related chunks."""
+
+CONCEPTS = "concepts"
+"""Class name for the concepts."""
+
+SUMMARY = "summary"
+"""Class name for the summary."""
+
+DESCRIPTION = "description"
+"""Class name for a description."""

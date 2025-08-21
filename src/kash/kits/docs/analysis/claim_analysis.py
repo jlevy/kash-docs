@@ -10,16 +10,15 @@ from strif import abbrev_str
 from kash.config.logger import get_logger
 from kash.config.settings import global_settings
 from kash.kits.docs.analysis.analysis_model import (
-    INT_SCORE_INVALID,
     ClaimAnalysis,
     ClaimSupport,
     DocAnalysis,
-    IntScore,
     MappedClaim,
     RigorAnalysis,
     RigorDimension,
     Stance,
 )
+from kash.kits.docs.analysis.analysis_types import INT_SCORE_INVALID, IntScore
 from kash.kits.docs.analysis.chunked_doc import ChunkedDoc
 from kash.kits.docs.analysis.claim_mapping import TOP_K_RELATED, MappedClaims
 from kash.llm_utils import Message, MessageTemplate, llm_template_completion

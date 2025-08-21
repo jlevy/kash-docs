@@ -6,6 +6,7 @@ from frontmatter_format import to_yaml_string
 from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.preconditions import (
+    has_div_chunks,
     has_html_body,
     has_simple_text_body,
     is_docx_resource,
@@ -24,11 +25,10 @@ log = get_logger(__name__)
 
 
 @kash_action(
-    precondition=is_url_resource
-    | is_docx_resource
-    | is_pdf_resource
-    | has_html_body
-    | has_simple_text_body,
+    precondition=(
+        is_url_resource | is_docx_resource | is_pdf_resource | has_html_body | has_simple_text_body
+    )
+    & ~has_div_chunks,
     params=(common_param("model"),),
 )
 def granular_claims(

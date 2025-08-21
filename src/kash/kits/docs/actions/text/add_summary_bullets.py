@@ -4,18 +4,11 @@ from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.preconditions import has_simple_text_body
 from kash.kits.docs.actions.text.summarize_structurally import summarize_structurally
+from kash.kits.docs.analysis.analysis_types import ORIGINAL, SUMMARY
 from kash.llm_utils import LLM, LLMName
 from kash.model import Format, Item, ItemType, common_params
 
 log = get_logger(__name__)
-
-
-SUMMARY = "summary"
-"""Class name for the summary."""
-
-
-ORIGINAL = "original"
-"""Class name for the original content."""
 
 
 def details_tag(summary: str, details: str) -> str:
@@ -61,7 +54,7 @@ def add_summary_bullets(
         else:
             summary_title = f"Summary ({model})"
 
-        details_div = div_wrapper(class_name=SUMMARY, attrs={"data-model": model})(
+        details_div = div_wrapper(class_name=SUMMARY, attrs={"data-model": model})(  # noqa: F821
             summary_item.body
         )
         summary_tag = tag_with_attrs("summary", summary_title)
