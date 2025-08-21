@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from textwrap import dedent
 from typing import Any, Literal
 
 from strif import abbrev_str
@@ -16,13 +15,12 @@ from kash.kits.docs.analysis.analysis_model import (
     MappedClaim,
     RigorAnalysis,
     RigorDimension,
-    Stance,
 )
 from kash.kits.docs.analysis.analysis_types import INT_SCORE_INVALID, IntScore
 from kash.kits.docs.analysis.claim_mapping import TOP_K_RELATED, MappedClaims
 from kash.kits.docs.analysis.doc_chunking import ChunkedDoc
-from kash.llm_utils import Message, MessageTemplate, llm_template_completion
-from kash.model import LLMOptions
+from kash.kits.docs.analysis.rigor_analysis import RIGOR_DIMENSION_OPTIONS, analyze_rigor_dimension
+from kash.kits.docs.analysis.support_analysis import analyze_claim_support_original
 from kash.utils.api_utils.gather_limited import FuncTask, Limit
 from kash.utils.api_utils.multitask_gather import multitask_gather
 
@@ -37,333 +35,6 @@ class ClaimAnalysisResults:
 
     claim_support: list[ClaimSupport]
     rigor_analysis: RigorAnalysis | None
-
-
-# LLM options for analyzing claim support
-claim_support_options = LLMOptions(
-    system_message=Message(
-        """
-        You are an expert editor and analyst who gives careful, unbiased assessments of
-        statements, evidence, and factuality.
-        You provide careful, nuanced assessments and careful checking of facts and logic.
-        """
-    ),
-    body_template=MessageTemplate(
-        """
-        You are evaluating how a set of text passages relate to a specific claim.
-        
-        Your task is to determine the stance each passage takes with respect to the claim.
-        
-        {body}
-        
-        For each passage, evaluate its stance toward the claim using ONE of these categories:
-        
-        - **direct_support**: The passage clearly states or strongly implies the claim is true
-        - **partial_support**: The passage provides evidence that partially supports the claim
-        - **partial_refute**: The passage provides evidence that partially contradicts the claim  
-        - **direct_refute**: The passage clearly states or strongly implies the claim is false
-        - **background**: Relevant background information but not directly supporting or refuting
-        - **mixed**: Contains both supporting and refuting evidence
-        - **unrelated**: The passage is not relevant to evaluating the claim
-        - **invalid**: The passage appears corrupted, unclear, or unusable
-        
-        Output your analysis as a simple list, one stance per line, in the format:
-        passage_1: stance
-        passage_2: stance
-        
-        For example:
-        passage_1: direct_support
-        passage_2: background
-        passage_3: partial_refute
-        
-        Be precise and thoughtful. Consider:
-        - Does the passage directly address the claim or just mention related topics?
-        - Is the evidence definitive or qualified/partial?
-        - Does the passage present multiple viewpoints?
-        
-        Output ONLY the stance labels, no additional commentary.
-        """
-    ),
-)
-
-# LLM options for analyzing clarity
-clarity_options = LLMOptions(
-    system_message=Message(
-        """
-        You are an expert editor evaluating the clarity of written claims.
-        You assess how clearly and unambiguously ideas are expressed.
-        """
-    ),
-    body_template=MessageTemplate(
-        """
-        Evaluate the clarity of this claim on a scale of 1 to 5:
-        
-        {body}
-        
-        **Scoring Guidelines:**
-        - 5: Crystal clear, unambiguous, precisely stated with no room for misinterpretation
-        - 4: Clear and well-stated with only minor ambiguities
-        - 3: Generally clear but has some vague terms or could be more precise
-        - 2: Somewhat unclear, contains ambiguous language or confusing phrasing
-        - 1: Very unclear, highly ambiguous, difficult to understand the intended meaning
-        
-        Consider:
-        - Is the claim specific or vague?
-        - Are technical terms properly defined or used correctly?
-        - Could the claim be misinterpreted?
-        - Is the scope and context clear?
-        
-        Output ONLY a single integer from 1 to 5.
-        """
-    ),
-)
-
-# LLM options for analyzing consistency
-consistency_options = LLMOptions(
-    system_message=Message(
-        """
-        You are an expert analyst evaluating the internal consistency of claims.
-        You assess whether statements and related evidence align without contradiction.
-        """
-    ),
-    body_template=MessageTemplate(
-        """
-        Evaluate the internal consistency of this claim with respect to itself and the provided evidence on a scale of 1 to 5:
-        
-        {body}
-        
-        **Scoring Guidelines:**
-        - 5: Fully consistent with no contradictions or tensions
-        - 4: Mostly consistent with only minor tensions or qualifications
-        - 3: Mixed consistency; some aspects align while others conflict or are unclear
-        - 2: Notably inconsistent; multiple statements or evidence elements conflict
-        - 1: Highly inconsistent or self-contradictory
-        
-        Consider:
-        - Do statements about the same facts align across passages?
-        - Are there contradictions, hedges, or shifts in definitions/criteria?
-        - Do qualifiers meaningfully resolve apparent conflicts?
-        
-        Output ONLY a single integer from 1 to 5.
-        """
-    ),
-)
-
-# LLM options for analyzing completeness
-completeness_options = LLMOptions(
-    system_message=Message(
-        """
-        You are an expert analyst evaluating the completeness of claims.
-        You assess whether all key aspects, details, and necessary context are addressed.
-        """
-    ),
-    body_template=MessageTemplate(
-        """
-        Evaluate the completeness of this claim with respect to the provided evidence and expected scope on a scale of 1 to 5:
-        
-        {body}
-        
-        **Scoring Guidelines:**
-        - 5: Fully complete; covers all essential aspects with sufficient detail and citations
-        - 4: Mostly complete; minor gaps but overall adequate coverage
-        - 3: Partially complete; covers main points but misses important aspects or specificity
-        - 2: Incomplete; significant gaps in reasoning, evidence, or necessary qualifiers
-        - 1: Very incomplete; superficial or missing core elements
-        
-        Consider:
-        - Are necessary assumptions, definitions, and caveats present?
-        - Are key evidence and counterpoints addressed where relevant?
-        - Is the scope appropriate and sufficiently supported?
-        
-        Output ONLY a single integer from 1 to 5.
-        """
-    ),
-)
-
-# LLM options for analyzing depth
-depth_options = LLMOptions(
-    system_message=Message(
-        """
-        You are an expert analyst evaluating the depth and thoroughness of analysis in claims.
-        You assess how comprehensively topics are explored.
-        """
-    ),
-    body_template=MessageTemplate(
-        """
-        Evaluate the depth of analysis for this claim on a scale of 1 to 5:
-        
-        {body}
-        
-        **Scoring Guidelines:**
-        - 5: Very deep analysis with comprehensive exploration of nuances and implications
-        - 4: Good depth with solid exploration of key aspects
-        - 3: Moderate depth covering main points but missing some important aspects
-        - 2: Shallow analysis that only scratches the surface
-        - 1: Superficial or trivial with no meaningful analysis
-        
-        Consider:
-        - Does the claim explore underlying causes and effects?
-        - Are multiple perspectives considered?
-        - Is the context and broader implications discussed?
-        - Does it go beyond obvious observations?
-        
-        Output ONLY a single integer from 1 to 5.
-        """
-    ),
-)
-
-RIGOR_DIMENSION_OPTIONS = {
-    RigorDimension.clarity: clarity_options,
-    RigorDimension.consistency: consistency_options,
-    RigorDimension.completeness: completeness_options,
-    RigorDimension.depth: depth_options,
-}
-
-
-def analyze_rigor_dimension(
-    related: MappedClaim,
-    chunked_doc: ChunkedDoc,
-    llm_options: LLMOptions,
-    dimension_name: str,
-    include_evidence: bool = False,
-    top_k: int = 3,
-) -> IntScore:
-    """
-    Analyze a single rigor dimension for a claim.
-
-    Args:
-        related: The claim and its related chunks
-        chunked_doc: The chunked document
-        llm_options: LLM configuration for this dimension
-        dimension_name: Name of the dimension being analyzed (for logging)
-        include_evidence: Whether to include supporting evidence in the prompt
-        top_k: Number of top chunks to include as evidence
-
-    Returns:
-        Score from 1 to 5
-    """
-    input_body = f"**Claim:** {related.claim.text}"
-
-    if include_evidence:
-        # Include top chunks as context
-        relevant_chunks = related.related_chunks[:top_k]
-        evidence_text = ""
-
-        for cs in relevant_chunks:
-            if cs.chunk_id in chunked_doc.chunks:
-                chunk_paras = chunked_doc.chunks[cs.chunk_id]
-                chunk_text = " ".join(p.reassemble() for p in chunk_paras)
-                if len(chunk_text) > 500:
-                    chunk_text = chunk_text[:500] + "..."
-                evidence_text += f"\n- {chunk_text}\n"
-
-        evidence_label = "Related Evidence"
-        if dimension_name == "depth":
-            evidence_label = "Document Context"
-
-        input_body = dedent(f"""
-            **Claim:** {related.claim.text}
-            
-            **{evidence_label} from Document:**
-            {evidence_text if evidence_text else "No evidence found"}
-            """)
-
-    llm_response = llm_template_completion(
-        model=llm_options.model,
-        system_message=llm_options.system_message,
-        body_template=llm_options.body_template,
-        input=input_body,
-    ).content
-
-    try:
-        score = int(llm_response.strip())
-        if 1 <= score <= 5:
-            return IntScore(score)
-    except (ValueError, TypeError):
-        log.warning("Invalid %s score: %s", dimension_name, llm_response)
-
-    return INT_SCORE_INVALID  # Fallback score when parsing fails
-
-
-def analyze_claim_support(
-    related: MappedClaim,
-    chunked_doc: ChunkedDoc,
-    top_k: int = TOP_K_RELATED,
-) -> list[ClaimSupport]:
-    """
-    Analyze a claim and its related chunks.
-    """
-    # Take only the top K most relevant chunks
-    relevant_chunks = related.related_chunks[:top_k]
-
-    if not relevant_chunks:
-        log.warning("No related chunks found for claim: %s", abbrev_str(related.claim.text, 50))
-        return []
-
-    # Format passages for the LLM
-    passages_text = ""
-    for i, cs in enumerate(relevant_chunks, 1):
-        # Get the actual chunk text
-        if cs.chunk_id in chunked_doc.chunks:
-            chunk_paras = chunked_doc.chunks[cs.chunk_id]
-            chunk_text = " ".join(p.reassemble() for p in chunk_paras)
-            # Truncate very long chunks for the LLM
-            if len(chunk_text) > 1000:
-                chunk_text = chunk_text[:1000] + "..."
-        else:
-            chunk_text = "[Chunk not found]"
-            log.warning("Chunk %s not found in document", cs.chunk_id)
-
-        passages_text += f"\n**passage_{i}** (similarity: {cs.similarity:.3f}):\n"
-        passages_text += f"{chunk_text}\n"
-
-    # Call LLM to analyze stances
-    # Format the input body with the claim and passages
-    input_body = dedent(f"""
-        **The Claim:** {related.claim.text}
-
-        **Related Passages:**
-        {passages_text}
-        """)
-
-    llm_response = llm_template_completion(
-        model=claim_support_options.model,
-        system_message=claim_support_options.system_message,
-        body_template=claim_support_options.body_template,
-        input=input_body,
-    ).content
-
-    # Parse the response to extract stances
-    claim_supports = []
-    lines = llm_response.strip().split("\n")
-
-    for i, cs in enumerate(relevant_chunks, 1):
-        # Parse stance from response
-        stance = Stance.error  # Default if parsing fails
-
-        for line in lines:
-            if line.startswith(f"passage_{i}:"):
-                stance_value = line.split(":", 1)[1].strip()
-                try:
-                    stance = Stance[stance_value]
-                except (KeyError, ValueError):
-                    log.warning("Invalid stance value: %s", stance_value)
-                    stance = Stance.error
-                break
-
-        # Create ClaimSupport object
-        support = ClaimSupport.create(ref_id=cs.chunk_id, stance=stance)
-        claim_supports.append(support)
-
-        log.info(
-            "Claim %s -> Chunk %s: %s (score: %d)",
-            related.claim.id,
-            cs.chunk_id,
-            stance,
-            support.support_score,
-        )
-
-    return claim_supports
 
 
 async def analyze_claims_async(
@@ -398,7 +69,7 @@ async def analyze_claims_async(
     # Add support tasks
     support_tasks = [
         FuncTask(
-            analyze_claim_support,
+            analyze_claim_support_original,
             (related, chunked_doc, top_k_chunks),
         )
         for related in claims
@@ -418,7 +89,7 @@ async def analyze_claims_async(
             (RigorDimension.completeness, True, min(3, top_k_chunks)),
             (RigorDimension.depth, True, min(3, top_k_chunks)),
         ]:
-            llm_opts = RIGOR_DIMENSION_OPTIONS[dimension]
+            llm_opts = RIGOR_DIMENSION_OPTIONS[dimension]  # noqa: F821
             rigor_tasks_by_dimension[dimension] = [
                 FuncTask(
                     analyze_rigor_dimension,

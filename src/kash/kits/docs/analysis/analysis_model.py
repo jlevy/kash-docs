@@ -73,7 +73,8 @@ class Claim:
 @dataclass
 class MappedClaim:
     """
-    A claim along with a mapping to related chunks in the document.
+    A claim along with a mapping to related chunks and source URLs from the document
+    or elsewhere relevant to the claim.
     """
 
     claim: Claim
