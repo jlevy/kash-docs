@@ -15,7 +15,7 @@ from kash.exec.preconditions import (
     is_url_resource,
 )
 from kash.kits.docs.actions.text.markdownify_doc import markdownify_doc
-from kash.kits.docs.analysis.chunk_docs import chunk_doc_paragraphs
+from kash.kits.docs.analysis.chunked_doc import ChunkedDoc
 from kash.kits.docs.analysis.claim_analysis import analyze_mapped_claims
 from kash.kits.docs.analysis.claim_mapping import (
     TOP_K_RELATED,
@@ -74,7 +74,7 @@ def analyze_claims(
     # Chunk the doc before mapping claims.
     log.message("Chunking document...")
     text_doc = TextDoc.from_text(as_markdown.body)
-    chunked_doc = chunk_doc_paragraphs(text_doc, min_size=1)
+    chunked_doc = ChunkedDoc.from_text_doc(text_doc, min_size=1)
 
     # Extract and map all claims.
     mapped_claims = extract_mapped_claims(

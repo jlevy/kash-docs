@@ -15,7 +15,7 @@ from kash.kits.docs.analysis.analysis_model import (
     MappedClaim,
 )
 from kash.kits.docs.analysis.analysis_types import ChunkId, chunk_id_str, claim_id_str
-from kash.kits.docs.analysis.chunk_docs import ChunkedTextDoc
+from kash.kits.docs.analysis.chunked_doc import ChunkedDoc
 from kash.kits.docs.analysis.claim_extraction import (
     extract_granular_claims_text,
     extract_key_claims_text,
@@ -36,7 +36,7 @@ class MappedClaims:
     for both claims and chunks, and mappings of which paragraphs relate to each claim.
     """
 
-    chunked_doc: ChunkedTextDoc
+    chunked_doc: ChunkedDoc
     key_claims: list[MappedClaim]
     granular_claims: list[MappedClaim]
     embeddings: Embeddings | None = None
@@ -63,7 +63,7 @@ class MappedClaims:
         chunk_links = []
         for cs in chunks_to_format:
             link = f'<a href="#{cs.chunk_id}">{cs.chunk_id}</a>'
-            chunk_links.append(f"{link} ({cs.score:.2f})")
+            chunk_links.append(f"{link} ({cs.similarity:.2f})")
 
         return "Related chunks: " + ", ".join(chunk_links)
 
@@ -93,7 +93,7 @@ TOP_K_RELATED = 8
 
 
 def extract_mapped_claims(
-    chunked_doc: ChunkedTextDoc,
+    chunked_doc: ChunkedDoc,
     top_k: int = TOP_K_RELATED,
     include_key_claims: bool = True,
     include_granular_claims: bool = True,
@@ -151,7 +151,8 @@ def extract_mapped_claims(
                 granular_claims.append(
                     MappedClaim(
                         claim=claim,
-                        related_chunks=[ChunkScore(chunk_id=ChunkId(chunk_id), score=1.0)],
+                        related_chunks=[ChunkScore(chunk_id=ChunkId(chunk_id), similarity=1.0)],
+                        related_urls=[],  # FIXME
                     )
                 )
         log.message(
@@ -182,8 +183,10 @@ def extract_mapped_claims(
             MappedClaim(
                 claim=claim.with_id(chunk_id),
                 related_chunks=[
-                    ChunkScore(chunk_id=ChunkId(key), score=score) for key, score in similar_chunks
+                    ChunkScore(chunk_id=ChunkId(key), similarity=score)
+                    for key, score in similar_chunks
                 ],
+                related_urls=[],  # FIXME
             )
         )
 
@@ -197,7 +200,7 @@ def extract_mapped_claims(
 
 
 def extract_granular_claims(
-    chunked_doc: ChunkedTextDoc,
+    chunked_doc: ChunkedDoc,
 ) -> list[tuple[ChunkId, list[Claim]]]:
     """
     Concurrent extraction of granular claims for each chunk.
@@ -206,7 +209,7 @@ def extract_granular_claims(
 
 
 async def extract_granular_claims_async(
-    chunked_doc: ChunkedTextDoc,
+    chunked_doc: ChunkedDoc,
 ) -> list[tuple[ChunkId, list[Claim]]]:
     """
     Extract granular claims for each chunk, each mapped to the single chunk it belongs to.

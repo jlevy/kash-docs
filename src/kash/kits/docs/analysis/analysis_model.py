@@ -9,6 +9,7 @@ from prettyfmt import abbrev_obj
 from pydantic import BaseModel, Field
 from typing_extensions import override
 
+from kash.exec.action_exec import Url
 from kash.kits.docs.analysis.analysis_types import (
     CLAIM,
     CLAIM_MAPPING,
@@ -30,7 +31,7 @@ class ChunkScore:
     """
 
     chunk_id: ChunkId
-    score: float
+    similarity: float
 
 
 class ClaimType(Enum):
@@ -77,6 +78,7 @@ class MappedClaim:
 
     claim: Claim
     related_chunks: list[ChunkScore]
+    related_urls: list[Url]
 
     @override
     def __str__(self) -> str:
@@ -210,7 +212,7 @@ class ClaimAnalysis(BaseModel):
         description="List of ids to pieces of text in the document that are relevant"
     )
 
-    chunk_scores: list[float] = Field(
+    chunk_similarity: list[float] = Field(
         description="Similarity scores for each chunk in chunk_ids", default_factory=list
     )
 
@@ -219,7 +221,7 @@ class ClaimAnalysis(BaseModel):
     )
 
     claim_support: list[ClaimSupport] = Field(
-        description="List of claim support evidence from the doc or supporting sources",
+        description="List of stance categorization and support score for each sources",
         default_factory=list,
     )
 
@@ -239,9 +241,9 @@ class ClaimAnalysis(BaseModel):
         parts.append(f"**Text:** {self.claim}")
 
         # Format related chunks with scores if available
-        if self.chunk_scores and len(self.chunk_scores) == len(self.chunk_ids):
+        if self.chunk_similarity and len(self.chunk_similarity) == len(self.chunk_ids):
             chunk_links = []
-            for chunk_id, score in zip(self.chunk_ids, self.chunk_scores, strict=False):
+            for chunk_id, score in zip(self.chunk_ids, self.chunk_similarity, strict=False):
                 link = format_chunk_link(chunk_id)
                 chunk_links.append(f"{link} ({score:.2f})")
             parts.append(f"**Related chunks:** {', '.join(chunk_links)}")

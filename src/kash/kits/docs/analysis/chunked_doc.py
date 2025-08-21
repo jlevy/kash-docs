@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Self
 
 from chopdiff.divs import CHUNK, chunk_paras, div
 from chopdiff.docs import Paragraph, TextDoc, TextUnit, first_wordtok, is_tag
@@ -7,7 +8,7 @@ from kash.kits.docs.analysis.analysis_types import ChunkId, chunk_id_str
 
 
 @dataclass
-class ChunkedTextDoc:
+class ChunkedDoc:
     """
     A TextDoc with its paragraphs grouped into chunks and mapped by chunk ID.
 
@@ -50,23 +51,23 @@ class ChunkedTextDoc:
 
         return "\n\n".join(result_divs)
 
+    @classmethod
+    def from_text_doc(cls, doc: TextDoc, min_size: int) -> Self:
+        """
+        Chunk a TextDoc's paragraphs into groups and return a ChunkedTextDoc.
 
-def chunk_doc_paragraphs(doc: TextDoc, min_size: int) -> ChunkedTextDoc:
-    """
-    Chunk a TextDoc's paragraphs into groups and return a ChunkedTextDoc.
+        Paragraphs are grouped together to meet the minimum size requirement
+        (measured in number of paragraphs). Each chunk is numbered sequentially
+        (chunk-0, chunk-1, etc).
+        """
 
-    Paragraphs are grouped together to meet the minimum size requirement
-    (measured in number of paragraphs). Each chunk is numbered sequentially
-    (chunk-0, chunk-1, etc).
-    """
+        # Use chunk_paras to group paragraphs based on size constraints
+        # TODO: Have a min_sentences and add paragraphs until chunk is big enough.
+        # TODO: Also handle section headers intelligently.
+        doc_chunks = list(chunk_paras(doc, min_size, TextUnit.paragraphs))
 
-    # Use chunk_paras to group paragraphs based on size constraints
-    # TODO: Have a min_sentences and add paragraphs until chunk is big enough.
-    # TODO: Also handle section headers intelligently.
-    doc_chunks = list(chunk_paras(doc, min_size, TextUnit.paragraphs))
+        chunks: dict[ChunkId, list[Paragraph]] = {}
+        for i, chunk_doc in enumerate(doc_chunks):
+            chunks[chunk_id_str(i)] = chunk_doc.paragraphs
 
-    chunks: dict[ChunkId, list[Paragraph]] = {}
-    for i, chunk_doc in enumerate(doc_chunks):
-        chunks[chunk_id_str(i)] = chunk_doc.paragraphs
-
-    return ChunkedTextDoc(doc=doc, chunks=chunks)
+        return cls(doc=doc, chunks=chunks)

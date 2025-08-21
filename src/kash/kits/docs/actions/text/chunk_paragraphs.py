@@ -8,7 +8,7 @@ from kash.exec.preconditions import (
     has_markdown_body,
     has_markdown_with_html_body,
 )
-from kash.kits.docs.analysis.chunk_docs import chunk_doc_paragraphs
+from kash.kits.docs.analysis.chunked_doc import ChunkedDoc
 from kash.model import Format, Item, ItemType, Param
 from kash.utils.errors import InvalidInput
 
@@ -33,7 +33,7 @@ def chunk_paragraphs(item: Item, min_size: int = 1) -> Item:
         raise InvalidInput(f"Item must have a body: {item}")
 
     doc = TextDoc.from_text(item.body)
-    chunked_doc = chunk_doc_paragraphs(doc, min_size=min_size)
+    chunked_doc = ChunkedDoc.from_text_doc(doc, min_size=min_size)
     final_body = chunked_doc.reassemble()
 
     return item.derived_copy(type=ItemType.doc, format=Format.md_html, body=final_body)

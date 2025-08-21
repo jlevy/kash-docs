@@ -20,7 +20,7 @@ from kash.kits.docs.analysis.analysis_model import (
     RigorDimension,
     Stance,
 )
-from kash.kits.docs.analysis.chunk_docs import ChunkedTextDoc
+from kash.kits.docs.analysis.chunked_doc import ChunkedDoc
 from kash.kits.docs.analysis.claim_mapping import TOP_K_RELATED, MappedClaims
 from kash.llm_utils import Message, MessageTemplate, llm_template_completion
 from kash.model import LLMOptions
@@ -223,7 +223,7 @@ RIGOR_DIMENSION_OPTIONS = {
 
 def analyze_rigor_dimension(
     related: MappedClaim,
-    chunked_doc: ChunkedTextDoc,
+    chunked_doc: ChunkedDoc,
     llm_options: LLMOptions,
     dimension_name: str,
     include_evidence: bool = False,
@@ -288,7 +288,7 @@ def analyze_rigor_dimension(
 
 def analyze_claim_support(
     related: MappedClaim,
-    chunked_doc: ChunkedTextDoc,
+    chunked_doc: ChunkedDoc,
     top_k: int = TOP_K_RELATED,
 ) -> list[ClaimSupport]:
     """
@@ -315,7 +315,7 @@ def analyze_claim_support(
             chunk_text = "[Chunk not found]"
             log.warning("Chunk %s not found in document", cs.chunk_id)
 
-        passages_text += f"\n**passage_{i}** (similarity: {cs.score:.3f}):\n"
+        passages_text += f"\n**passage_{i}** (similarity: {cs.similarity:.3f}):\n"
         passages_text += f"{chunk_text}\n"
 
     # Call LLM to analyze stances
@@ -368,7 +368,7 @@ def analyze_claim_support(
 
 
 async def analyze_claims_async(
-    chunked_doc: ChunkedTextDoc,
+    chunked_doc: ChunkedDoc,
     claims: list[MappedClaim],
     *,
     include_rigor: bool = False,
@@ -491,13 +491,13 @@ async def analyze_claims_async(
         # Get chunk IDs and scores from the related chunks
         relevant_chunks = related.related_chunks[:top_k_chunks]
         chunk_ids = [cs.chunk_id for cs in relevant_chunks]
-        chunk_scores = [cs.score for cs in relevant_chunks]
+        chunk_similarity = [cs.similarity for cs in relevant_chunks]
 
         assert related.claim.id
         claim_analysis = ClaimAnalysis(
             claim=related.claim,
             chunk_ids=chunk_ids,
-            chunk_scores=chunk_scores,
+            chunk_similarity=chunk_similarity,
             rigor_analysis=results.rigor_analysis,
             claim_support=results.claim_support,
             labels=[],  # Empty for now
