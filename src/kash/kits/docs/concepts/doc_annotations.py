@@ -4,17 +4,15 @@ import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 from functools import cached_property
-from typing import NewType
 
 from chopdiff.docs.text_doc import Paragraph, SentIndex, TextDoc
 
+from kash.kits.docs.analysis.analysis_types import FootnoteId, RefId
 from kash.utils.common.testing import enable_if
 from kash.utils.common.url import Url
 from kash.utils.text_handling.markdown_footnotes import MarkdownFootnotes
 from kash.utils.text_handling.markdown_utils import extract_urls
 from kash.web_content.canon_url import canonicalize_url
-
-FootnoteId = NewType("FootnoteId", str)
 
 # Valid footnote ID pattern: Unicode word characters (letters, digits, underscore), period, or hyphen
 _FOOTNOTE_ID_PATTERN = re.compile(r"^[\w.-]+$")
@@ -25,11 +23,11 @@ _FOOTNOTE_ID_PATTERN = re.compile(r"^[\w.-]+$")
 _FOOTNOTE_REF_PATTERN = re.compile(r"\[\^([\w.-]+)\]")
 
 
-def _normalize_footnote_id(footnote_id: str) -> str:
+def _normalize_footnote_id(footnote_id: str) -> FootnoteId:
     """
     Normalize a footnote ID to always include the ^ prefix.
     """
-    return footnote_id if footnote_id.startswith("^") else f"^{footnote_id}"
+    return FootnoteId(footnote_id if footnote_id.startswith("^") else f"^{footnote_id}")
 
 
 @dataclass(frozen=True)
@@ -38,7 +36,7 @@ class Footnote:
     Represents a footnote with its ID and content.
     """
 
-    id: str
+    id: FootnoteId
     """The footnote ID (includes ^ prefix, e.g., "^123", "^foo")"""
 
     content: str
@@ -47,7 +45,7 @@ class Footnote:
     @cached_property
     def urls(self) -> tuple[Url, ...]:
         """
-        Extract URLs from the footnote content.
+        Extract unique URLs from the footnote content.
         """
         return tuple(sorted(set(canonicalize_url(url) for url in extract_urls(self.content))))
 
@@ -143,10 +141,10 @@ class AnnotatedPara:
     """Starting number for footnotes."""
 
     @classmethod
-    def from_para(
+    def unannotated(
         cls, paragraph: Paragraph, *, fn_prefix: str = "", fn_start: int = 1
     ) -> AnnotatedPara:
-        """Create an AnnotatedParagraph from an existing Paragraph."""
+        """Create an AnnotatedParagraph from an existing Paragraph with no annotations."""
         return cls(paragraph=paragraph, annotations={}, fn_prefix=fn_prefix, fn_start=fn_start)
 
     @classmethod
@@ -348,16 +346,21 @@ class AnnotatedPara:
         """Get the next footnote number after all current annotations."""
         return self.fn_start + self.annotation_count()
 
-    def get_urls(self) -> tuple[Url, ...]:
+    def get_urls(self) -> dict[Url, RefId | None]:
         """
-        Get content of this paragraph plus the linked content.
+        Get all  URLs in this paragraph, including links in the text as well as in footnotes.
         """
-        # Get all URLs im the paragraph and in the footnotes
-        all_para_urls = extract_urls(self.paragraph.reassemble())
+        # Get literal URLs from the paragraph.
+        para_urls = set(canonicalize_url(url) for url in extract_urls(self.paragraph.reassemble()))
+        url_map: dict[Url, RefId | None] = {url: None for url in para_urls}
+
+        # Get footnotes and add them along with their
         for _sent_index, footnotes in self.annotations.items():
             for footnote in footnotes:
-                all_para_urls.extend(footnote.urls)
-        return tuple(sorted(set(canonicalize_url(url) for url in all_para_urls)))
+                for url in footnote.urls:
+                    url_map[url] = FootnoteId(footnote.id)
+
+        return url_map
 
 
 @dataclass
@@ -390,7 +393,7 @@ class AnnotatedDoc:
         """
         Create an AnnotatedDoc from a TextDoc with no annotations.
         """
-        ann_paras = [AnnotatedPara.from_para(p) for p in text_doc.paragraphs]
+        ann_paras = [AnnotatedPara.unannotated(p) for p in text_doc.paragraphs]
         return cls(text_doc=text_doc, ann_paras=ann_paras, annotations={}, footnote_mapping={})
 
     @classmethod
@@ -408,7 +411,7 @@ class AnnotatedDoc:
         # Include all footnote definitions in document order
         for fid_str, info in markdown_footnotes.items():
             fid = check_fn_id(fid_str)
-            footnote_mapping[fid] = Footnote(id=str(fid), content=info.content)
+            footnote_mapping[fid] = Footnote(id=fid, content=info.content)
 
         # Preserve original paragraphs as AnnotatedPara list in original order
         ann_paras: list[AnnotatedPara] = [
@@ -488,9 +491,7 @@ class AnnotatedDoc:
                         counter += 1
 
                     # Store mapping with the final doc-level ID
-                    footnote_mapping[target_id] = Footnote(
-                        id=str(target_id), content=footnote.content
-                    )
+                    footnote_mapping[target_id] = Footnote(id=target_id, content=footnote.content)
 
                     # Store the reference from this sentence to the footnote ID
                     if sent_index not in annotations:
@@ -603,7 +604,7 @@ class AnnotatedDoc:
 
         full_id = f"{fn_prefix}{next_num}"
         footnote_id = check_fn_id(_normalize_footnote_id(full_id))
-        self.footnote_mapping[footnote_id] = Footnote(id=str(footnote_id), content=annotation)
+        self.footnote_mapping[footnote_id] = Footnote(id=footnote_id, content=annotation)
 
         # Add reference from sentence to this new footnote ID
         if sent_index not in self.annotations:
@@ -665,7 +666,7 @@ def map_notes_with_embeddings(
         note.strip() for note in notes if note.strip() and note.strip() != "(No results)"
     ]
 
-    annotated_para = AnnotatedPara.from_para(paragraph, fn_prefix=fn_prefix, fn_start=fn_start)
+    annotated_para = AnnotatedPara.unannotated(paragraph, fn_prefix=fn_prefix, fn_start=fn_start)
 
     if not filtered_notes:
         return annotated_para
@@ -721,7 +722,7 @@ def test_map_notes_with_embeddings() -> None:
 
 def test_annotated_paragraph_basic() -> None:
     para = Paragraph.from_text("First sentence. Second sentence. Third sentence.")
-    annotated = AnnotatedPara.from_para(para)
+    annotated = AnnotatedPara.unannotated(para)
 
     # Test basic functionality
     assert not annotated.has_annotations()
@@ -742,7 +743,7 @@ def test_annotated_paragraph_basic() -> None:
 
 def test_markdown_footnotes() -> None:
     para = Paragraph.from_text("First sentence. Second sentence.")
-    annotated = AnnotatedPara.from_para(para)
+    annotated = AnnotatedPara.unannotated(para)
 
     annotated.add_annotation(0, "First note")
     annotated.add_annotation(1, "Second note")
@@ -796,10 +797,10 @@ def test_consolidate_ann_paras_basic() -> None:
     para1 = Paragraph.from_text("First paragraph.")
     para2 = Paragraph.from_text("Second paragraph.")
 
-    ann_para1 = AnnotatedPara.from_para(para1)
+    ann_para1 = AnnotatedPara.unannotated(para1)
     ann_para1.add_annotation(0, "Note 1")
 
-    ann_para2 = AnnotatedPara.from_para(para2)
+    ann_para2 = AnnotatedPara.unannotated(para2)
     ann_para2.add_annotation(0, "Note 2")
 
     ann_doc = AnnotatedDoc.consolidate_annotations([ann_para1, ann_para2])
@@ -820,14 +821,14 @@ def test_consolidate_ann_paras_with_prefixes() -> None:
     para3 = Paragraph.from_text("Third paragraph.")
 
     # Different prefixes
-    ann_para1 = AnnotatedPara.from_para(para1, fn_prefix="a", fn_start=1)
+    ann_para1 = AnnotatedPara.unannotated(para1, fn_prefix="a", fn_start=1)
     ann_para1.add_annotation(0, "Note A1")
     ann_para1.add_annotation(0, "Note A2")
 
-    ann_para2 = AnnotatedPara.from_para(para2, fn_prefix="b", fn_start=1)
+    ann_para2 = AnnotatedPara.unannotated(para2, fn_prefix="b", fn_start=1)
     ann_para2.add_annotation(0, "Note B1")
 
-    ann_para3 = AnnotatedPara.from_para(para3, fn_prefix="a", fn_start=1)
+    ann_para3 = AnnotatedPara.unannotated(para3, fn_prefix="a", fn_start=1)
     ann_para3.add_annotation(0, "Note A3")
 
     ann_doc = AnnotatedDoc.consolidate_annotations([ann_para1, ann_para2, ann_para3])
@@ -851,11 +852,11 @@ def test_consolidate_ann_paras_uniquing() -> None:
     para2 = Paragraph.from_text("Second paragraph.")
 
     # Both start with same prefix and fn_start
-    ann_para1 = AnnotatedPara.from_para(para1, fn_prefix="", fn_start=1)
+    ann_para1 = AnnotatedPara.unannotated(para1, fn_prefix="", fn_start=1)
     ann_para1.add_annotation(0, "Note 1")
     ann_para1.add_annotation(0, "Note 2")
 
-    ann_para2 = AnnotatedPara.from_para(para2, fn_prefix="", fn_start=1)
+    ann_para2 = AnnotatedPara.unannotated(para2, fn_prefix="", fn_start=1)
     ann_para2.add_annotation(0, "Note 3")
     ann_para2.add_annotation(0, "Note 4")
 
@@ -884,8 +885,8 @@ def test_consolidate_ann_paras_no_annotations() -> None:
     para1 = Paragraph.from_text("First paragraph.")
     para2 = Paragraph.from_text("Second paragraph.")
 
-    ann_para1 = AnnotatedPara.from_para(para1)
-    ann_para2 = AnnotatedPara.from_para(para2)
+    ann_para1 = AnnotatedPara.unannotated(para1)
+    ann_para2 = AnnotatedPara.unannotated(para2)
 
     ann_doc = AnnotatedDoc.consolidate_annotations([ann_para1, ann_para2])
 
@@ -900,10 +901,10 @@ def test_markdown_with_footnotes_consolidated() -> None:
     para1 = Paragraph.from_text("First paragraph.")
     para2 = Paragraph.from_text("Second paragraph.")
 
-    ann_para1 = AnnotatedPara.from_para(para1, fn_prefix="ref", fn_start=1)
+    ann_para1 = AnnotatedPara.unannotated(para1, fn_prefix="ref", fn_start=1)
     ann_para1.add_annotation(0, "Reference 1")
 
-    ann_para2 = AnnotatedPara.from_para(para2, fn_prefix="ref", fn_start=1)
+    ann_para2 = AnnotatedPara.unannotated(para2, fn_prefix="ref", fn_start=1)
     ann_para2.add_annotation(0, "Reference 2")
 
     ann_doc = AnnotatedDoc.consolidate_annotations([ann_para1, ann_para2])
@@ -989,12 +990,12 @@ def test_annotated_para_footnote_id_validation() -> None:
     para = Paragraph.from_text("Test sentence.")
 
     # Valid prefix
-    annotated = AnnotatedPara.from_para(para, fn_prefix="ref_", fn_start=1)
+    annotated = AnnotatedPara.unannotated(para, fn_prefix="ref_", fn_start=1)
     footnote_id = annotated.footnote_id(1)
     assert footnote_id == FootnoteId("^ref_1")
 
     # Invalid prefix should raise error when creating footnote ID
-    annotated_invalid = AnnotatedPara.from_para(para, fn_prefix="invalid@prefix", fn_start=1)
+    annotated_invalid = AnnotatedPara.unannotated(para, fn_prefix="invalid@prefix", fn_start=1)
     try:
         annotated_invalid.footnote_id(1)
         raise AssertionError("Expected ValueError for invalid footnote prefix")
@@ -1005,7 +1006,7 @@ def test_annotated_para_footnote_id_validation() -> None:
 def test_markdown_with_footnotes_header() -> None:
     """Ensure footnote_header is inserted correctly above consolidated footnotes."""
     para = Paragraph.from_text("Some text.")
-    ann_para = AnnotatedPara.from_para(para, fn_prefix="ref", fn_start=1)
+    ann_para = AnnotatedPara.unannotated(para, fn_prefix="ref", fn_start=1)
     ann_para.add_annotation(0, "Reference note")
 
     ann_doc = AnnotatedDoc.consolidate_annotations([ann_para])
@@ -1025,13 +1026,13 @@ def test_markdown_footnote_order() -> None:
     para2 = Paragraph.from_text("P2.")
     para3 = Paragraph.from_text("P3.")
 
-    ann_para1 = AnnotatedPara.from_para(para1, fn_prefix="a", fn_start=1)
+    ann_para1 = AnnotatedPara.unannotated(para1, fn_prefix="a", fn_start=1)
     ann_para1.add_annotation(0, "Note A1")  # a1
 
-    ann_para2 = AnnotatedPara.from_para(para2, fn_prefix="b", fn_start=1)
+    ann_para2 = AnnotatedPara.unannotated(para2, fn_prefix="b", fn_start=1)
     ann_para2.add_annotation(0, "Note B1")  # b1
 
-    ann_para3 = AnnotatedPara.from_para(
+    ann_para3 = AnnotatedPara.unannotated(
         para3, fn_prefix="a", fn_start=2
     )  # Start at 2 to avoid conflict
     ann_para3.add_annotation(0, "Note A2")  # a2
@@ -1113,10 +1114,10 @@ def test_consolidate_annotations_iter_non_fn_matches_all_when_no_defs() -> None:
     para1 = Paragraph.from_text("One.")
     para2 = Paragraph.from_text("Two.")
 
-    ap1 = AnnotatedPara.from_para(para1, fn_prefix="r", fn_start=1)
+    ap1 = AnnotatedPara.unannotated(para1, fn_prefix="r", fn_start=1)
     ap1.add_annotation(0, "Note 1")
 
-    ap2 = AnnotatedPara.from_para(para2, fn_prefix="r", fn_start=2)
+    ap2 = AnnotatedPara.unannotated(para2, fn_prefix="r", fn_start=2)
     ap2.add_annotation(0, "Note 2")
 
     ad = AnnotatedDoc.consolidate_annotations([ap1, ap2])

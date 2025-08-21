@@ -96,7 +96,7 @@ def analyze_claims(
 
     # Add the chunked body
     chunked_body = chunked_doc.reassemble()
-    output_parts.append(chunked_body)
+    output_parts.append(div(["original"], chunked_body))
 
     # Add similarity statistics as metadata only if include_debug is True
     if include_debug:

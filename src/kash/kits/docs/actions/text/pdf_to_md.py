@@ -10,7 +10,6 @@ log = get_logger(__name__)
 
 @kash_action(
     precondition=is_pdf_resource,
-    mcp_tool=True,
     params=(
         Param(
             name="converter",

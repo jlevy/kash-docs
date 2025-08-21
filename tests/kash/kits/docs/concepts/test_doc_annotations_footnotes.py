@@ -58,7 +58,7 @@ def test_extract_footnote_references() -> None:
         "This has two footnotes[^2][^abc]. "
         "This has no footnotes."
     )
-    ann_para = AnnotatedPara.from_para(para)
+    ann_para = AnnotatedPara.unannotated(para)
 
     refs = ann_para.extract_footnote_references()
 
@@ -278,7 +278,7 @@ def test_footnote_dataclass_in_annotations() -> None:
     from kash.kits.docs.concepts.doc_annotations import Footnote
 
     para = Paragraph.from_text("Test paragraph.")
-    ann_para = AnnotatedPara.from_para(para)
+    ann_para = AnnotatedPara.unannotated(para)
 
     # Add an annotation
     ann_para.add_annotation_with_id(0, "custom_id", "Custom content")
@@ -355,7 +355,7 @@ def test_footnotes_edge_cases() -> None:
 
     # Valid footnote references with hyphens and dots (IDs include ^)
     para2 = Paragraph.from_text("Valid refs: [^note-1] and [^ref.2] and [^foo_bar].")
-    ann_para2 = AnnotatedPara.from_para(para2)
+    ann_para2 = AnnotatedPara.unannotated(para2)
     refs2 = ann_para2.extract_footnote_references()
     assert len(refs2) == 3
     assert refs2[0].footnote_id == "^note-1"
@@ -367,7 +367,7 @@ def test_footnotes_after_sentences() -> None:
     """Test footnotes that appear after sentence boundaries."""
     # Footnote immediately after period
     para = Paragraph.from_text("First sentence.[^1] Second sentence.")
-    ann_para = AnnotatedPara.from_para(para)
+    ann_para = AnnotatedPara.unannotated(para)
     refs = ann_para.extract_footnote_references()
 
     assert len(refs) == 1
@@ -377,7 +377,7 @@ def test_footnotes_after_sentences() -> None:
 
     # Footnote with space after period
     para = Paragraph.from_text("First sentence. [^2] Second sentence.")
-    ann_para = AnnotatedPara.from_para(para)
+    ann_para = AnnotatedPara.unannotated(para)
     refs = ann_para.extract_footnote_references()
 
     assert len(refs) == 1
@@ -387,7 +387,7 @@ def test_footnotes_after_sentences() -> None:
 
     # Multiple footnotes after sentence
     para = Paragraph.from_text("First sentence.[^a][^b] Second sentence.")
-    ann_para = AnnotatedPara.from_para(para)
+    ann_para = AnnotatedPara.unannotated(para)
     refs = ann_para.extract_footnote_references()
 
     assert len(refs) == 2
@@ -401,7 +401,7 @@ def test_paragraph_starting_with_footnote() -> None:
     """Test paragraphs that start with footnotes."""
     # Paragraph starting with footnote
     para = Paragraph.from_text("[^start] This is the first sentence. Second sentence.")
-    ann_para = AnnotatedPara.from_para(para)
+    ann_para = AnnotatedPara.unannotated(para)
     refs = ann_para.extract_footnote_references()
 
     assert len(refs) == 1
@@ -412,7 +412,7 @@ def test_paragraph_starting_with_footnote() -> None:
 
     # Multiple footnotes at start
     para = Paragraph.from_text("[^1][^2][^3] First sentence here.")
-    ann_para = AnnotatedPara.from_para(para)
+    ann_para = AnnotatedPara.unannotated(para)
     refs = ann_para.extract_footnote_references()
 
     assert len(refs) == 3
@@ -424,7 +424,7 @@ def test_paragraph_with_only_footnotes() -> None:
     """Test paragraphs containing only footnotes."""
     # Single footnote only
     para = Paragraph.from_text("[^only]")
-    ann_para = AnnotatedPara.from_para(para)
+    ann_para = AnnotatedPara.unannotated(para)
     refs = ann_para.extract_footnote_references()
 
     assert len(refs) == 1
@@ -433,7 +433,7 @@ def test_paragraph_with_only_footnotes() -> None:
 
     # Multiple footnotes only
     para = Paragraph.from_text("[^a][^b][^c]")
-    ann_para = AnnotatedPara.from_para(para)
+    ann_para = AnnotatedPara.unannotated(para)
     refs = ann_para.extract_footnote_references()
 
     assert len(refs) == 3
@@ -441,7 +441,7 @@ def test_paragraph_with_only_footnotes() -> None:
 
     # Footnotes with spaces
     para = Paragraph.from_text("[^x] [^y] [^z]")
-    ann_para = AnnotatedPara.from_para(para)
+    ann_para = AnnotatedPara.unannotated(para)
     refs = ann_para.extract_footnote_references()
 
     assert len(refs) == 3
@@ -455,7 +455,7 @@ def test_complex_footnote_positioning() -> None:
     para = Paragraph.from_text(
         "Start[^1] middle of first. End of first[^2]. [^3] Second sentence[^4]."
     )
-    ann_para = AnnotatedPara.from_para(para)
+    ann_para = AnnotatedPara.unannotated(para)
     refs = ann_para.extract_footnote_references()
 
     assert len(refs) == 4

@@ -87,7 +87,7 @@ llm_options = LLMOptions(
 )
 
 
-@kash_action(llm_options=llm_options, params=common_params("model"), mcp_tool=True)
+@kash_action(llm_options=llm_options, params=common_params("model"))
 def summarize_structurally(item: Item, model: LLMName = LLM.default_standard) -> Item:
     """
     Summarize text as a hierarchical structure of nested bullet points.

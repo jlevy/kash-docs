@@ -3,10 +3,15 @@ from typing import NewType
 ## ID types
 
 ClaimId = NewType("ClaimId", str)
+"""A claim ID, e.g. `claim-123`."""
 
 ChunkId = NewType("ChunkId", str)
+"""A chunk ID, e.g. `chunk-123`."""
 
-RefId = NewType("RefId", str)
+FootnoteId = NewType("FootnoteId", str)
+"""A footnote ID, e.g. `^123`."""
+
+RefId = FootnoteId | ChunkId
 """A chunk id or other referenced id in the document, such as a footnote id."""
 
 

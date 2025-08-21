@@ -494,10 +494,12 @@ async def analyze_claims_async(
         chunk_similarity = [cs.similarity for cs in relevant_chunks]
 
         assert related.claim.id
+
         claim_analysis = ClaimAnalysis(
             claim=related.claim,
             chunk_ids=chunk_ids,
             chunk_similarity=chunk_similarity,
+            source_urls=chunked_doc.get_source_urls(*chunk_ids),
             rigor_analysis=results.rigor_analysis,
             claim_support=results.claim_support,
             labels=[],  # Empty for now

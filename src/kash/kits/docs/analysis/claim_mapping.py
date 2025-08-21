@@ -152,7 +152,7 @@ def extract_mapped_claims(
                     MappedClaim(
                         claim=claim,
                         related_chunks=[ChunkScore(chunk_id=ChunkId(chunk_id), similarity=1.0)],
-                        related_urls=[],  # FIXME
+                        source_urls=chunked_doc.get_source_urls(chunk_id),
                     )
                 )
         log.message(
@@ -186,7 +186,8 @@ def extract_mapped_claims(
                     ChunkScore(chunk_id=ChunkId(key), similarity=score)
                     for key, score in similar_chunks
                 ],
-                related_urls=[],  # FIXME
+                # TODO: For now omitting URLs on key claims since there are likely too many.
+                source_urls=[],
             )
         )
 

@@ -308,7 +308,7 @@ def annotate_paragraph(para: Paragraph, notes: list[str] | None) -> AnnotatedPar
     """
     para_str = para.reassemble()
 
-    ann_para = AnnotatedPara.from_para(para, fn_prefix=FN_PREFIX, fn_start=1)
+    ann_para = AnnotatedPara.unannotated(para, fn_prefix=FN_PREFIX, fn_start=1)
     if notes is None:
         # Paragraph was skipped during research
         log.info("Skipping header or very short paragraph: %r", abbrev_str(para_str))

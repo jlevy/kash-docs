@@ -9,7 +9,6 @@ from prettyfmt import abbrev_obj
 from pydantic import BaseModel, Field
 from typing_extensions import override
 
-from kash.exec.action_exec import Url
 from kash.kits.docs.analysis.analysis_types import (
     CLAIM,
     CLAIM_MAPPING,
@@ -20,6 +19,7 @@ from kash.kits.docs.analysis.analysis_types import (
     format_chunk_link,
     format_chunk_links,
 )
+from kash.utils.common.url import Url
 
 ## Analysis Models and Rubrics
 
@@ -78,7 +78,7 @@ class MappedClaim:
 
     claim: Claim
     related_chunks: list[ChunkScore]
-    related_urls: list[Url]
+    source_urls: list[SourceUrl]
 
     @override
     def __str__(self) -> str:
@@ -127,11 +127,10 @@ class ClaimSupport(BaseModel):
     stance: Stance = Field(description="Type of evidence support")
 
     @classmethod
-    def create(cls, ref_id: RefId | ChunkId, stance: Stance) -> ClaimSupport:
+    def create(cls, ref_id: RefId, stance: Stance) -> ClaimSupport:
         """
         Create ClaimSupport with appropriate score for the stance.
         """
-        ref_id = RefId(ref_id)
         score_mapping = {
             Stance.direct_refute: -2,
             Stance.partial_refute: -1,
@@ -201,6 +200,20 @@ class ClaimLabel(StrEnum):
     """A claim that is controversial where there is varied evidence or conflicting expert opinion"""
 
 
+@dataclass(frozen=True)
+class SourceUrl:
+    """
+    A source URL with a reference id, if available.
+    """
+
+    ref_id: RefId
+    url: Url
+
+    @override
+    def __str__(self) -> str:
+        return f"{self.url} ({self.ref_id})"
+
+
 class ClaimAnalysis(BaseModel):
     """
     Structured analysis of a claim.
@@ -212,8 +225,12 @@ class ClaimAnalysis(BaseModel):
         description="List of ids to pieces of text in the document that are relevant"
     )
 
+    source_urls: list[SourceUrl] = Field(
+        description="List of source URLs cited or relevant to the claim"
+    )
+
     chunk_similarity: list[float] = Field(
-        description="Similarity scores for each chunk in chunk_ids", default_factory=list
+        description="Similarity scores for each chunk in chunk_ids"
     )
 
     rigor_analysis: RigorAnalysis | None = Field(
@@ -225,9 +242,7 @@ class ClaimAnalysis(BaseModel):
         default_factory=list,
     )
 
-    labels: list[ClaimLabel] = Field(
-        description="List of labels for the claim", default_factory=list
-    )
+    labels: list[ClaimLabel] = Field(description="List of labels for the claim")
 
     def debug_summary(self) -> str:
         """
@@ -250,6 +265,10 @@ class ClaimAnalysis(BaseModel):
         else:
             # Fallback if scores not available
             parts.append(f"**Related chunks:** {format_chunk_links(self.chunk_ids)}")
+
+        # Source URLs
+        if self.source_urls:
+            parts.append(f"**Source URLs:** {', '.join(str(su) for su in self.source_urls)}")
 
         # Support analysis
         if self.claim_support:
