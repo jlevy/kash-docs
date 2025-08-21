@@ -6,6 +6,9 @@ ClaimId = NewType("ClaimId", str)
 
 ChunkId = NewType("ChunkId", str)
 
+RefId = NewType("RefId", str)
+"""A chunk id or other referenced id in the document, such as a footnote id."""
+
 
 def claim_id_str(index: int) -> ClaimId:
     """

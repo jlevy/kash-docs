@@ -12,6 +12,7 @@ from kash.utils.common.testing import enable_if
 from kash.utils.common.url import Url
 from kash.utils.text_handling.markdown_footnotes import MarkdownFootnotes
 from kash.utils.text_handling.markdown_utils import extract_urls
+from kash.web_content.canon_url import canonicalize_url
 
 FootnoteId = NewType("FootnoteId", str)
 
@@ -48,7 +49,7 @@ class Footnote:
         """
         Extract URLs from the footnote content.
         """
-        return tuple(extract_urls(self.content))
+        return tuple(sorted(set(canonicalize_url(url) for url in extract_urls(self.content))))
 
     @property
     def primary_url(self) -> Url | None:
@@ -347,6 +348,17 @@ class AnnotatedPara:
         """Get the next footnote number after all current annotations."""
         return self.fn_start + self.annotation_count()
 
+    def get_urls(self) -> tuple[Url, ...]:
+        """
+        Get content of this paragraph plus the linked content.
+        """
+        # Get all URLs im the paragraph and in the footnotes
+        all_para_urls = extract_urls(self.paragraph.reassemble())
+        for _sent_index, footnotes in self.annotations.items():
+            for footnote in footnotes:
+                all_para_urls.extend(footnote.urls)
+        return tuple(sorted(set(canonicalize_url(url) for url in all_para_urls)))
+
 
 @dataclass
 class AnnotatedDoc:
@@ -356,6 +368,9 @@ class AnnotatedDoc:
     Wraps a TextDoc and stores annotations indexed by SentIndex. Also preserves
     the original list of AnnotatedPara in full order so callers can choose to
     include or exclude footnote-definition paragraphs at usage time.
+
+    Currently all annotations are footnotes but we may want to extend this to
+    support links and highlights or other types of annotations.
     """
 
     text_doc: TextDoc

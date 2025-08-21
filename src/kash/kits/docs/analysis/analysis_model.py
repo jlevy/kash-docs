@@ -14,6 +14,7 @@ from kash.kits.docs.analysis.analysis_types import (
     CLAIM_MAPPING,
     KEY_CLAIMS,
     ChunkId,
+    RefId,
     claim_id_str,
     format_chunk_link,
     format_chunk_links,
@@ -117,17 +118,18 @@ class ClaimSupport(BaseModel):
     | 0 | invalid | Resource seems to be invalid, such as an invalid URL, malformed or unclear, hallucinated by an LLM, or otherwise unusable |
     """
 
-    ref_id: str = Field(
-        description="Claim identifier or reference identifier within the document (such as a footnote id in Markdown or span id in HTML)"
+    ref_id: RefId = Field(
+        description="Id for the chunk, footnote, or other reference within the document"
     )
     support_score: int = Field(description="Numeric support score (-2 to +2)")
     stance: Stance = Field(description="Type of evidence support")
 
     @classmethod
-    def create(cls, ref_id: str, stance: Stance) -> ClaimSupport:
+    def create(cls, ref_id: RefId | ChunkId, stance: Stance) -> ClaimSupport:
         """
         Create ClaimSupport with appropriate score for the stance.
         """
+        ref_id = RefId(ref_id)
         score_mapping = {
             Stance.direct_refute: -2,
             Stance.partial_refute: -1,
