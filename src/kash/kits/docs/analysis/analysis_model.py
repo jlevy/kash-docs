@@ -25,7 +25,7 @@ from kash.utils.common.url import Url
 
 
 @dataclass(frozen=True)
-class ChunkScore:
+class RelatedChunk:
     """
     Similarity score for a specific chunk.
     """
@@ -77,7 +77,7 @@ class MappedClaim:
     """
 
     claim: Claim
-    related_chunks: list[ChunkScore]
+    related_chunks: list[RelatedChunk]
     source_urls: list[SourceUrl]
 
     @override

@@ -9,7 +9,7 @@ from strif import abbrev_list, abbrev_str
 from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.llm_transforms import llm_transform_str
-from kash.kits.docs.concepts.doc_annotations import (
+from kash.kits.docs.analysis.doc_annotations import (
     AnnotatedDoc,
     AnnotatedPara,
     map_notes_with_embeddings,

@@ -8,7 +8,7 @@ from chopdiff.docs import Paragraph, TextDoc, TextUnit, first_wordtok, is_tag
 from kash.config.logger import get_logger
 from kash.kits.docs.analysis.analysis_model import SourceUrl
 from kash.kits.docs.analysis.analysis_types import ChunkId, RefId, chunk_id_str
-from kash.kits.docs.concepts.doc_annotations import AnnotatedPara
+from kash.kits.docs.analysis.doc_annotations import AnnotatedPara
 from kash.utils.common.url import Url
 from kash.utils.text_handling.markdown_footnotes import MarkdownFootnotes
 

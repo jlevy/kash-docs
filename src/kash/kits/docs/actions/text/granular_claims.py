@@ -15,8 +15,8 @@ from kash.exec.preconditions import (
 )
 from kash.kits.docs.actions.text.markdownify_doc import markdownify_doc
 from kash.kits.docs.analysis.analysis_model import ClaimAnalysis, DocAnalysis
-from kash.kits.docs.analysis.chunked_doc import ChunkedDoc
 from kash.kits.docs.analysis.claim_mapping import extract_mapped_claims
+from kash.kits.docs.analysis.doc_chunking import ChunkedDoc
 from kash.llm_utils import LLM, LLMName
 from kash.model import Format, Item, ItemType, common_param
 from kash.utils.errors import InvalidInput

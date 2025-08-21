@@ -17,12 +17,12 @@ from kash.exec.preconditions import (
 )
 from kash.kits.docs.actions.text.markdownify_doc import markdownify_doc
 from kash.kits.docs.analysis.analysis_types import ORIGINAL
-from kash.kits.docs.analysis.chunked_doc import ChunkedDoc
 from kash.kits.docs.analysis.claim_analysis import analyze_mapped_claims
 from kash.kits.docs.analysis.claim_mapping import (
     TOP_K_RELATED,
     extract_mapped_claims,
 )
+from kash.kits.docs.analysis.doc_chunking import ChunkedDoc
 from kash.llm_utils import LLM, LLMName
 from kash.model import Format, Item, ItemType, Param, common_param
 from kash.utils.errors import InvalidInput

@@ -19,8 +19,8 @@ from kash.kits.docs.analysis.analysis_model import (
     Stance,
 )
 from kash.kits.docs.analysis.analysis_types import INT_SCORE_INVALID, IntScore
-from kash.kits.docs.analysis.chunked_doc import ChunkedDoc
 from kash.kits.docs.analysis.claim_mapping import TOP_K_RELATED, MappedClaims
+from kash.kits.docs.analysis.doc_chunking import ChunkedDoc
 from kash.llm_utils import Message, MessageTemplate, llm_template_completion
 from kash.model import LLMOptions
 from kash.utils.api_utils.gather_limited import FuncTask, Limit

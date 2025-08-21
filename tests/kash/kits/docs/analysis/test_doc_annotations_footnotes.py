@@ -6,7 +6,7 @@ from textwrap import dedent
 
 from chopdiff.docs.text_doc import Paragraph, TextDoc
 
-from kash.kits.docs.concepts.doc_annotations import (
+from kash.kits.docs.analysis.doc_annotations import (
     AnnotatedDoc,
     AnnotatedPara,
     FootnoteReference,
@@ -275,7 +275,7 @@ def test_from_para_with_footnotes_in_document() -> None:
 
 def test_footnote_dataclass_in_annotations() -> None:
     """Test that Footnote dataclass is properly used in annotations."""
-    from kash.kits.docs.concepts.doc_annotations import Footnote
+    from kash.kits.docs.analysis.doc_annotations import Footnote
 
     para = Paragraph.from_text("Test paragraph.")
     ann_para = AnnotatedPara.unannotated(para)

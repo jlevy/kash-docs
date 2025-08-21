@@ -8,7 +8,7 @@ from kash.exec.preconditions import (
     has_markdown_body,
     has_markdown_with_html_body,
 )
-from kash.kits.docs.analysis.chunked_doc import ChunkedDoc
+from kash.kits.docs.analysis.doc_chunking import ChunkedDoc
 from kash.model import Format, Item, ItemType, Param
 from kash.utils.errors import InvalidInput
 

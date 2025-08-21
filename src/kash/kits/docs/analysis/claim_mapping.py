@@ -10,16 +10,16 @@ from kash.config.logger import get_logger
 from kash.config.settings import global_settings
 from kash.embeddings.embeddings import Embeddings, EmbValue, KeyVal
 from kash.kits.docs.analysis.analysis_model import (
-    ChunkScore,
     Claim,
     MappedClaim,
+    RelatedChunk,
 )
 from kash.kits.docs.analysis.analysis_types import ChunkId, chunk_id_str, claim_id_str
-from kash.kits.docs.analysis.chunked_doc import ChunkedDoc
 from kash.kits.docs.analysis.claim_extraction import (
     extract_granular_claims_text,
     extract_key_claims_text,
 )
+from kash.kits.docs.analysis.doc_chunking import ChunkedDoc
 from kash.kits.docs.concepts.similarity_cache import SimilarityCache
 from kash.utils.api_utils.gather_limited import FuncTask, Limit
 from kash.utils.api_utils.multitask_gather import multitask_gather
@@ -151,7 +151,7 @@ def extract_mapped_claims(
                 granular_claims.append(
                     MappedClaim(
                         claim=claim,
-                        related_chunks=[ChunkScore(chunk_id=ChunkId(chunk_id), similarity=1.0)],
+                        related_chunks=[RelatedChunk(chunk_id=ChunkId(chunk_id), similarity=1.0)],
                         source_urls=chunked_doc.get_source_urls(chunk_id),
                     )
                 )
@@ -183,7 +183,7 @@ def extract_mapped_claims(
             MappedClaim(
                 claim=claim.with_id(chunk_id),
                 related_chunks=[
-                    ChunkScore(chunk_id=ChunkId(key), similarity=score)
+                    RelatedChunk(chunk_id=ChunkId(key), similarity=score)
                     for key, score in similar_chunks
                 ],
                 # TODO: For now omitting URLs on key claims since there are likely too many.
