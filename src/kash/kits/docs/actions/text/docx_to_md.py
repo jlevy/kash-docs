@@ -2,7 +2,7 @@ from kash.exec import kash_action
 from kash.exec.preconditions import is_docx_resource
 from kash.kits.docs.doc_formats import markitdown_convert
 from kash.kits.docs.doc_formats.doc_cleanups import gemini_cleanups
-from kash.kits.docs.doc_formats.markdown_footnotes import convert_endnotes_to_footnotes
+from kash.kits.docs.doc_formats.endnote_utils import convert_endnotes_to_footnotes
 from kash.model import Format, Item
 
 

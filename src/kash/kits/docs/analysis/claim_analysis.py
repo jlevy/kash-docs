@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from strif import abbrev_str
 
@@ -15,6 +14,7 @@ from kash.kits.docs.analysis.analysis_model import (
     MappedClaim,
     RigorAnalysis,
     RigorDimension,
+    Stance,
 )
 from kash.kits.docs.analysis.analysis_types import INT_SCORE_INVALID, IntScore
 from kash.kits.docs.analysis.claim_mapping import TOP_K_RELATED, MappedClaims
@@ -26,15 +26,7 @@ from kash.utils.api_utils.multitask_gather import multitask_gather
 
 log = get_logger(__name__)
 
-
-@dataclass
-class ClaimAnalysisResults:
-    """
-    Holds all analysis results for a single claim.
-    """
-
-    claim_support: list[ClaimSupport]
-    rigor_analysis: RigorAnalysis | None
+TaskType = Literal["support", "rigor"]
 
 
 async def analyze_claims_async(
@@ -58,106 +50,80 @@ async def analyze_claims_async(
         log.warning("No claims included. Skipping claim analysis!")
         return []
 
-    # Combine all tasks while keeping track of their types for labeling
-    all_tasks = []
-    task_types: list[tuple[str, MappedClaim]] = []
+    # Build tasks with aligned metadata (kind, claim_index, dimension)
+    all_tasks: list[FuncTask[IntScore | list[ClaimSupport]]] = []
+    task_meta: list[tuple[TaskType, int, RigorDimension | None]] = []
 
-    # Keep track of where each task type's results will be in the final results list
-    task_result_slices: dict[RigorDimension | Literal["support"], slice] = {}
-    current_index = 0
-
-    # Add support tasks
-    support_tasks = [
-        FuncTask(
-            analyze_claim_support_original,
-            (related, chunked_doc, top_k_chunks),
+    # Support tasks
+    for idx, related in enumerate(claims):
+        all_tasks.append(
+            FuncTask(
+                analyze_claim_support_original,
+                (related, chunked_doc, top_k_chunks),
+            )
         )
-        for related in claims
-    ]
-    all_tasks.extend(support_tasks)
-    task_types.extend([("support", related) for related in claims])
-    task_result_slices["support"] = slice(current_index, current_index + claims_count)
-    current_index += claims_count
+        task_meta.append(("support", idx, None))
 
+    # Rigor tasks
     if include_rigor:
-        # Create tasks for each rigor dimension
-        # Define rigor dimensions with their configurations
-        rigor_tasks_by_dimension: dict[RigorDimension, list[FuncTask]] = {}
-        for dimension, include_evidence, evidence_top_k in [
+        for dim, include_evidence, evidence_top_k in [
             (RigorDimension.clarity, False, 0),
             (RigorDimension.consistency, True, min(3, top_k_chunks)),
             (RigorDimension.completeness, True, min(3, top_k_chunks)),
             (RigorDimension.depth, True, min(3, top_k_chunks)),
         ]:
-            llm_opts = RIGOR_DIMENSION_OPTIONS[dimension]  # noqa: F821
-            rigor_tasks_by_dimension[dimension] = [
-                FuncTask(
-                    analyze_rigor_dimension,
-                    (
-                        related,
-                        chunked_doc,
-                        llm_opts,
-                        dimension.value,  # Pass the string value for logging
-                        include_evidence,
-                        evidence_top_k,
-                    ),
+            llm_opts = RIGOR_DIMENSION_OPTIONS[dim]
+            for idx, related in enumerate(claims):
+                all_tasks.append(
+                    FuncTask(
+                        analyze_rigor_dimension,
+                        (
+                            related,
+                            chunked_doc,
+                            llm_opts,
+                            dim.value,
+                            include_evidence,
+                            evidence_top_k,
+                        ),
+                    )
                 )
-                for related in claims
-            ]
-
-        for dimension in [
-            RigorDimension.clarity,
-            RigorDimension.consistency,
-            RigorDimension.completeness,
-            RigorDimension.depth,
-        ]:
-            all_tasks.extend(rigor_tasks_by_dimension[dimension])
-            task_types.extend([(dimension.value, related) for related in claims])
-            task_result_slices[dimension] = slice(current_index, current_index + claims_count)
-            current_index += claims_count
+                task_meta.append(("rigor", idx, dim))
 
     def analysis_labeler(i: int, spec: Any) -> str:
-        if i < len(task_types):
-            task_type, related = task_types[i]
-            claim_text = abbrev_str(related.claim.text, 30)
-            assert related.claim.id
-            claim_num = int(related.claim.id.split("-")[1]) + 1
-            return f"{task_type.capitalize()} {claim_num}/{claims_count}: {repr(claim_text)}"
-        return f"Analyze task {i + 1}/{len(all_tasks)}"
+        kind, idx, dim = task_meta[i]
+        claim_text = abbrev_str(claims[idx].claim.text, 30)
+        claim_num = idx + 1
+        tag = "support" if kind == "support" else (dim.value if dim else "rigor")
+        return f"{tag.capitalize()} {claim_num}/{claims_count}: {repr(claim_text)}"
 
     # Execute all analysis tasks in parallel with rate limiting
     limit = Limit(rps=global_settings().limit_rps, concurrency=global_settings().limit_concurrency)
 
     gather_result = await multitask_gather(all_tasks, labeler=analysis_labeler, limit=limit)
     if len(gather_result.successes) == 0:
-        raise RuntimeError("analyze_key_claims_async: no successful analysis tasks")
+        raise RuntimeError("analyze_claims_async: no successful analysis tasks")
 
-    all_results = gather_result.successes_or_none
+    results = gather_result.successes_or_none
 
-    # Extract and organize results for each claim
-    claim_results_list: list[ClaimAnalysisResults] = []
+    # Aggregate results per-claim
+    support_by_claim: list[list[ClaimSupport]] = [[] for _ in range(claims_count)]
+    rigor_scores: dict[RigorDimension, list[IntScore]] = {
+        RigorDimension.clarity: [INT_SCORE_INVALID] * claims_count,
+        RigorDimension.consistency: [INT_SCORE_INVALID] * claims_count,
+        RigorDimension.completeness: [INT_SCORE_INVALID] * claims_count,
+        RigorDimension.depth: [INT_SCORE_INVALID] * claims_count,
+    }
 
-    def score_for(dimension: RigorDimension) -> IntScore:
-        return all_results[task_result_slices[dimension]][i] or INT_SCORE_INVALID
-
-    for i in range(claims_count):
-        rigor_analysis = None
-        if include_rigor:
-            rigor_analysis = RigorAnalysis(
-                clarity=score_for(RigorDimension.clarity),
-                consistency=score_for(RigorDimension.consistency),
-                completeness=score_for(RigorDimension.completeness),
-                depth=score_for(RigorDimension.depth),
-            )
-        claim_results = ClaimAnalysisResults(
-            claim_support=all_results[task_result_slices["support"]][i] or [],
-            rigor_analysis=rigor_analysis,
-        )
-        claim_results_list.append(claim_results)
+    for res, (kind, idx, dim) in zip(results, task_meta, strict=False):
+        if kind == "support":
+            support_by_claim[idx] = cast(list[ClaimSupport], res) if res is not None else []
+        else:
+            assert dim is not None
+            rigor_scores[dim][idx] = cast(IntScore, res) if res is not None else INT_SCORE_INVALID
 
     # Build ClaimAnalysis objects
     claim_analyses: list[ClaimAnalysis] = []
-    for related, results in zip(claims, claim_results_list, strict=False):
+    for idx, related in enumerate(claims):
         # Get chunk IDs and scores from the related chunks
         relevant_chunks = related.related_chunks[:top_k_chunks]
         chunk_ids = [cs.chunk_id for cs in relevant_chunks]
@@ -165,28 +131,36 @@ async def analyze_claims_async(
 
         assert related.claim.id
 
+        rigor_analysis: RigorAnalysis | None = None
+        if include_rigor:
+            rigor_analysis = RigorAnalysis(
+                clarity=rigor_scores[RigorDimension.clarity][idx],
+                consistency=rigor_scores[RigorDimension.consistency][idx],
+                completeness=rigor_scores[RigorDimension.completeness][idx],
+                depth=rigor_scores[RigorDimension.depth][idx],
+            )
+
         claim_analysis = ClaimAnalysis(
             claim=related.claim,
             chunk_ids=chunk_ids,
             chunk_similarity=chunk_similarity,
             source_urls=chunked_doc.get_source_urls(*chunk_ids),
-            rigor_analysis=results.rigor_analysis,
-            claim_support=results.claim_support,
-            labels=[],  # Empty for now
+            rigor_analysis=rigor_analysis,
+            claim_support=support_by_claim[idx],
+            labels=[],  # TODO: Not implemented yet
         )
 
         claim_analyses.append(claim_analysis)
 
         # Log summary
-        support_counts = {}
-        for cs in results.claim_support:
+        support_counts: dict[Stance, int] = {}
+        for cs in support_by_claim[idx]:
             support_counts[cs.stance] = support_counts.get(cs.stance, 0) + 1
-
-        log.info(
+        log.message(
             "Claim %s analysis: support: %s, rigor: %s",
             related.claim.id,
             ", ".join(f"{stance}={count}" for stance, count in support_counts.items()),
-            results.rigor_analysis,
+            rigor_analysis,
         )
 
     return claim_analyses

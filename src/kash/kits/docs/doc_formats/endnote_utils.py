@@ -2,6 +2,7 @@ import logging
 import re
 
 log = logging.getLogger(__name__)
+
 _FOOTNOTE_INDENT = "    "
 
 

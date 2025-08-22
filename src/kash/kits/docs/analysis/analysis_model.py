@@ -119,6 +119,9 @@ class ClaimSupport(BaseModel):
     | 0 | mixed | Contains both supporting and refuting evidence or an overview or synthesis of multiple views |
     | 0 | unrelated | Well-formed content that is off-topic or provides no probative content related to the claim |
     | 0 | invalid | Resource seems to be invalid, such as an invalid URL, malformed or unclear, hallucinated by an LLM, or otherwise unusable |
+
+    The support may also optionally include a justification for the stance
+    that explains why the reference supports, refutes, is background, etc.
     """
 
     ref_id: RefId = Field(
@@ -126,9 +129,10 @@ class ClaimSupport(BaseModel):
     )
     support_score: int = Field(description="Numeric support score (-2 to +2)")
     stance: Stance = Field(description="Type of evidence support")
+    justification: str | None = Field(description="Justification for the stance")
 
     @classmethod
-    def create(cls, ref_id: RefId, stance: Stance) -> ClaimSupport:
+    def create(cls, ref_id: RefId, stance: Stance, justification: str | None) -> ClaimSupport:
         """
         Create ClaimSupport with appropriate score for the stance.
         """
@@ -143,7 +147,12 @@ class ClaimSupport(BaseModel):
             Stance.invalid: 0,
             Stance.error: 0,
         }
-        return cls(ref_id=ref_id, stance=stance, support_score=score_mapping[stance])
+        return cls(
+            ref_id=ref_id,
+            stance=stance,
+            support_score=score_mapping[stance],
+            justification=justification,
+        )
 
 
 class RigorDimension(Enum):

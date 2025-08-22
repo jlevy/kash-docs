@@ -13,6 +13,7 @@ from kash.kits.docs.links.links_model import Link
 from kash.kits.docs.links.links_preconditions import is_links_data
 from kash.kits.docs.links.links_utils import parse_links_results_item
 from kash.model import (
+    Format,
     Item,
     ItemType,
     TitleTemplate,
@@ -25,6 +26,7 @@ log = get_logger(__name__)
 
 @kash_action(
     precondition=has_markdown_body | has_markdown_with_html_body | has_html_body | is_links_data,
+    output_format=Format.yaml,
     title_template=TitleTemplate("Links from {title}"),
     live_output=True,
 )
@@ -97,5 +99,7 @@ def markdownify_doc_links(item: Item) -> Item:
         links_data.links[i].content_md_path = str(asset_path.relative_to(sm.assets_dir.parent))
 
     # Return a new links item.
-    new_links_item = links_item.derived_copy(body=to_yaml_string(links_data.model_dump()))
+    new_links_item = links_item.derived_copy(
+        format=Format.yaml, body=to_yaml_string(links_data.model_dump())
+    )
     return new_links_item

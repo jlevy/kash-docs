@@ -8,10 +8,12 @@ from kash.config.logger import get_logger
 from kash.kits.docs.analysis.analysis_model import (
     ClaimSupport,
     MappedClaim,
+    SourceUrl,
     Stance,
 )
 from kash.kits.docs.analysis.claim_mapping import TOP_K_RELATED
 from kash.kits.docs.analysis.doc_chunking import ChunkedDoc
+from kash.kits.docs.analysis.source_importing import get_source_text
 from kash.llm_utils import Message, MessageTemplate, llm_template_completion
 from kash.model import LLMOptions
 
@@ -46,6 +48,17 @@ claim_support_options = LLMOptions(
         - **unrelated**: The passage is not relevant to evaluating the claim
         - **invalid**: The passage appears corrupted, unclear, or unusable
         
+        Be precise and thoughtful. Consider:
+        - Does the passage directly address the claim or just mention related topics?
+        - Is the evidence definitive or qualified/partial?
+        - Does the passage present multiple viewpoints?
+        """
+    ),
+)
+
+
+multi_passage_prompt = dedent(
+    """
         Output your analysis as a simple list, one stance per line, in the format:
         passage_1: stance
         passage_2: stance
@@ -55,14 +68,29 @@ claim_support_options = LLMOptions(
         passage_2: background
         passage_3: partial_refute
         
-        Be precise and thoughtful. Consider:
-        - Does the passage directly address the claim or just mention related topics?
-        - Is the evidence definitive or qualified/partial?
-        - Does the passage present multiple viewpoints?
-        
         Output ONLY the stance labels, no additional commentary.
         """
-    ),
+)
+
+single_passage_prompt = dedent(
+    """
+    Output the analsysis ONLY as the SINGLE WORD stance label, followed by
+    a ONE-SENTENCE justification.
+
+    Example 1: For the claim "Acme, Inc. had $120M in revenue in 2022" if the
+    passage is a news article that confirms this value, then the output should be:
+
+    direct_support: This is a reputable news source that confirms the revenue number of $120M for 2022.
+
+    Example 2: For the claim "Acme, Inc. had $120M in revenue in 2022" if the
+    passage is a news article that only says that Acme is a company that makes
+    high-end cooking appliances,then the output should be:
+    
+    background: Acme is a company that makes high-end cooking appliances.
+
+    The label must be one of the valid stance values: `direct_support`, `partial_support`,
+    `partial_refute`, `direct_refute`, `background`, `mixed`, `unrelated`, or `invalid`.
+    """
 )
 
 
@@ -115,7 +143,9 @@ def analyze_claim_support_original(
     llm_response = llm_template_completion(
         model=claim_support_options.model,
         system_message=claim_support_options.system_message,
-        body_template=claim_support_options.body_template,
+        body_template=MessageTemplate(
+            claim_support_options.body_template.template + "\n\n" + multi_passage_prompt
+        ),
         input=input_body,
     ).content
 
@@ -138,7 +168,7 @@ def analyze_claim_support_original(
                 break
 
         # Create ClaimSupport object
-        support = ClaimSupport.create(ref_id=cs.chunk_id, stance=stance)
+        support = ClaimSupport.create(ref_id=cs.chunk_id, stance=stance, justification=None)
         claim_supports.append(support)
 
         log.info(
@@ -150,3 +180,54 @@ def analyze_claim_support_original(
         )
 
     return claim_supports
+
+
+def analyze_claim_support_source(
+    related: MappedClaim, chunked_doc: ChunkedDoc, source_url: SourceUrl
+) -> ClaimSupport:
+    """
+    Analyze a claim and its related chunks from the original document.
+
+    Args:
+        related: The claim and its related chunks
+        chunked_doc: The chunked document
+        top_k_chunks: Number of top chunks to analyze
+    """
+    source_text = get_source_text(source_url)
+    log.message(
+        "Analyzing claim support for %s (markdown %d chars)...",
+        source_url.url,
+        len(source_text),
+    )
+
+    # Call LLM to analyze stances
+    # Format the input body with the claim and passages
+    input_body = dedent(f"""
+        **The Claim:** {related.claim.text}
+
+        **Related Source Text:**
+        {source_text}
+        """)
+
+    llm_response = llm_template_completion(
+        model=claim_support_options.model,
+        system_message=claim_support_options.system_message,
+        body_template=MessageTemplate(
+            claim_support_options.body_template.template + "\n\n" + single_passage_prompt
+        ),
+        input=input_body,
+    ).content
+
+    # Parse the response
+    result_str = llm_response.strip().strip("\"'`")
+    stance = Stance.error  # Default if parsing fails
+    justification = None
+    try:
+        label, justification = result_str.split(":", 1)
+        stance = Stance[label]
+        justification = justification.strip()
+    except (KeyError, ValueError):
+        log.error("Invalid stance value: %r", result_str)
+
+    # Create ClaimSupport object
+    return ClaimSupport.create(ref_id=source_url.ref_id, stance=stance, justification=justification)

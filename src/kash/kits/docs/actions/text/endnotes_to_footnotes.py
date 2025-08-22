@@ -1,6 +1,6 @@
 from kash.exec import kash_action
 from kash.exec.preconditions import has_markdown_body
-from kash.kits.docs.doc_formats.markdown_footnotes import convert_endnotes_to_footnotes
+from kash.kits.docs.doc_formats.endnote_utils import convert_endnotes_to_footnotes
 from kash.model import Format, Item, ItemType
 
 

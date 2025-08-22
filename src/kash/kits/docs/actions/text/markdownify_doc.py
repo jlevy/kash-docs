@@ -11,7 +11,7 @@ from kash.exec.preconditions import (
 )
 from kash.kits.docs.actions.text.docx_to_md import docx_to_md
 from kash.kits.docs.actions.text.pdf_to_md import pdf_to_md
-from kash.model import Item, Param
+from kash.model import Format, Item, Param
 from kash.utils.errors import InvalidInput
 
 log = get_logger(__name__)
@@ -23,6 +23,7 @@ log = get_logger(__name__)
     | is_pdf_resource
     | has_html_body
     | has_simple_text_body,
+    output_format=Format.markdown,
     params=(
         Param(
             name="pdf_converter",
