@@ -1557,8 +1557,8 @@ dev = [
 
 [[package]]
 name = "kash-shell"
-version = "0.3.34.dev9+113e94e"
-source = { git = "https://github.com/jlevy/kash.git#113e94e7b3bc71a04327a8c34d2902a372f10313" }
+version = "0.3.34.dev10+468c777"
+source = { git = "https://github.com/jlevy/kash.git#468c7777d88194e79a3f06f62d0d70c896f49152" }
 dependencies = [
     { name = "aiolimiter" },
     { name = "anyio" },

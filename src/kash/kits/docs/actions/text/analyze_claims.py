@@ -15,6 +15,7 @@ from kash.exec.preconditions import (
     is_pdf_resource,
     is_url_resource,
 )
+from kash.kits.docs.actions.text.fetch_links import fetch_links
 from kash.kits.docs.actions.text.markdownify_doc import markdownify_doc
 from kash.kits.docs.analysis.analysis_types import ORIGINAL
 from kash.kits.docs.analysis.claim_analysis import analyze_mapped_claims
@@ -23,8 +24,10 @@ from kash.kits.docs.analysis.claim_mapping import (
     extract_mapped_claims,
 )
 from kash.kits.docs.analysis.doc_chunking import ChunkedDoc
+from kash.kits.docs.links.links_model import LinkResults
 from kash.llm_utils import LLM, LLMName
 from kash.model import Format, Item, ItemType, Param, common_param
+from kash.model.items_model import from_yaml_string
 from kash.utils.errors import InvalidInput
 from kash.workspaces.workspaces import current_ws
 
@@ -77,6 +80,11 @@ def analyze_claims(
     text_doc = TextDoc.from_text(as_markdown.body)
     chunked_doc = ChunkedDoc.from_text_doc(text_doc, min_size=1)
 
+    # Fetch links so they are all fetched concurrently as much as possible.
+    links_item = fetch_links(item)
+    assert links_item.body
+    source_links = LinkResults.model_validate(from_yaml_string(links_item.body))
+
     # Extract and map all claims.
     mapped_claims = extract_mapped_claims(
         chunked_doc,
@@ -87,7 +95,7 @@ def analyze_claims(
 
     # Analyze the claims for support stances (using top 5 chunks per claim)
     log.message("Analyzing claims...")
-    doc_analysis = analyze_mapped_claims(mapped_claims, top_k=5)
+    doc_analysis = analyze_mapped_claims(mapped_claims, source_links=source_links, top_k=5)
 
     # Format output with claims and their related chunks
     output_parts = []

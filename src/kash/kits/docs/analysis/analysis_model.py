@@ -19,6 +19,7 @@ from kash.kits.docs.analysis.analysis_types import (
     format_chunk_link,
     format_chunk_links,
 )
+from kash.kits.docs.links.links_model import FetchStatus
 from kash.utils.common.url import Url
 
 ## Analysis Models and Rubrics
@@ -210,6 +211,10 @@ class SourceUrl:
 
     ref_id: RefId
     url: Url
+    status: FetchStatus | None
+    status_code: int | None
+    content_md_path: str | None
+    doc_info: str | None
 
     @override
     def __str__(self) -> str:

@@ -9,6 +9,7 @@ from kash.config.logger import get_logger
 from kash.kits.docs.analysis.analysis_model import SourceUrl
 from kash.kits.docs.analysis.analysis_types import ChunkId, RefId, chunk_id_str
 from kash.kits.docs.analysis.doc_annotations import AnnotatedPara
+from kash.kits.docs.links.links_model import LinkResults
 from kash.utils.common.url import Url
 from kash.utils.text_handling.markdown_footnotes import MarkdownFootnotes
 
@@ -87,15 +88,36 @@ class ChunkedDoc:
 
         return url_map
 
-    def get_source_urls(self, *chunk_ids: ChunkId) -> list[SourceUrl]:
+    def get_source_urls(
+        self, chunk_ids: list[ChunkId], source_links: LinkResults | None
+    ) -> list[SourceUrl]:
         """
         Get source URLs for the given chunk IDs.
+        Merges in info about sources, status etc if available.
         """
-        source_urls = [
-            SourceUrl(url=url, ref_id=ref_id)
-            for chunk_id in chunk_ids
-            for url, ref_id in self._get_urls_for_chunk(chunk_id).items()
-        ]
+
+        source_urls: list[SourceUrl] = []
+        for chunk_id in chunk_ids:
+            for url, ref_id in self._get_urls_for_chunk(chunk_id).items():
+                status = None
+                status_code = None
+                content_md_path = None
+                if source_links:
+                    link = source_links.get_link(url)
+                    if link:
+                        status = link.status
+                        status_code = link.status_code
+                        content_md_path = link.content_md_path
+                source_urls.append(
+                    SourceUrl(
+                        ref_id=ref_id,
+                        url=url,
+                        status=status,
+                        status_code=status_code,
+                        content_md_path=content_md_path,
+                        doc_info=None,
+                    )
+                )
 
         return source_urls
 

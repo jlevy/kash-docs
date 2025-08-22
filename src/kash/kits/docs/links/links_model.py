@@ -1,11 +1,20 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from functools import cached_property
 
 from pydantic import BaseModel
+from strif import abbrev_str, single_line
+
+from kash.config.logger import get_logger
+from kash.model import Item, StorePath
+from kash.utils.common.url import Url
+from kash.workspaces import current_ws
+
+log = get_logger(__name__)
 
 
-class LinkStatus(StrEnum):
+class FetchStatus(StrEnum):
     """
     The status of a link based on a fetch attempt.
     """
@@ -20,7 +29,7 @@ class LinkStatus(StrEnum):
     disabled = "disabled"
 
     @classmethod
-    def from_status_code(cls, status_code: int | None) -> LinkStatus:
+    def from_status_code(cls, status_code: int | None) -> FetchStatus:
         """
         Create a LinkStatus from an HTTP status code.
         """
@@ -67,14 +76,14 @@ class Link(BaseModel):
     description: str | None = None
     summary: str | None = None
 
-    status: LinkStatus = LinkStatus.new
+    status: FetchStatus = FetchStatus.new
     status_code: int | None = None
 
     content_md_path: str | None = None
     """Points to the path of the Markdown content of the link."""
 
 
-class LinkError(BaseModel):
+class FetchError(BaseModel):
     """
     An error that occurred while downloading a link.
     """
@@ -85,10 +94,45 @@ class LinkError(BaseModel):
 
 class LinkResults(BaseModel):
     """
-    Collection of successfully downloaded links.
+    Collection of downloaded links.
+    Parsing methods cache link info, so consider this immutable after creation.
     """
 
     links: list[Link]
+
+    @cached_property
+    def link_map(self) -> dict[Url, Link]:
+        """Get a map of links by URL."""
+        return {Url(link.url): link for link in self.links}
+
+    def get_link(self, url: Url) -> Link | None:
+        """Get a link by URL."""
+        return self.link_map.get(url)
+
+    def get_source_md_item(self, url: Url) -> Item:
+        """Get the source Markdown item for a link, from the current workspace."""
+        ws = current_ws()
+
+        link = self.get_link(url)
+        if not link:
+            raise ValueError(f"Link not found: {url}")
+        if link.status != FetchStatus.fetched:
+            raise ValueError(f"Link was not fetched successfully: {link.status}: {url}")
+        if not link.content_md_path:
+            raise ValueError(f"Link has no content path: {url}")
+
+        return ws.load(StorePath(link.content_md_path))
+
+    def get_source_text(self, url: Url) -> str:
+        """Get the source text for a link."""
+        item = self.get_source_md_item(url)
+        if not item.format or not item.format.is_markdown and not item.format.is_markdown_with_html:
+            raise ValueError(f"Expected markdown for source item: {url}")
+        if not item.body:
+            raise ValueError(f"Source item has no body: {url}")
+
+        log.message("Got source text for %s: %s", url, single_line(abbrev_str(item.body, 100)))
+        return item.body
 
 
 class LinkDownloadResult(BaseModel):
@@ -97,7 +141,10 @@ class LinkDownloadResult(BaseModel):
     """
 
     links: list[Link]
-    errors: list[LinkError]
+    """All links, with all status codes."""
+
+    errors: list[FetchError]
+    """Additional info about errors."""
 
     @property
     def total_attempted(self) -> int:
@@ -113,3 +160,13 @@ class LinkDownloadResult(BaseModel):
     def total_successes(self) -> int:
         """Total number of links that were successfully downloaded."""
         return self.total_attempted - self.total_errors
+
+    def histogram(self) -> dict[FetchStatus, int]:
+        """
+        Return counts of links grouped by fetch status.
+        """
+        counts: dict[FetchStatus, int] = {}
+        for link in self.links:
+            code = link.status
+            counts[code] = counts.get(code, 0) + 1
+        return counts

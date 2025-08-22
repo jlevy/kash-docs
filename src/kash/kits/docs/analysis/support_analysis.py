@@ -13,7 +13,7 @@ from kash.kits.docs.analysis.analysis_model import (
 )
 from kash.kits.docs.analysis.claim_mapping import TOP_K_RELATED
 from kash.kits.docs.analysis.doc_chunking import ChunkedDoc
-from kash.kits.docs.analysis.source_importing import get_source_text
+from kash.kits.docs.links.links_model import LinkResults
 from kash.llm_utils import Message, MessageTemplate, llm_template_completion
 from kash.model import LLMOptions
 
@@ -74,7 +74,7 @@ multi_passage_prompt = dedent(
 
 single_passage_prompt = dedent(
     """
-    Output the analsysis ONLY as the SINGLE WORD stance label, followed by
+    Output the analysis ONLY as the SINGLE WORD stance label, followed by
     a ONE-SENTENCE justification.
 
     Example 1: For the claim "Acme, Inc. had $120M in revenue in 2022" if the
@@ -84,7 +84,7 @@ single_passage_prompt = dedent(
 
     Example 2: For the claim "Acme, Inc. had $120M in revenue in 2022" if the
     passage is a news article that only says that Acme is a company that makes
-    high-end cooking appliances,then the output should be:
+    high-end cooking appliances, then the output should be:
     
     background: Acme is a company that makes high-end cooking appliances.
 
@@ -182,23 +182,36 @@ def analyze_claim_support_original(
     return claim_supports
 
 
+def get_source_text(source_url: SourceUrl, links_results: LinkResults) -> str:
+    """
+    Get the converted markdown text from a source URL.
+    This assumes we've already fetched all available links.
+    """
+    md_item = links_results.get_source_md_item(source_url.url)
+    if not md_item.body:
+        raise ValueError(f"No body found for source URL: {source_url.url}")
+    return md_item.body
+
+
 def analyze_claim_support_source(
-    related: MappedClaim, chunked_doc: ChunkedDoc, source_url: SourceUrl
+    related: MappedClaim, links_results: LinkResults, source_url: SourceUrl
 ) -> ClaimSupport:
     """
-    Analyze a claim and its related chunks from the original document.
+    Analyze a claim against the content at a referenced `source_url`.
 
-    Args:
-        related: The claim and its related chunks
-        chunked_doc: The chunked document
-        top_k_chunks: Number of top chunks to analyze
+    The source content is fetched and converted to markdown text, then the LLM
+    returns a single stance label with a brief justification.
     """
-    source_text = get_source_text(source_url)
-    log.message(
-        "Analyzing claim support for %s (markdown %d chars)...",
-        source_url.url,
-        len(source_text),
-    )
+    source_text = None
+    try:
+        source_text = get_source_text(source_url, links_results)
+        log.message(
+            "Analyzing claim support for %s (markdown %d chars)...",
+            source_url.url,
+            len(source_text),
+        )
+    except ValueError as e:
+        log.warning("No source text for url: %s: %s", source_url.url, e)
 
     # Call LLM to analyze stances
     # Format the input body with the claim and passages

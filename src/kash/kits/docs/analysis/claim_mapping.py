@@ -21,6 +21,7 @@ from kash.kits.docs.analysis.claim_extraction import (
 )
 from kash.kits.docs.analysis.doc_chunking import ChunkedDoc
 from kash.kits.docs.concepts.similarity_cache import SimilarityCache
+from kash.kits.docs.links.links_model import LinkResults
 from kash.utils.api_utils.gather_limited import FuncTask, Limit
 from kash.utils.api_utils.multitask_gather import multitask_gather
 
@@ -94,6 +95,7 @@ TOP_K_RELATED = 8
 
 def extract_mapped_claims(
     chunked_doc: ChunkedDoc,
+    source_links: LinkResults | None = None,
     top_k: int = TOP_K_RELATED,
     include_key_claims: bool = True,
     include_granular_claims: bool = True,
@@ -152,7 +154,9 @@ def extract_mapped_claims(
                     MappedClaim(
                         claim=claim,
                         related_chunks=[RelatedChunk(chunk_id=ChunkId(chunk_id), similarity=1.0)],
-                        source_urls=chunked_doc.get_source_urls(chunk_id),
+                        source_urls=chunked_doc.get_source_urls(
+                            [chunk_id], source_links=source_links
+                        ),
                     )
                 )
         log.message(

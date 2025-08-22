@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 
 from frontmatter_format import to_yaml_string
+from prettyfmt import fmt_lines
 
 from kash.config.logger import get_logger
 from kash.exec import kash_action
@@ -21,6 +22,7 @@ log = get_logger(__name__)
 
 @kash_action(
     precondition=has_markdown_body | has_markdown_with_html_body | has_html_body | is_links_data,
+    output_format=Format.yaml,
     title_template=TitleTemplate("Link metadata from {title}"),
     live_output=True,
     params=(
@@ -66,6 +68,13 @@ def fetch_links(item: Item, refetch: bool = False) -> Item:
             download_result.total_errors,
             download_result.total_attempted,
         )
+
+    # Print concise histogram: tallies by HTTP status code
+    code_counts = download_result.histogram()
+    if code_counts:
+        lines = ["by_status_code:"]
+        lines.extend(f"  {code}: {count}" for code, count in sorted(code_counts.items()))
+        log.message("Status code tallies:\n%s", fmt_lines(lines))
 
     results = LinkResults(links=download_result.links)
     result_item = item.derived_copy(format=Format.yaml, body=to_yaml_string(results.model_dump()))

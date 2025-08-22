@@ -7,7 +7,7 @@ from strif import abbrev_str
 
 from kash.config.logger import get_logger
 from kash.exec.fetch_url_items import fetch_url_item
-from kash.kits.docs.links.links_model import Link, LinkDownloadResult, LinkError, LinkStatus
+from kash.kits.docs.links.links_model import FetchError, FetchStatus, Link, LinkDownloadResult
 from kash.utils.api_utils.api_retries import RetrySettings
 from kash.utils.api_utils.gather_limited import FuncTask, Limit, TaskResult
 from kash.utils.api_utils.http_utils import extract_http_status_code
@@ -52,8 +52,9 @@ def fetch_url_task(
             url=url,
             title=fetch_result.item.title,
             description=fetch_result.item.description,
-            status=LinkStatus.from_status_code(status_code),
+            status=FetchStatus.from_status_code(status_code),
             status_code=status_code,
+            content_md_path=fetch_result.item.store_path,
         )
 
         # If content was cached, bypass rate limiting since no actual network request was made
@@ -69,7 +70,9 @@ def fetch_url_task(
         status_code = extract_http_status_code(e)
 
         # Determine appropriate status using class method
-        status = LinkStatus.from_status_code(status_code) if status_code else LinkStatus.fetch_error
+        status = (
+            FetchStatus.from_status_code(status_code) if status_code else FetchStatus.fetch_error
+        )
 
         # Create Link object with error status instead of raising exception
         error_link = Link(
@@ -143,13 +146,13 @@ async def fetch_urls_async(urls: list[Url], show_progress: bool = True) -> LinkD
     task_results: list[Link] = gather_result.successes
 
     links: list[Link] = []
-    errors: list[LinkError] = []
+    errors: list[FetchError] = []
 
     for link in task_results:
         assert isinstance(link, Link)
         if link.status.is_error:
             errors.append(
-                LinkError(
+                FetchError(
                     url=link.url,
                     error_message=f"Status: {link.status_code} ({link.status.value})",
                 )
