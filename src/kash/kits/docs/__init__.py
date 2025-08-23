@@ -7,9 +7,12 @@ import_and_register(
     Path(__file__).parent,
     [
         "actions",
+        "analysis",
         "concepts",
         "doc_formats",
         "wiki",
+        "links",
         "utils",
+        "wiki",
     ],
 )
