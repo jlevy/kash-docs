@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TypeVar
 
 from kash.config.logger import get_logger
 from kash.exec import kash_action
@@ -11,9 +10,6 @@ from kash.model import Item, LLMOptions
 from kash.utils.errors import InvalidInput
 
 log = get_logger(__name__)
-
-FN_PREFIX = "RES"
-T = TypeVar("T")
 
 
 llm_options = LLMOptions(
@@ -269,6 +265,9 @@ llm_options = LLMOptions(
 )
 
 
+FN_PREFIX = "res"
+
+
 @kash_action(llm_options=llm_options, live_output=True, mcp_tool=True)
 def research_paras(item: Item) -> Item:
     """
@@ -277,4 +276,4 @@ def research_paras(item: Item) -> Item:
     if not item.body:
         raise InvalidInput(f"Item must have a body: {item}")
 
-    return asyncio.run(annotate_paras_async(llm_options, item))
+    return asyncio.run(annotate_paras_async(llm_options, item, fn_prefix=FN_PREFIX))
