@@ -79,6 +79,9 @@ class Link(BaseModel):
     status: FetchStatus = FetchStatus.new
     status_code: int | None = None
 
+    content_orig_path: str | None = None
+    """Points to the path of the original content of the link."""
+
     content_md_path: str | None = None
     """Points to the path of the Markdown content of the link."""
 

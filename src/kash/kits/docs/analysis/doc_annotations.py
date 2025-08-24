@@ -94,6 +94,24 @@ class FootnoteReference:
     """Which sentence contains this reference"""
 
 
+def increment_id(id_str: str) -> tuple[str, int]:
+    """
+    Increment the trailing number in an ID by 1.
+    Only matches the trailing digits; everything before is treated as the base:
+      "^res2" -> ("^res3", 3)
+      "res.2"  -> ("res.3", 3)
+      "^ref"  -> ("^ref1", 1)
+      "ref"   -> ("ref1", 1)
+    """
+    match = re.match(r"^(.*?)(\d+)$", id_str)
+    if match:
+        base, num_str = match.groups()
+        next_num = int(num_str) + 1
+        return f"{base}{next_num}", next_num
+    else:
+        return f"{id_str}1", 1
+
+
 def check_fn_id(footnote_id: str) -> FootnoteId:
     """
     Validate and return a footnote ID. IDs should include the ^ prefix.
@@ -589,21 +607,16 @@ class AnnotatedDoc:
                 f"Sentence index {sent_index.sent_index} out of range in paragraph {sent_index.para_index}"
             )
 
-        # Generate next available footnote ID for this prefix and add mapping
-        prefix_with_caret = f"^{fn_prefix}"
-        used_nums = set()
-        for fid in self.footnote_mapping.keys():
-            if str(fid).startswith(prefix_with_caret):
-                num_part = str(fid)[len(prefix_with_caret) :]
-                if num_part.isdigit():
-                    used_nums.add(int(num_part))
+        # Start from the provided prefix
+        # Build initial candidate and increment until unique
+        candidate = f"^{fn_prefix}" if fn_prefix else "^1"
+        if fn_prefix:
+            candidate, _ = increment_id(candidate)
 
-        next_num = 1
-        while next_num in used_nums:
-            next_num += 1
-
-        full_id = f"{fn_prefix}{next_num}"
-        footnote_id = check_fn_id(_normalize_footnote_id(full_id))
+        footnote_id = check_fn_id(_normalize_footnote_id(candidate))
+        while footnote_id in self.footnote_mapping:
+            candidate, _ = increment_id(candidate)
+            footnote_id = check_fn_id(_normalize_footnote_id(candidate))
         self.footnote_mapping[footnote_id] = Footnote(id=footnote_id, content=annotation)
 
         # Add reference from sentence to this new footnote ID

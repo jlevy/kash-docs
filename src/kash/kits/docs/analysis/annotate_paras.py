@@ -75,7 +75,9 @@ def annotate_para(
     return ann_para
 
 
-async def annotate_paras_async(llm_options: LLMOptions, item: Item) -> Item:
+async def annotate_paras_async(
+    llm_options: LLMOptions, item: Item, fn_prefix: str = "", fn_start: int = 1
+) -> Item:
     if not item.body:
         raise InvalidInput(f"Item must have a body: {item}")
     doc = TextDoc.from_text(item.body)
@@ -113,7 +115,7 @@ async def annotate_paras_async(llm_options: LLMOptions, item: Item) -> Item:
 
     # Create annotation tasks
     annotation_tasks: list[FuncTask[AnnotatedPara]] = [
-        FuncTask(annotate_para, (para, notes))
+        FuncTask(annotate_para, (para, notes, fn_prefix, fn_start))
         for para, notes in zip(paragraphs, paragraph_notes, strict=False)
     ]
 

@@ -7,6 +7,7 @@ from strif import abbrev_str
 
 from kash.config.logger import get_logger
 from kash.exec.fetch_url_items import fetch_url_item
+from kash.kits.docs.actions.text.markdownify_doc import markdownify_doc
 from kash.kits.docs.links.links_model import FetchError, FetchStatus, Link, LinkDownloadResult
 from kash.utils.api_utils.api_retries import RetrySettings
 from kash.utils.api_utils.gather_limited import FuncTask, Limit, TaskResult
@@ -33,7 +34,7 @@ class HTTPClientError(Exception):
 
 
 def fetch_url_task(
-    url: Url, *, save_content: bool = True, refetch: bool = False
+    url: Url, *, save_content: bool = True, refetch: bool = False, convert_to_md: bool = True
 ) -> TaskResult[Link]:
     """
     Download a single URL and extract metadata, by default also saving to cache.
@@ -46,6 +47,16 @@ def fetch_url_task(
             url, save_content=save_content, refetch=refetch, cache=True, overwrite=True
         )
 
+        orig_item = fetch_result.item
+        if orig_item.format and (
+            orig_item.format.is_markdown or orig_item.format.is_markdown_with_html
+        ):
+            md_item = orig_item
+        elif convert_to_md:
+            md_item = markdownify_doc(orig_item)
+        else:
+            md_item = None
+
         # Successful fetch
         status_code = 200
         link = Link(
@@ -54,7 +65,8 @@ def fetch_url_task(
             description=fetch_result.item.description,
             status=FetchStatus.from_status_code(status_code),
             status_code=status_code,
-            content_md_path=fetch_result.item.store_path,
+            content_orig_path=orig_item.store_path,
+            content_md_path=(md_item and md_item.store_path) or orig_item.store_path,
         )
 
         # If content was cached, bypass rate limiting since no actual network request was made
