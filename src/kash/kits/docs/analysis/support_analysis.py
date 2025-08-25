@@ -204,15 +204,13 @@ def analyze_claim_support_source(
     returns a single stance label with a brief justification.
     """
     source_text = None
-    try:
-        source_text = get_source_text(source_url, links_results)
-        log.message(
-            "Analyzing claim support for against source: %s in markdown extracted from: %s",
-            TextDoc.from_text(source_text).size_summary(),
-            source_url.url,
-        )
-    except ValueError as e:
-        log.warning("No source text for url: %s: %s", source_url.url, e)
+
+    source_text = get_source_text(source_url, links_results)
+    log.message(
+        "Analyzing claim support for against source: %s in markdown extracted from: %s",
+        TextDoc.from_text(source_text).size_summary(),
+        source_url.url,
+    )
 
     # Call LLM to analyze stances
     # Format the input body with the claim and passages

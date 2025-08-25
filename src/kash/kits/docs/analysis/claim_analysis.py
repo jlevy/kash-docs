@@ -244,8 +244,9 @@ def analyze_mapped_claims(
         )
     )
 
+    footnotes = mapped_claims.chunked_doc.footnote_mapping
+    log.message("Including %d footnotes in analysis output", len(footnotes))
+
     return DocAnalysis(
-        key_claims=claim_analyses,
-        granular_claims=granular_analyses,
-        footnotes=mapped_claims.chunked_doc.footnote_mapping,
+        key_claims=claim_analyses, granular_claims=granular_analyses, footnotes=footnotes
     )

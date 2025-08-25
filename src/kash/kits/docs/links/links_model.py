@@ -113,14 +113,19 @@ class LinkResults(BaseModel):
         return self.link_map.get(url)
 
     def get_source_md_item(self, url: Url) -> Item:
-        """Get the source Markdown item for a link, from the current workspace."""
+        """
+        Get the source Markdown item for a link, from the current workspace.
+        show
+        """
         ws = current_ws()
 
         link = self.get_link(url)
         if not link:
             raise ValueError(f"Link not found: {url}")
         if link.status != FetchStatus.fetched:
-            raise ValueError(f"Link was not fetched successfully: {link.status}: {url}")
+            raise ValueError(
+                f"Link was not fetched successfully: {link.status} ({link.status_code}): {url}"
+            )
         if not link.content_md_path:
             raise ValueError(f"Link has no content path: {url}")
 
