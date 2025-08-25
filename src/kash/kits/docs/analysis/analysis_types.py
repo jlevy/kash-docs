@@ -1,4 +1,10 @@
+from dataclasses import dataclass
+from functools import cached_property
 from typing import NewType
+
+from kash.utils.common.url import Url
+from kash.utils.text_handling.markdown_utils import extract_urls
+from kash.web_content.canon_url import canonicalize_url
 
 ## ID types
 
@@ -48,6 +54,57 @@ def format_chunk_links(chunk_ids: list[ChunkId]) -> str:
     Format a list of chunk IDs as clickable HTML links.
     """
     return ", ".join(format_chunk_link(cid) for cid in chunk_ids)
+
+
+## Shared document types
+
+
+@dataclass(frozen=True)
+class Footnote:
+    """
+    Represents a footnote with its ID and content.
+    """
+
+    id: FootnoteId
+    """The footnote ID (includes ^ prefix, e.g., "^123", "^foo")"""
+
+    content: str
+    """The footnote content/annotation text"""
+
+    @cached_property
+    def urls(self) -> tuple[Url, ...]:
+        """
+        Extract unique URLs from the footnote content.
+        """
+        return tuple(sorted(set(canonicalize_url(url) for url in extract_urls(self.content))))
+
+    @property
+    def primary_url(self) -> Url | None:
+        """
+        Extract the first URL from the footnote content. Useful for when we know footnotes
+        have been structured with a most one URL.
+        """
+        return self.urls[0] if self.urls else None
+
+
+@dataclass
+class TextSpan:
+    """
+    Represents a span of text within a string.
+    """
+
+    start: int
+    """Start position of the span in the text"""
+
+    end: int
+    """End position of the span in the text"""
+
+    text: str
+    """The actual text content of the span"""
+
+    def __post_init__(self):
+        if self.start < 0 or self.end < self.start:
+            raise ValueError(f"Invalid span: start={self.start}, end={self.end}")
 
 
 ## HTML Conventions

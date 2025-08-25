@@ -6,11 +6,11 @@ from textwrap import dedent
 
 from chopdiff.docs.text_doc import Paragraph, TextDoc
 
+from kash.kits.docs.analysis.analysis_types import Footnote, TextSpan
 from kash.kits.docs.analysis.doc_annotations import (
     AnnotatedDoc,
     AnnotatedPara,
     FootnoteReference,
-    TextSpan,
 )
 from kash.utils.text_handling.markdown_footnotes import MarkdownFootnotes
 
@@ -275,7 +275,6 @@ def test_from_para_with_footnotes_in_document() -> None:
 
 def test_footnote_dataclass_in_annotations() -> None:
     """Test that Footnote dataclass is properly used in annotations."""
-    from kash.kits.docs.analysis.doc_annotations import Footnote
 
     para = Paragraph.from_text("Test paragraph.")
     ann_para = AnnotatedPara.unannotated(para)

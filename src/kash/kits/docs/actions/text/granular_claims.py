@@ -71,7 +71,9 @@ def granular_claims(
             )
         )
 
-    doc_analysis = DocAnalysis(key_claims=[], granular_claims=granular_analyses)
+    doc_analysis = DocAnalysis(
+        key_claims=[], granular_claims=granular_analyses, footnotes=chunked_doc.footnote_mapping
+    )
     return item.derived_copy(
         type=ItemType.data, format=Format.yaml, body=to_yaml_string(doc_analysis.model_dump())
     )

@@ -244,4 +244,8 @@ def analyze_mapped_claims(
         )
     )
 
-    return DocAnalysis(key_claims=claim_analyses, granular_claims=granular_analyses)
+    return DocAnalysis(
+        key_claims=claim_analyses,
+        granular_claims=granular_analyses,
+        footnotes=mapped_claims.chunked_doc.footnote_mapping,
+    )

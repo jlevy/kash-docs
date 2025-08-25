@@ -54,6 +54,7 @@ def annotate_para(
     """
     para_str = para.reassemble()
 
+    # TODO: Parse/handle previous footnotes in the doc
     ann_para = AnnotatedPara.unannotated(para, fn_prefix=fn_prefix, fn_start=fn_start)
     if notes is None:
         # Paragraph was skipped during research

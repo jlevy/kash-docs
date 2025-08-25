@@ -57,6 +57,7 @@ log = get_logger(__name__)
             type=bool,
         ),
     ),
+    mcp_tool=True,
 )
 def analyze_claims(
     item: Item,

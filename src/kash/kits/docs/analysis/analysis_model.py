@@ -13,6 +13,7 @@ from kash.kits.docs.analysis.analysis_types import (
     CLAIM_MAPPING,
     KEY_CLAIMS,
     ChunkId,
+    FootnoteId,
     IntScore,
     RefId,
     claim_id_str,
@@ -317,6 +318,17 @@ class ClaimAnalysis(BaseModel):
         return "\n\n".join(parts)
 
 
+@dataclass(frozen=True)
+class FootnoteDetail:
+    """
+    Document details about a footnote.
+    """
+
+    content: str
+    urls: list[Url]
+
+
+@dataclass(frozen=True)
 class DocAnalysis(BaseModel):
     """
     Structured analysis of a document.
@@ -325,6 +337,10 @@ class DocAnalysis(BaseModel):
     key_claims: list[ClaimAnalysis] = Field(description="Key claims made in a document")
 
     granular_claims: list[ClaimAnalysis] = Field(description="Granular claims made in a document")
+
+    footnotes: dict[FootnoteId, FootnoteDetail] = Field(
+        description="Document footnotes, keyed by footnote IDs"
+    )
 
     def format_key_claims_div(self, include_debug: bool) -> str:
         # Add the key claims section with enhanced information

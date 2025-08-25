@@ -6,9 +6,9 @@ from chopdiff.divs import CHUNK, chunk_paras, div
 from chopdiff.docs import Paragraph, TextDoc, TextUnit, first_wordtok, is_tag
 
 from kash.config.logger import get_logger
-from kash.kits.docs.analysis.analysis_model import SourceUrl
-from kash.kits.docs.analysis.analysis_types import ChunkId, RefId, chunk_id_str
-from kash.kits.docs.analysis.doc_annotations import AnnotatedPara
+from kash.kits.docs.analysis.analysis_model import FootnoteDetail, SourceUrl
+from kash.kits.docs.analysis.analysis_types import ChunkId, FootnoteId, RefId, chunk_id_str
+from kash.kits.docs.analysis.doc_annotations import AnnotatedDoc, AnnotatedPara
 from kash.kits.docs.links.links_model import LinkResults
 from kash.utils.common.url import Url
 from kash.utils.text_handling.markdown_footnotes import MarkdownFootnotes
@@ -54,6 +54,29 @@ class ChunkedDoc:
         return cls(doc=doc, chunks=chunks)
 
     # TODO: Add static parse method to read from Markdown with HTML chunk divs.
+
+    @cached_property
+    def annotated_doc(self) -> AnnotatedDoc:
+        """
+        Get this doc as an AnnotatedDoc, to allow access to parsed footnotes.
+        """
+        return AnnotatedDoc.from_doc_with_footnotes(self.doc)
+
+    @property
+    def footnote_mapping(self) -> dict[FootnoteId, FootnoteDetail]:
+        """
+        Get the footnotes from the annotated doc.
+        """
+        footnotes: dict[FootnoteId, FootnoteDetail] = {}
+        for (
+            footnote_id,
+            footnote_info,
+        ) in self.annotated_doc.footnote_mapping.items():
+            footnotes[FootnoteId(footnote_id)] = FootnoteDetail(
+                content=footnote_info.content,
+                urls=list(footnote_info.urls),
+            )
+        return footnotes
 
     @cached_property
     def markdown_footnotes(self) -> MarkdownFootnotes:
