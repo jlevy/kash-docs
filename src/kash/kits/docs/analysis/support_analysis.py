@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from textwrap import dedent
 
+from chopdiff.docs import TextDoc
 from strif import abbrev_str
 
 from kash.config.logger import get_logger
@@ -206,9 +207,9 @@ def analyze_claim_support_source(
     try:
         source_text = get_source_text(source_url, links_results)
         log.message(
-            "Analyzing claim support for %s (markdown %d chars)...",
+            "Analyzing claim support for against source: %s in markdown extracted from: %s",
+            TextDoc.from_text(source_text).size_summary(),
             source_url.url,
-            len(source_text),
         )
     except ValueError as e:
         log.warning("No source text for url: %s: %s", source_url.url, e)

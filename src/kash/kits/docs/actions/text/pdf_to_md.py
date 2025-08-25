@@ -1,7 +1,7 @@
 from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.preconditions import is_pdf_resource
-from kash.model import Format, Item, ItemType, Param
+from kash.model import Format, Item, Param
 from kash.utils.errors import InvalidInput
 from kash.workspaces import current_ws
 
@@ -42,7 +42,6 @@ def pdf_to_md(item: Item, converter: str = "markitdown") -> Item:
         body = result.markdown
 
         return item.derived_copy(
-            type=ItemType.doc,
             format=Format.markdown,
             title=title or item.title,  # Preserve original title (or none).
             body=body,
@@ -57,7 +56,6 @@ def pdf_to_md(item: Item, converter: str = "markitdown") -> Item:
         body = marker_result.markdown
 
         result = item.derived_copy(
-            type=ItemType.doc,
             format=Format.markdown,
             title=title or item.title,  # Preserve original title (or none).
             body=body,
