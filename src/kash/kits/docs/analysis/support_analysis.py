@@ -3,9 +3,11 @@ from __future__ import annotations
 from textwrap import dedent
 
 from chopdiff.docs import TextDoc
+from kash.config.logger import get_logger
+from kash.llm_utils import Message, MessageTemplate, llm_template_completion
+from kash.model import LLMOptions
 from strif import abbrev_str
 
-from kash.config.logger import get_logger
 from kash.kits.docs.analysis.analysis_model import (
     ClaimSupport,
     MappedClaim,
@@ -15,8 +17,6 @@ from kash.kits.docs.analysis.analysis_model import (
 from kash.kits.docs.analysis.claim_mapping import TOP_K_RELATED
 from kash.kits.docs.analysis.doc_chunking import ChunkedDoc
 from kash.kits.docs.links.links_model import LinkResults
-from kash.llm_utils import Message, MessageTemplate, llm_template_completion
-from kash.model import LLMOptions
 
 log = get_logger(__name__)
 

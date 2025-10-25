@@ -4,14 +4,14 @@ from typing import Self
 
 from chopdiff.divs import CHUNK, chunk_paras, div
 from chopdiff.docs import Paragraph, TextDoc, TextUnit, first_wordtok, is_tag
-
 from kash.config.logger import get_logger
+from kash.utils.common.url import Url
+from kash.utils.text_handling.markdown_footnotes import MarkdownFootnotes
+
 from kash.kits.docs.analysis.analysis_model import FootnoteDetail, SourceUrl
 from kash.kits.docs.analysis.analysis_types import ChunkId, FootnoteId, RefId, chunk_id_str
 from kash.kits.docs.analysis.doc_annotations import AnnotatedDoc, AnnotatedPara
 from kash.kits.docs.links.links_model import LinkResults
-from kash.utils.common.url import Url
-from kash.utils.text_handling.markdown_footnotes import MarkdownFootnotes
 
 log = get_logger(__name__)
 

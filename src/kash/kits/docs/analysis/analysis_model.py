@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import Enum, StrEnum
 
 from chopdiff.divs import div
+from kash.utils.common.url import Url
 from prettyfmt import abbrev_obj
 from pydantic import BaseModel, Field
 from typing_extensions import override
@@ -21,7 +22,6 @@ from kash.kits.docs.analysis.analysis_types import (
     format_chunk_links,
 )
 from kash.kits.docs.links.links_model import FetchStatus
-from kash.utils.common.url import Url
 
 ## Analysis Models and Rubrics
 

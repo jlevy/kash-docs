@@ -4,11 +4,13 @@ import asyncio
 from dataclasses import dataclass
 from typing import Any
 
-from prettyfmt import abbrev_list
-
 from kash.config.logger import get_logger
 from kash.config.settings import global_settings
 from kash.embeddings.embeddings import Embeddings, EmbValue, KeyVal
+from kash.utils.api_utils.gather_limited import FuncTask, Limit
+from kash.utils.api_utils.multitask_gather import multitask_gather
+from prettyfmt import abbrev_list
+
 from kash.kits.docs.analysis.analysis_model import (
     Claim,
     MappedClaim,
@@ -22,8 +24,6 @@ from kash.kits.docs.analysis.claim_extraction import (
 from kash.kits.docs.analysis.doc_chunking import ChunkedDoc
 from kash.kits.docs.concepts.similarity_cache import SimilarityCache
 from kash.kits.docs.links.links_model import LinkResults
-from kash.utils.api_utils.gather_limited import FuncTask, Limit
-from kash.utils.api_utils.multitask_gather import multitask_gather
 
 log = get_logger(__name__)
 

@@ -1,7 +1,8 @@
 from kash.config.text_styles import COLOR_WARN, STYLE_HEADING, STYLE_HINT, STYLE_KEY
 from kash.exec.command_registry import kash_command
-from kash.kits.docs.wiki.wiki_search import WikiPageResult, wiki_article_search
 from kash.shell.output.shell_output import cprint
+
+from kash.kits.docs.wiki.wiki_search import WikiPageResult, wiki_article_search
 
 
 @kash_command

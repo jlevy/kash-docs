@@ -3,13 +3,12 @@ from __future__ import annotations
 from enum import StrEnum
 from functools import cached_property
 
-from pydantic import BaseModel
-from strif import abbrev_str, single_line
-
 from kash.config.logger import get_logger
 from kash.model import Item, StorePath
 from kash.utils.common.url import Url
 from kash.workspaces import current_ws
+from pydantic import BaseModel
+from strif import abbrev_str, single_line
 
 log = get_logger(__name__)
 

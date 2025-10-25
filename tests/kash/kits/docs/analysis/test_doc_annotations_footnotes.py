@@ -5,6 +5,7 @@ Comprehensive tests for doc_annotations module with footnote support.
 from textwrap import dedent
 
 from chopdiff.docs.text_doc import Paragraph, TextDoc
+from kash.utils.text_handling.markdown_footnotes import MarkdownFootnotes
 
 from kash.kits.docs.analysis.analysis_types import Footnote, TextSpan
 from kash.kits.docs.analysis.doc_annotations import (
@@ -12,7 +13,6 @@ from kash.kits.docs.analysis.doc_annotations import (
     AnnotatedPara,
     FootnoteReference,
 )
-from kash.utils.text_handling.markdown_footnotes import MarkdownFootnotes
 
 
 def test_text_span_basic() -> None:

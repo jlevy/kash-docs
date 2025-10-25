@@ -3,13 +3,13 @@ from __future__ import annotations
 from urllib.parse import urlparse
 
 from frontmatter_format import from_yaml_string
-from ruamel.yaml.error import YAMLError
-
 from kash.config.logger import get_logger
-from kash.kits.docs.links.links_model import LinkResults
 from kash.model import Item
 from kash.utils.common.url import Url
 from kash.utils.errors import InvalidInput
+from ruamel.yaml.error import YAMLError
+
+from kash.kits.docs.links.links_model import LinkResults
 
 log = get_logger(__name__)
 

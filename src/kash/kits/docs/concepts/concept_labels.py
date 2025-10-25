@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 
-from typing_extensions import override
-
 from kash.config.logger import get_logger
+from typing_extensions import override
 
 log = get_logger(__name__)
 

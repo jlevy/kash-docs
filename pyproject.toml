@@ -39,7 +39,7 @@ classifiers = [
 
 dependencies = [
     # Main kash and doc-handling deps:
-    "kash-shell==0.3.35",
+    "kash-shell==0.3.36",
     "markdownify==0.13.1",  # TODO: Pinning for now, saw some possible regressions with v1.1.0
     "openai==1.99.9",  # FIXME: Pinning for now due to import errors (ImportError: cannot import name 'ResponseTextConfig' from 'openai.types.responses.response')   
 
@@ -184,7 +184,6 @@ ignore = [
     "UP031",
     "UP007",
     "B904",
-    "UP038",
     "B007",
     "B008",
     "B026",

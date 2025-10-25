@@ -3,14 +3,15 @@ from __future__ import annotations
 from textwrap import dedent
 
 from kash.config.logger import get_logger
+from kash.llm_utils import Message, MessageTemplate, llm_template_completion
+from kash.model import LLMOptions
+
 from kash.kits.docs.analysis.analysis_model import (
     MappedClaim,
     RigorDimension,
 )
 from kash.kits.docs.analysis.analysis_types import INT_SCORE_INVALID, IntScore
 from kash.kits.docs.analysis.doc_chunking import ChunkedDoc
-from kash.llm_utils import Message, MessageTemplate, llm_template_completion
-from kash.model import LLMOptions
 
 log = get_logger(__name__)
 

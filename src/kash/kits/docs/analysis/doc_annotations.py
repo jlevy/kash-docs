@@ -5,13 +5,13 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 
 from chopdiff.docs.text_doc import Paragraph, SentIndex, TextDoc
-
-from kash.kits.docs.analysis.analysis_types import Footnote, FootnoteId, RefId, TextSpan
 from kash.utils.common.testing import enable_if
 from kash.utils.common.url import Url
 from kash.utils.text_handling.markdown_footnotes import MarkdownFootnotes
 from kash.utils.text_handling.markdown_utils import extract_urls
 from kash.web_content.canon_url import canonicalize_url
+
+from kash.kits.docs.analysis.analysis_types import Footnote, FootnoteId, RefId, TextSpan
 
 # Valid footnote ID pattern: Unicode word characters (letters, digits, underscore), period, or hyphen
 _FOOTNOTE_ID_PATTERN = re.compile(r"^[\w.-]+$")
@@ -623,6 +623,7 @@ def map_notes_with_embeddings(
         AnnotatedParagraph with notes mapped to most similar sentences
     """
     from kash.embeddings.embeddings import EmbValue, KeyVal
+
     from kash.kits.docs.concepts.similarity_cache import create_similarity_cache
 
     # Filter out empty notes and "(No results)" placeholder

@@ -1,9 +1,9 @@
 from frontmatter_format.yaml_util import from_yaml_string
+from kash.exec import kash_precondition
+from kash.model import Format, Item, ItemType
 from ruamel.yaml.error import YAMLError
 
-from kash.exec import kash_precondition
 from kash.kits.docs.links.links_model import Link, LinkResults
-from kash.model import Format, Item, ItemType
 
 
 @kash_precondition

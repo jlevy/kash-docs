@@ -5,9 +5,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from kash.config.logger import get_logger
-from kash.kits.docs.wiki.wiki_search import wiki_article_search
 from kash.utils.common.url import Url
 from kash.utils.text_handling.markdown_utils import find_markdown_text, markdown_link
+
+from kash.kits.docs.wiki.wiki_search import wiki_article_search
 
 log = get_logger(__name__)
 

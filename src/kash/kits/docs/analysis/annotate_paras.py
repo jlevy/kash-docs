@@ -3,20 +3,20 @@ from __future__ import annotations
 from typing import Any, TypeVar
 
 from chopdiff.docs import Paragraph, TextDoc, TextUnit
-from strif import abbrev_list, abbrev_str
-
 from kash.config.logger import get_logger
 from kash.exec.llm_transforms import llm_transform_str
-from kash.kits.docs.analysis.doc_annotations import (
-    AnnotatedDoc,
-    AnnotatedPara,
-    map_notes_with_embeddings,
-)
 from kash.model import Format, Item, ItemType, LLMOptions
 from kash.utils.api_utils.gather_limited import FuncTask
 from kash.utils.api_utils.multitask_gather import multitask_gather
 from kash.utils.errors import InvalidInput
 from kash.utils.text_handling.markdown_utils import extract_bullet_points
+from strif import abbrev_list, abbrev_str
+
+from kash.kits.docs.analysis.doc_annotations import (
+    AnnotatedDoc,
+    AnnotatedPara,
+    map_notes_with_embeddings,
+)
 
 log = get_logger(__name__)
 
