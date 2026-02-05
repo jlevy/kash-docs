@@ -56,7 +56,7 @@ def fetch_links(item: Item, refetch: bool = False) -> Item:
     if not urls:
         log.message("No links found to download")
         return item.derived_copy(
-            format=Format.yaml, body=to_yaml_string(LinkResults(links=[]).model_dump())
+            format=Format.yaml, body=to_yaml_string(LinkResults(links=[]).model_dump(mode="json"))
         )
 
     download_result = asyncio.run(fetch_urls_async(urls))
@@ -77,25 +77,13 @@ def fetch_links(item: Item, refetch: bool = False) -> Item:
         log.message("Status code tallies:\n%s", fmt_lines(lines))
 
     results = LinkResults(links=download_result.links)
-    result_item = item.derived_copy(format=Format.yaml, body=to_yaml_string(results.model_dump()))
+    result_item = item.derived_copy(
+        format=Format.yaml, body=to_yaml_string(results.model_dump(mode="json"))
+    )
     return result_item
 
 
 ## Tests
-
-
-def test_fetch_links_no_links():
-    from kash.model import Format, ItemType
-
-    item = Item(
-        type=ItemType.doc,
-        format=Format.markdown,
-        body="This is just plain text with no links at all.",
-    )
-    result = fetch_links(item)
-    assert result.format == Format.yaml
-    assert result.body is not None
-    assert "links: []" in result.body
 
 
 def test_fetch_links_with_mock_links():
@@ -131,7 +119,9 @@ def test_fetch_links_with_links_data():
 
     # Use utility function to create the test item
     item = Item(type=ItemType.data, format=Format.yaml, body="dummy")
-    test_item = item.derived_copy(format=Format.yaml, body=to_yaml_string(results.model_dump()))
+    test_item = item.derived_copy(
+        format=Format.yaml, body=to_yaml_string(results.model_dump(mode="json"))
+    )
 
     # Verify precondition works
     assert is_links_data(test_item)

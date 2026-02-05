@@ -54,11 +54,24 @@ def extract_doc_links(item: Item) -> Item:
 
     results = LinkResults(links=links)
     return item.derived_copy(
-        type=ItemType.data, format=Format.yaml, body=to_yaml_string(results.model_dump())
+        type=ItemType.data, format=Format.yaml, body=to_yaml_string(results.model_dump(mode="json"))
     )
 
 
 ## Tests
+
+from collections.abc import Callable
+from typing import Any
+
+
+def _get_unwrapped(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Get the innermost wrapped function, bypassing action execution."""
+    while hasattr(func, "__wrapped__"):
+        func = func.__wrapped__  # pyright: ignore[reportFunctionMemberAccess]
+    return func
+
+
+_extract_doc_links = _get_unwrapped(extract_doc_links)
 
 
 def test_extract_links_no_links():
@@ -67,7 +80,7 @@ def test_extract_links_no_links():
         format=Format.markdown,
         body="This is just plain text with no links at all.",
     )
-    result = extract_doc_links(item)
+    result = _extract_doc_links(item)
     assert result.type == ItemType.data
     assert result.format == Format.yaml
     assert result.body is not None
@@ -80,9 +93,9 @@ def test_extract_links_with_urls():
 
     markdown_content = dedent("""
         # Test Document
-        
+
         Check out [GitHub](https://github.com) for code repositories.
-        
+
         You can also visit [Python.org](https://python.org) for documentation.
         """).strip()
 
@@ -92,7 +105,7 @@ def test_extract_links_with_urls():
         body=markdown_content,
     )
 
-    result = extract_doc_links(item)
+    result = _extract_doc_links(item)
     assert result.type == ItemType.data
     assert result.format == Format.yaml
     assert result.body is not None
