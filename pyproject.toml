@@ -103,6 +103,10 @@ dev = [
     "clideps>=0.1.2",
 ]
 
+[tool.uv]
+# Pin opencv to avoid 4.13.x which lacks Linux wheels on release day.
+constraint-dependencies = ["opencv-python-headless<4.13"]
+
 [tool.uv.sources]
 # For bleeding edge:
 # kash-shell = { git = "https://github.com/jlevy/kash.git" }
