@@ -13,7 +13,8 @@ authors = [
 ]
 readme = "README.md"
 license = "AGPL-3.0-or-later"
-requires-python = ">=3.11,<4.0"
+# Temporarily staying to 3.13 until dependency issues resolve.
+requires-python = ">=3.11,<3.14"
 dynamic = ["version"]
 
 # https://pypi.org/classifiers/
@@ -39,7 +40,7 @@ classifiers = [
 
 dependencies = [
     # Main kash and doc-handling deps:
-    "kash-shell==0.3.36",
+    "kash-shell==0.3.37",
     "markdownify==0.13.1",  # TODO: Pinning for now, saw some possible regressions with v1.1.0
     "openai==1.99.9",  # FIXME: Pinning for now due to import errors (ImportError: cannot import name 'ResponseTextConfig' from 'openai.types.responses.response')   
 
