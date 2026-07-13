@@ -147,7 +147,9 @@ def docx_to_md(
     # Gemini Deep Research report docx files.
     # https://github.com/matthewwithanm/python-markdownify
     docx_converter = CustomDocxConverter(
-        markdownify_options=MARKDOWNIFY_OPTIONS,
+        # table_infer_header restores pre-1.x markdownify behavior of using the first
+        # row as the header for tables without th cells (common in docx conversions).
+        markdownify_options={**MARKDOWNIFY_OPTIONS, "table_infer_header": True},
         html_postprocess=html_postprocess,
         md_postprocess=md_postprocess,
     )
