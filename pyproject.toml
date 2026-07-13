@@ -55,7 +55,7 @@ dependencies = [
     # For printing. Note weasyprint has install dep issues on macos depending on the python version.
     # https://github.com/Kozea/WeasyPrint/issues/2112
     # https://github.com/Kozea/WeasyPrint/issues/1448
-    "weasyprint>=63.1",  # NOTE: marker-pdf caps weasyprint <64; >=68 would clear PYSEC-2026-2034
+    "weasyprint>=68.0",  # >=68 clears PYSEC-2026-2034 (cap lifted with marker-pdf now optional)
     # For S3/AWS:
     "boto3>=1.38.3",
     # Concepts, relations, and Wikipedia content:
@@ -78,13 +78,25 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-full = [
-    # Marker is more powerful but much bigger dependencies, models, etc.
-    "marker-pdf[full]>=1.7.5",
-    # Browser automation:
+# Layout-aware PDF -> Markdown (models, tables, OCR). Basic text-layer PDF
+# support via markitdown is always in the base deps; this extra is only for
+# scanned or layout-heavy PDFs.
+pdf = [
+    "docling>=2.107.0",
+    # marker-pdf is kept here for benchmarking but disabled: every marker
+    # release caps openai<2, pillow<11, weasyprint<64, and transformers<5,
+    # which holds back security fixes across the whole install. Re-enable
+    # locally with `pip install marker-pdf` if comparing output quality.
+    # "marker-pdf[full]>=1.7.5",
+]
+# Browser automation:
+browser = [
     "playwright>=1.54.0",
     "playwright-stealth>=2.0.0",
     "browserforge>=1.2.3",
+]
+full = [
+    "kash-docs[pdf,browser]",
 ]
 
 
@@ -118,15 +130,10 @@ exclude-newer = "14 days"
 # published today from jlevy/kash CI (trusted publishing, watched end to end) and
 # is pinned exactly above. Remove at the next routine upgrade once it ages past
 # the global cutoff.
-exclude-newer-package = { kash-shell = "2026-07-14T00:00:00Z" }
-# TEMPORARY: override marker-pdf's openai<2 cap (present in every marker release
-# through 1.10.2) so this repo's lock can pair kash-shell 0.4.0 (openai>=2.15,
-# litellm>=1.84 with all known litellm CVE fixes) with marker. Safe here because
-# our marker usage (convert_pdf_marker) never enables marker's openai-backed LLM
-# mode. NOTE: this override is lock-only, not wheel metadata — published
-# kash-docs[full] cannot resolve via plain pip until marker lifts the cap
-# (tracked in kashd-kjip); plain kash-docs (no [full]) resolves fine.
-override-dependencies = ["openai>=2.20.0"]
+# pillow 12.3.0 (2026-07-01) is a security-fix release (PYSEC-2026-2254/2256/2257)
+# still inside the cool-off window; documented CVE exception, ages out ~2026-07-15.
+exclude-newer-package = { kash-shell = "2026-07-14T00:00:00Z", pillow = "2026-07-02T00:00:00Z" }
+constraint-dependencies = ["pillow>=12.3.0"]
 
 [tool.uv.sources]
 # For bleeding edge:
