@@ -39,7 +39,7 @@ jobs:
           # uv-x86_64-unknown-linux-gnu.
           checksum: "1db18b5e76fa645a7f3865773139bdec8e2d46adbdbb35e7410b34fa8015ccd2"
           enable-cache: true
-          python-version: "3.12"
+          python-version: "3.13"
 
       - name: Set up Python (using uv)
         run: uv python install

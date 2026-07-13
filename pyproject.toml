@@ -41,7 +41,7 @@ classifiers = [
 
 dependencies = [
     # Main kash and doc-handling deps:
-    "kash-shell==0.4.0",
+    "kash-shell==0.4.1",
     "markdownify>=1.2.2",
 
     # Utilities:
@@ -126,13 +126,12 @@ required-version = ">=0.9"
 # the Makefile repeat it via UV_EXCLUDE_NEWER so copied commands retain the policy.
 # See: https://github.com/jlevy/supply-chain-hardening
 exclude-newer = "14 days"
-# Per-package exception to the cool-off for first-party kash-shell: 0.4.0 was
-# published today from jlevy/kash CI (trusted publishing, watched end to end) and
-# is pinned exactly above. Remove at the next routine upgrade once it ages past
-# the global cutoff.
-# pillow 12.3.0 (2026-07-01) is a security-fix release (PYSEC-2026-2254/2256/2257)
-# still inside the cool-off window; documented CVE exception, ages out ~2026-07-15.
-exclude-newer-package = { kash-shell = "2026-07-14T00:00:00Z", pillow = "2026-07-02T00:00:00Z" }
+# Per-package exceptions to the cool-off (remove each at the next routine upgrade
+# once it ages past the global window):
+# - kash-shell 0.4.1: first-party release published today from jlevy/kash CI
+#   (trusted publishing, watched end to end), pinned exactly above.
+# - pillow 12.3.0 (2026-07-01): security-fix release (PYSEC-2026-2254/2256/2257).
+exclude-newer-package = { kash-shell = "2026-07-15T00:00:00Z", pillow = "2026-07-02T00:00:00Z" }
 constraint-dependencies = ["pillow>=12.3.0"]
 
 [tool.uv.sources]
