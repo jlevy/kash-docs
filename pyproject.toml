@@ -41,29 +41,27 @@ classifiers = [
 dependencies = [
     # Main kash and doc-handling deps:
     "kash-shell==0.3.37",
-    "markdownify==0.13.1",  # TODO: Pinning for now, saw some possible regressions with v1.1.0
-    "openai==1.99.9",  # FIXME: Pinning for now due to import errors (ImportError: cannot import name 'ResponseTextConfig' from 'openai.types.responses.response')   
+    "markdownify>=1.2.2",
 
     # Utilities:
     "rich>=14.0.0",
-    "rich-argparse>=1.7.0",
     "typing-extensions>=4.11.1",
     "cachetools>=5.5.2",
     # Content tools:
-    "flowmark>=0.5.0",
-    "chopdiff>=0.2.4",
+    "flowmark>=0.7.2",
+    "chopdiff>=0.3.1",
     # "simplemma>=1.1.2",  # Fairly large (70MB)
     # For printing. Note weasyprint has install dep issues on macos depending on the python version.
     # https://github.com/Kozea/WeasyPrint/issues/2112
     # https://github.com/Kozea/WeasyPrint/issues/1448
-    "weasyprint>=63.1",
+    "weasyprint>=63.1",  # NOTE: marker-pdf caps weasyprint <64; >=68 would clear PYSEC-2026-2034
     # For S3/AWS:
     "boto3>=1.38.3",
     # Concepts, relations, and Wikipedia content:
     "requests>=2.32.3",
     "tenacity>=9.1.2",
     "thefuzz>=0.22.1",
-    "wikipedia-api>=0.8.1",
+    "wikipedia-api>=0.8.1,<0.11",  # 0.11+ restructured internals (httpx); our CachingSession patch needs the requests-based client
     "pandas>=2.2.3",
     # markitdown seems to work well now we've customized it, so using instead of pandoc currently.
     # currently using docx support only.
@@ -93,19 +91,32 @@ full = [
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3.5",
-    "pytest-sugar>=1.0.0",
-    "ruff>=0.11.0",
-    "codespell>=2.4.1",
+    "pytest>=9.1.0",
+    "pytest-sugar>=1.1.1",
+    "ruff>=0.15.20",
+    "codespell>=2.4.2",
     "rich>=14.0.0",
-    "basedpyright==1.29.5",  # TODO: Upgrade when Cursor supports it.
+    "basedpyright>=1.39.9",
     "funlog>=0.2.0",
-    "clideps>=0.1.2",
+    "clideps>=0.1.8",
 ]
 
 [tool.uv]
-# Pin opencv to avoid 4.13.x which lacks Linux wheels on release day.
-constraint-dependencies = ["opencv-python-headless<4.13"]
+# Supply-chain cool-off: never resolve releases newer than this date, so freshly
+# published (possibly compromised) versions get time to be vetted or yanked.
+# Bump this date (~2 weeks back from today) whenever upgrading dependencies.
+# See: https://github.com/jlevy/supply-chain-hardening
+exclude-newer = "2026-06-29T00:00:00Z"
+# TEMPORARY: override the openai pins/caps of kash-shell 0.3.37 (==1.99.9) and
+# marker-pdf (<2.0.0, all releases through 1.10.2) so this repo's lock can use
+# litellm >=1.84.0, which carries all known litellm CVE fixes and requires openai 2.x.
+# Safe here because our marker usage (convert_pdf_marker) never enables marker's
+# openai-backed LLM mode, and kash-shell main already runs on openai 2.x.
+# Once kash-shell releases with openai>=2.x: bump the kash-shell pin, add a proper
+# "litellm>=1.84.0" dependency floor, and keep the override only for marker-pdf
+# until marker lifts its openai<2 cap upstream.
+override-dependencies = ["openai>=2.20.0"]
+constraint-dependencies = ["litellm>=1.84.0"]
 
 [tool.uv.sources]
 # For bleeding edge:
