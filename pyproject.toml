@@ -40,7 +40,7 @@ classifiers = [
 
 dependencies = [
     # Main kash and doc-handling deps:
-    "kash-shell==0.3.37",
+    "kash-shell==0.4.0",
     "markdownify>=1.2.2",
 
     # Utilities:
@@ -107,16 +107,19 @@ dev = [
 # Bump this date (~2 weeks back from today) whenever upgrading dependencies.
 # See: https://github.com/jlevy/supply-chain-hardening
 exclude-newer = "2026-06-29T00:00:00Z"
-# TEMPORARY: override the openai pins/caps of kash-shell 0.3.37 (==1.99.9) and
-# marker-pdf (<2.0.0, all releases through 1.10.2) so this repo's lock can use
-# litellm >=1.84.0, which carries all known litellm CVE fixes and requires openai 2.x.
-# Safe here because our marker usage (convert_pdf_marker) never enables marker's
-# openai-backed LLM mode, and kash-shell main already runs on openai 2.x.
-# Once kash-shell releases with openai>=2.x: bump the kash-shell pin, add a proper
-# "litellm>=1.84.0" dependency floor, and keep the override only for marker-pdf
-# until marker lifts its openai<2 cap upstream.
+# Per-package exception to the cool-off for first-party kash-shell: 0.4.0 was
+# published today from jlevy/kash CI (trusted publishing, watched end to end) and
+# is pinned exactly above. Remove at the next routine upgrade once it ages past
+# the global cutoff.
+exclude-newer-package = { kash-shell = "2026-07-14T00:00:00Z" }
+# TEMPORARY: override marker-pdf's openai<2 cap (present in every marker release
+# through 1.10.2) so this repo's lock can pair kash-shell 0.4.0 (openai>=2.15,
+# litellm>=1.84 with all known litellm CVE fixes) with marker. Safe here because
+# our marker usage (convert_pdf_marker) never enables marker's openai-backed LLM
+# mode. NOTE: this override is lock-only, not wheel metadata — published
+# kash-docs[full] cannot resolve via plain pip until marker lifts the cap
+# (tracked in kashd-kjip); plain kash-docs (no [full]) resolves fine.
 override-dependencies = ["openai>=2.20.0"]
-constraint-dependencies = ["litellm>=1.84.0"]
 
 [tool.uv.sources]
 # For bleeding edge:

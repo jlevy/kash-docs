@@ -22,8 +22,10 @@ resolution-markers = [
 [options]
 exclude-newer = "2026-06-29T00:00:00Z"
 
+[options.exclude-newer-package]
+kash-shell = "2026-07-14T00:00:00Z"
+
 [manifest]
-constraints = [{ name = "litellm", specifier = ">=1.84.0" }]
 overrides = [{ name = "openai", specifier = ">=2.20.0" }]
 
 [[package]]
@@ -520,14 +522,14 @@ wheels = [
 
 [[package]]
 name = "click"
-version = "8.3.2"
+version = "8.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/57/75/31212c6bf2503fdf920d87fee5d7a86a2e3bcf444984126f13d8e4016804/click-8.3.2.tar.gz", hash = "sha256:14162b8b3b3550a7d479eafa77dfd3c38d9dc8951f6f69c78913a8f9a7540fd5", size = 302856, upload-time = "2026-04-03T19:14:45.118Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/76/d4/81420972a676e8ffea40450d8c8c92943e7218a78fe9b64359836cc9876b/click-8.4.2.tar.gz", hash = "sha256:9a6cea6e60b17ebe0a44c5cc636d94f09bd66142c1cd7d8b4cd731c4917a15f6", size = 338000, upload-time = "2026-06-24T17:45:15.148Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e4/20/71885d8b97d4f3dde17b1fdb92dbd4908b00541c5a3379787137285f602e/click-8.3.2-py3-none-any.whl", hash = "sha256:1924d2c27c5653561cd2cae4548d1406039cb79b858b747cfea24924bbc1616d", size = 108379, upload-time = "2026-04-03T19:14:43.505Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/e2/79c688af8b210d232694e31e59da9f6ec747bae31c3f5946e4e9b98860d5/click-8.4.2-py3-none-any.whl", hash = "sha256:e6f9f66136c816745b9d65817da91d61d957fb16e02e4dcd0552553c5a197b76", size = 119243, upload-time = "2026-06-24T17:45:13.73Z" },
 ]
 
 [[package]]
@@ -1615,7 +1617,7 @@ requires-dist = [
     { name = "chopdiff", specifier = ">=0.3.1" },
     { name = "flowmark", specifier = ">=0.7.2" },
     { name = "html5lib", specifier = ">=1.1" },
-    { name = "kash-shell", specifier = "==0.3.37" },
+    { name = "kash-shell", specifier = "==0.4.0" },
     { name = "markdownify", specifier = ">=1.2.2" },
     { name = "marker-pdf", extras = ["full"], marker = "extra == 'full'", specifier = ">=1.7.5" },
     { name = "markitdown", extras = ["docx", "pdf"], specifier = ">=0.1.2" },
@@ -1647,7 +1649,7 @@ dev = [
 
 [[package]]
 name = "kash-shell"
-version = "0.3.37"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiolimiter" },
@@ -1679,7 +1681,6 @@ dependencies = [
     { name = "pandas" },
     { name = "patch-ng" },
     { name = "pathspec" },
-    { name = "pluralizer" },
     { name = "prettyfmt" },
     { name = "prompt-toolkit" },
     { name = "pydantic" },
@@ -1690,20 +1691,15 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "python-magic", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "python-magic-bin", marker = "sys_platform == 'win32'" },
-    { name = "questionary" },
     { name = "readabilipy" },
     { name = "regex" },
     { name = "rich" },
-    { name = "rich-argparse" },
     { name = "ripgrepy" },
-    { name = "selectolax" },
     { name = "send2trash" },
     { name = "setproctitle" },
     { name = "sidematter-format" },
     { name = "strif" },
-    { name = "tenacity" },
     { name = "thefuzz" },
-    { name = "tiktoken" },
     { name = "tldr" },
     { name = "tminify" },
     { name = "truststore" },
@@ -1711,9 +1707,9 @@ dependencies = [
     { name = "uvicorn" },
     { name = "xonsh" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/04/19/a72b54c4c5cdcb932d39d9a306f1d35d2dfa88dbe1984bbf00c24d14956c/kash_shell-0.3.37.tar.gz", hash = "sha256:da8bfe9c4b0e7909b8183b1514583ef4cbef93ea6b4a6e6e3862163ebc386675", size = 739989, upload-time = "2026-02-05T08:36:28.333Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a2/51/fec706810cc641e1ac7a6c3d1666dbe91854871b457cfb49ca2d982d49a5/kash_shell-0.4.0.tar.gz", hash = "sha256:0ffc1ef7bb9481e23d02102cf63f1b295de4eeabcc3f8e82d7d6e8ff6c9e1261", size = 815481, upload-time = "2026-07-13T20:04:36.108Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e1/c5/7bcd3bbbd0c8f29cb487c2e5cfa9dbf243345ab96a79da90b68005efe6bf/kash_shell-0.3.37-py3-none-any.whl", hash = "sha256:2744bde5ef22b1da90b87a82ca55e43df2bc99373626a85323bf5cd58a0d26cd", size = 587897, upload-time = "2026-02-05T08:36:26.428Z" },
+    { url = "https://files.pythonhosted.org/packages/e8/7e/6488230edf8eb0d37a6c5078b87e8c7e024e96fd9be4058baf636491448c/kash_shell-0.4.0-py3-none-any.whl", hash = "sha256:ab676f01c7145aec87d184608ad43b177eec5377f6d52aa620b487e71b846e6e", size = 591262, upload-time = "2026-07-13T20:04:34.472Z" },
 ]
 
 [[package]]
