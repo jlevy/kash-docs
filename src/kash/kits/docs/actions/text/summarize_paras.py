@@ -11,10 +11,10 @@ from kash.config.logger import get_logger
 from kash.config.settings import global_settings
 from kash.exec import kash_action, kash_precondition
 from kash.exec.llm_transforms import llm_transform_str
+from kash.kits.docs.utils.multitask_gather import multitask_gather
 from kash.llm_utils import Message, MessageTemplate
 from kash.model import Format, Item, ItemType, LLMOptions
 from kash.utils.api_utils.gather_limited import FuncTask, Limit
-from kash.utils.api_utils.multitask_gather import multitask_gather
 from kash.utils.errors import InvalidInput
 
 log = get_logger(__name__)

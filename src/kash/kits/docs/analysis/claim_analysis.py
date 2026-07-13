@@ -6,7 +6,6 @@ from typing import Any, Literal, cast
 from kash.config.logger import get_logger
 from kash.config.settings import global_settings
 from kash.utils.api_utils.gather_limited import FuncTask, Limit
-from kash.utils.api_utils.multitask_gather import multitask_gather
 from strif import abbrev_str
 
 from kash.kits.docs.analysis.analysis_model import (
@@ -28,6 +27,7 @@ from kash.kits.docs.analysis.support_analysis import (
     analyze_claim_support_source,
 )
 from kash.kits.docs.links.links_model import LinkResults
+from kash.kits.docs.utils.multitask_gather import multitask_gather
 
 log = get_logger(__name__)
 

@@ -41,9 +41,10 @@ def pdf_to_md_marker(pdf_path: Path) -> MarkerResult:
     Convert a PDF file to Markdown using Marker.
     Does not normalize the Markdown.
     """
-    from marker.converters.pdf import PdfConverter
-    from marker.models import create_model_dict
-    from marker.output import text_from_rendered
+    # marker-pdf is not in any extra (kept only for benchmarking; install manually).
+    from marker.converters.pdf import PdfConverter  # pyright: ignore[reportMissingImports]
+    from marker.models import create_model_dict  # pyright: ignore[reportMissingImports]
+    from marker.output import text_from_rendered  # pyright: ignore[reportMissingImports]
 
     converter = PdfConverter(
         artifact_dict=create_model_dict(),

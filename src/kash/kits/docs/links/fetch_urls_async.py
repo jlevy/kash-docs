@@ -8,13 +8,13 @@ from kash.exec.fetch_url_items import fetch_url_item
 from kash.utils.api_utils.api_retries import RetrySettings
 from kash.utils.api_utils.gather_limited import FuncTask, Limit, TaskResult
 from kash.utils.api_utils.http_utils import extract_http_status_code
-from kash.utils.api_utils.multitask_gather import multitask_gather
 from kash.utils.common.url import Url
 from kash.utils.text_handling.markdown_utils import extract_urls
 from strif import abbrev_str
 
 from kash.kits.docs.actions.text.markdownify_doc import markdownify_doc
 from kash.kits.docs.links.links_model import FetchError, FetchStatus, Link, LinkDownloadResult
+from kash.kits.docs.utils.multitask_gather import multitask_gather
 
 log = get_logger(__name__)
 

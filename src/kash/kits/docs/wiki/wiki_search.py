@@ -7,10 +7,11 @@ from typing import TYPE_CHECKING
 
 import requests
 from kash.config.logger import get_logger
-from kash.utils.api_utils.cache_requests_limited import CachingSession
 from tenacity import retry, stop_after_attempt, wait_random_exponential
 from thefuzz import fuzz
 from typing_extensions import override
+
+from kash.kits.docs.utils.cache_requests_limited import CachingSession
 
 if TYPE_CHECKING:
     from wikipediaapi import Namespace, Wikipedia, WikipediaPage
