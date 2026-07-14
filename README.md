@@ -18,6 +18,13 @@ make
 uv run kash
 ```
 
+## Model Configuration
+
+Document actions inherit the careful, structured, standard, and fast model roles from
+kash-shell rather than selecting a provider directly. See the main
+[model configuration documentation](https://github.com/jlevy/kash#model-configuration)
+for the current Anthropic defaults and equivalent OpenAI settings.
+
 For how to install uv and Python, see [installation.md](docs/installation.md).
 
 For development workflows, see [development.md](docs/development.md).
