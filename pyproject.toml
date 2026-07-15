@@ -41,7 +41,7 @@ classifiers = [
 
 dependencies = [
     # Main kash and doc-handling deps:
-    "kash-shell==0.4.1",
+    "kash-shell==0.4.3",
     "markdownify>=1.2.2",
 
     # Utilities:
@@ -128,10 +128,10 @@ required-version = ">=0.9"
 exclude-newer = "14 days"
 # Per-package exceptions to the cool-off (remove each at the next routine upgrade
 # once it ages past the global window):
-# - kash-shell 0.4.1: first-party release published today from jlevy/kash CI
+# - kash-shell 0.4.3: first-party release published today from jlevy/kash CI
 #   (trusted publishing, watched end to end), pinned exactly above.
 # - pillow 12.3.0 (2026-07-01): security-fix release (PYSEC-2026-2254/2256/2257).
-exclude-newer-package = { kash-shell = "2026-07-15T00:00:00Z", pillow = "2026-07-02T00:00:00Z" }
+exclude-newer-package = { kash-shell = "2026-07-16T00:00:00Z", pillow = "2026-07-02T00:00:00Z" }
 constraint-dependencies = ["pillow>=12.3.0"]
 
 [tool.uv.sources]
@@ -289,4 +289,3 @@ filterwarnings = [
 ]
 # Dev convenience: Temporarily rename a file to a stash pattern to stop tracking it.
 addopts = "--ignore-glob='stash.*' --ignore-glob='*.stash.*'"
-

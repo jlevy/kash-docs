@@ -24,7 +24,7 @@ exclude-newer = "2026-06-29T22:07:16.604947357Z"
 exclude-newer-span = "P14D"
 
 [options.exclude-newer-package]
-kash-shell = "2026-07-15T00:00:00Z"
+kash-shell = "2026-07-16T00:00:00Z"
 pillow = "2026-07-02T00:00:00Z"
 
 [manifest]
@@ -1768,7 +1768,7 @@ requires-dist = [
     { name = "docling", marker = "extra == 'pdf'", specifier = ">=2.107.0" },
     { name = "flowmark", specifier = ">=0.7.2" },
     { name = "html5lib", specifier = ">=1.1" },
-    { name = "kash-shell", specifier = "==0.4.1" },
+    { name = "kash-shell", specifier = "==0.4.3" },
     { name = "markdownify", specifier = ">=1.2.2" },
     { name = "markitdown", extras = ["docx", "pdf"], specifier = ">=0.1.2" },
     { name = "pandas", specifier = ">=2.2.3" },
@@ -1805,7 +1805,7 @@ dev = [
 
 [[package]]
 name = "kash-shell"
-version = "0.4.1"
+version = "0.4.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiolimiter" },
@@ -1863,9 +1863,9 @@ dependencies = [
     { name = "uvicorn" },
     { name = "xonsh" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/11/33/c5bd7bad0541f3984b6da815068461fe6cea7b59957f012d388b8e76047c/kash_shell-0.4.1.tar.gz", hash = "sha256:b7a4aec80e72a50383533b2adcaba5733489e212a9483a794f7b7132404b9fdb", size = 821174, upload-time = "2026-07-13T22:05:49.338Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7b/40/493756b276d2eff98210484c2b8861aed3f71c42910a27a59f22ab915e79/kash_shell-0.4.3.tar.gz", hash = "sha256:726f682ae63bccd6d70814e7a81bfbf0bcf93c78b75bb20544230ea0a9e5e398", size = 822981, upload-time = "2026-07-15T00:19:34.625Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2e/82/421b0e23f1a6db4ee1452fdfbc0e7dd99e4f25172759d1b56ccef8458790/kash_shell-0.4.1-py3-none-any.whl", hash = "sha256:697488366aa18b4d2b4961a3ec889bf0315b56932e896ec6291f7f649ccbf302", size = 591379, upload-time = "2026-07-13T22:05:47.603Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/4a/f3c44e5cdb99cee4ecaff23e3f5478ba83a4c2a3597c7b341432728f911e/kash_shell-0.4.3-py3-none-any.whl", hash = "sha256:2d30eae996f8695115b8631adb529d998a764d6c83ed04ec3b0de6593cb7bb62", size = 591954, upload-time = "2026-07-15T00:19:33.166Z" },
 ]
 
 [[package]]
