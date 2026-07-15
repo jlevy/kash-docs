@@ -13,6 +13,7 @@ log = get_logger(__name__)
 
 llm_options = LLMOptions(
     model=LLM.default_fast,
+    use_item_context=True,
     diff_filter=adds_headings,
     windowing=WINDOW_128_PARA,
     system_message=Message(

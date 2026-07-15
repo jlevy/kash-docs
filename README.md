@@ -38,6 +38,11 @@ kash-shell rather than selecting a provider directly. See the main
 [model configuration documentation](https://github.com/jlevy/kash#model-configuration)
 for the current Anthropic defaults and equivalent OpenAI settings.
 
+Semantic actions such as descriptions, structural summaries, section headings, and
+paragraph research use an item's bounded `title`, `description`, and
+`additional_context` metadata. Exact-text and mechanical formatting actions remain
+context-free.
+
 For how to install uv and Python, see [installation.md](docs/installation.md).
 
 For development workflows, see [development.md](docs/development.md).

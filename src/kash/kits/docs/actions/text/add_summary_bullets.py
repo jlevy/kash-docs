@@ -1,4 +1,4 @@
-from chopdiff.html import Attrs, div_wrapper, tag_with_attrs
+from flexdoc.html import Attrs, div_wrapper, tag_with_attrs
 
 from kash.config.logger import get_logger
 from kash.exec import kash_action

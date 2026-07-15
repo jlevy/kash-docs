@@ -1,4 +1,4 @@
-from chopdiff.html import div_wrapper
+from flexdoc.html import div_wrapper
 
 from kash.config.logger import get_logger
 from kash.exec import kash_action

@@ -3,6 +3,7 @@ from kash.llm_utils import LLM, LLMName, Message, MessageTemplate
 from kash.model import Item, LLMOptions, common_params
 
 llm_options = LLMOptions(
+    use_item_context=True,
     system_message=Message(
         """
         You are a careful and precise editor.

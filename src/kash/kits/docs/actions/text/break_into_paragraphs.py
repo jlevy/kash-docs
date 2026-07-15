@@ -1,5 +1,5 @@
-from chopdiff.docs import TextDoc
 from chopdiff.transforms import WINDOW_2K_WORDTOKS, changes_whitespace
+from flexdoc import FlexDoc as TextDoc
 
 from kash.config.logger import get_logger
 from kash.exec import SkipItem, kash_action, llm_transform_item

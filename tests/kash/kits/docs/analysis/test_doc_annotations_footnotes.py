@@ -4,7 +4,8 @@ Comprehensive tests for doc_annotations module with footnote support.
 
 from textwrap import dedent
 
-from chopdiff.docs.text_doc import Paragraph, TextDoc
+from flexdoc import FlexDoc as TextDoc
+from flexdoc.docs import Paragraph
 from kash.utils.text_handling.markdown_footnotes import MarkdownFootnotes
 
 from kash.kits.docs.analysis.analysis_types import Footnote, TextSpan

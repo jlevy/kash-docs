@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from chopdiff.divs import div
-from chopdiff.docs import TextDoc
+from flexdoc import FlexDoc as TextDoc
 from prettyfmt import fmt_lines
 from sidematter_format import Sidematter
 
