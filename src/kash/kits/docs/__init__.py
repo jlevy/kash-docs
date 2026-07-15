@@ -8,8 +8,6 @@ import_and_register(
     [
         "actions",
         "analysis",
-        "concepts",
-        "doc_formats",
         "wiki",
         "links",
         "utils",

@@ -1,6 +1,5 @@
 from kash.exec import kash_action
 from kash.exec.preconditions import is_docx_resource
-from kash.kits.docs.doc_formats import markitdown_convert
 from kash.model import Format, Item
 
 
@@ -11,6 +10,8 @@ def docx_to_html(item: Item) -> Item:
     See `docx_to_md` to convert docx directly to Markdown or `markdownify_doc` to
     convert documents of more formats to Markdown.
     """
+
+    from kash.kits.docs.doc_formats import markitdown_convert
 
     result = markitdown_convert.docx_to_md(item.absolute_path())
 

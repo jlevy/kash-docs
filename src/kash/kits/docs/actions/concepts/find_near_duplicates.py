@@ -4,10 +4,6 @@ from kash.config.logger import get_logger
 from kash.embeddings.embeddings import Embeddings, EmbValue, KeyVal
 from kash.exec import kash_action
 from kash.exec.preconditions import has_simple_text_body, is_concept
-from kash.kits.docs.concepts.concept_relations import (
-    find_related_pairs,
-    relate_texts_by_embedding,
-)
 from kash.model import TWO_OR_MORE_ARGS, ActionInput, ActionResult, PathOp, PathOpType, StorePath
 from kash.shell.output.shell_output import PrintHooks, cprint, print_h3
 from kash.utils.common.type_utils import not_none
@@ -24,6 +20,11 @@ def find_near_duplicates(input: ActionInput) -> ActionResult:
     """
     Look at input items and find near duplicate items using text embeddings, based on title or body.
     """
+    from kash.kits.docs.concepts.concept_relations import (
+        find_related_pairs,
+        relate_texts_by_embedding,
+    )
+
     keyvals = [
         KeyVal(not_none(item.store_path), EmbValue(item.full_text())) for item in input.items
     ]

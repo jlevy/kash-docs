@@ -1,6 +1,5 @@
 from kash.exec import kash_action
 from kash.exec.preconditions import is_docx_resource
-from kash.kits.docs.doc_formats import markitdown_convert
 from kash.kits.docs.doc_formats.doc_cleanups import gemini_cleanups
 from kash.kits.docs.doc_formats.endnote_utils import convert_endnotes_to_footnotes
 from kash.model import Format, Item
@@ -20,6 +19,8 @@ def docx_to_md(item: Item) -> Item:
     This is a lower-level action. You may also use `markdownify_doc`, which
     uses this action, to convert documents of multiple formats to Markdown.
     """
+
+    from kash.kits.docs.doc_formats import markitdown_convert
 
     result = markitdown_convert.docx_to_md(item.absolute_path())
 

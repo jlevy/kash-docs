@@ -52,36 +52,29 @@ dependencies = [
     "flowmark>=0.7.2",
     "chopdiff>=0.3.1",
     # "simplemma>=1.1.2",  # Fairly large (70MB)
-    # For printing. Note weasyprint has install dep issues on macos depending on the python version.
-    # https://github.com/Kozea/WeasyPrint/issues/2112
-    # https://github.com/Kozea/WeasyPrint/issues/1448
-    "weasyprint>=68.0",  # >=68 clears PYSEC-2026-2034 (cap lifted with marker-pdf now optional)
-    # For S3/AWS:
-    "boto3>=1.38.3",
     # Concepts, relations, and Wikipedia content:
     "requests>=2.32.3",
     "tenacity>=9.1.2",
     "thefuzz>=0.22.1",
     "wikipedia-api>=0.8.1,<0.11",  # 0.11+ restructured internals (httpx); our CachingSession patch needs the requests-based client
     "pandas>=2.2.3",
-    # markitdown seems to work well now we've customized it, so using instead of pandoc currently.
-    # currently using docx support only.
-    "markitdown[docx,pdf]>=0.1.2",
-    # "markitdown[all]>=0.1.2",
-    # pandoc may still be useful in the future.
-    # "pypandoc-binary>=1.15",
     "beautifulsoup4>=4.13.4",
     "html5lib>=1.1",
-    # Docx support.
-    "python-docx>=1.1.2",
-    # "html-for-docx>=1.0.6",  # Had some issues, using our own for now.
 ]
 
 [project.optional-dependencies]
+documents = [
+    "markitdown[docx,pdf]>=0.1.2",
+    "python-docx>=1.1.2",
+    "weasyprint>=68.0",
+]
+aws = [
+    "boto3>=1.38.3",
+]
 # Layout-aware PDF -> Markdown (models, tables, OCR). Basic text-layer PDF
-# support via markitdown is always in the base deps; this extra is only for
-# scanned or layout-heavy PDFs.
+# support is in the documents extra; this extra adds scanned and layout-heavy PDFs.
 pdf = [
+    "kash-docs[documents]",
     "docling>=2.107.0",
     # marker-pdf is kept here for benchmarking but disabled: every marker
     # release caps openai<2, pillow<11, weasyprint<64, and transformers<5,
@@ -96,7 +89,7 @@ browser = [
     "browserforge>=1.2.3",
 ]
 full = [
-    "kash-docs[pdf,browser]",
+    "kash-docs[aws,browser,documents,pdf]",
 ]
 
 

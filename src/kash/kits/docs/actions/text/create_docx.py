@@ -3,7 +3,6 @@ from strif import atomic_output_file
 from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.preconditions import has_html_compatible_body
-from kash.kits.docs.doc_formats.simple_html_to_docx import SimpleHtmlToDocx
 from kash.model import FileExt, Format, Item, ItemType
 from kash.utils.errors import InvalidInput
 from kash.workspaces import current_ws
@@ -23,6 +22,8 @@ def create_docx(item: Item) -> Item:
     if not item.body:
         raise InvalidInput(f"Item must have a body: {item}")
     assert item.store_path
+
+    from kash.kits.docs.doc_formats.simple_html_to_docx import SimpleHtmlToDocx
 
     docx_item = item.derived_copy(type=ItemType.export, format=Format.docx, file_ext=FileExt.docx)
     ws = current_ws()
