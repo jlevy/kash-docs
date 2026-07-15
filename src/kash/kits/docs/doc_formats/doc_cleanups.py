@@ -1,7 +1,8 @@
 import logging
 import re
 
-from chopdiff.docs import diff_wordtoks, wordtokenize
+from flexdoc.docs.token_diffs import diff_wordtoks
+from flexdoc.docs.wordtoks import wordtokenize
 
 log = logging.getLogger(__name__)
 

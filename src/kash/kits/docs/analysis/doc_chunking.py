@@ -3,7 +3,10 @@ from functools import cached_property
 from typing import Self
 
 from chopdiff.divs import CHUNK, chunk_paras, div
-from chopdiff.docs import Paragraph, TextDoc, TextUnit, first_wordtok, is_tag
+from flexdoc import FlexDoc as TextDoc
+from flexdoc import TextUnit
+from flexdoc.docs import Paragraph
+from flexdoc.docs.wordtoks import first_wordtok, is_tag
 from kash.config.logger import get_logger
 from kash.utils.common.url import Url
 from kash.utils.text_handling.markdown_footnotes import MarkdownFootnotes

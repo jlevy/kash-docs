@@ -3,15 +3,13 @@ from kash.llm_utils import Message, MessageTemplate
 from kash.model import Item, LLMOptions, TitleTemplate
 
 llm_options = LLMOptions(
+    use_item_context=True,
     system_message=Message(
         """
         You are a careful and precise editor.
         You give exactly the results requested without additional commentary.
         """
     ),
-    # TODO: Get a scene context/description from the resource and add it to this template.
-    # Is this a book/article/transcript/lecture/interview/etc? Who was involved? When was it?
-    # Create a question template and have this filled in.
     body_template=MessageTemplate(
         """
         Give a brief abstract of the entire text below, as a summary of two or three sentences.

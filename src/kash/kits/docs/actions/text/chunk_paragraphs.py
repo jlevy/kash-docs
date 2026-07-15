@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from chopdiff.docs import TextDoc
+from flexdoc import FlexDoc as TextDoc
 
 from kash.exec import kash_action
 from kash.exec.preconditions import (

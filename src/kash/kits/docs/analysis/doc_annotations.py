@@ -4,7 +4,8 @@ import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 
-from chopdiff.docs.text_doc import Paragraph, SentIndex, TextDoc
+from flexdoc import FlexDoc as TextDoc
+from flexdoc.docs import Paragraph, SentIndex
 from kash.utils.common.testing import enable_if
 from kash.utils.common.url import Url
 from kash.utils.text_handling.markdown_footnotes import MarkdownFootnotes

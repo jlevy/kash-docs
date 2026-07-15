@@ -4,7 +4,9 @@ import asyncio
 from typing import Any
 
 from chopdiff.divs import div
-from chopdiff.docs import Paragraph, TextDoc, TextUnit
+from flexdoc import FlexDoc as TextDoc
+from flexdoc import TextUnit
+from flexdoc.docs import Paragraph
 from strif import abbrev_str
 
 from kash.config.logger import get_logger

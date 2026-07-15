@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from textwrap import dedent
 
-from chopdiff.docs import TextDoc
+from flexdoc import FlexDoc as TextDoc
 from kash.config.logger import get_logger
 from kash.llm_utils import Message, MessageTemplate, llm_template_completion
 from kash.model import LLMOptions

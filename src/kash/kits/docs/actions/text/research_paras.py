@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 
 from kash.config.logger import get_logger
-from kash.exec import kash_action
+from kash.exec import kash_action, llm_options_with_item_context
 from kash.kits.docs.analysis.annotate_paras import annotate_paras_async
 from kash.llm_utils import Message, MessageTemplate
 from kash.model import Item, LLMOptions
@@ -13,6 +13,7 @@ log = get_logger(__name__)
 
 
 llm_options = LLMOptions(
+    use_item_context=True,
     system_message=Message(
         """
         You are a careful and precise editor.
@@ -276,4 +277,5 @@ def research_paras(item: Item) -> Item:
     if not item.body:
         raise InvalidInput(f"Item must have a body: {item}")
 
-    return asyncio.run(annotate_paras_async(llm_options, item, fn_prefix=FN_PREFIX))
+    contextual_options = llm_options_with_item_context(llm_options, item)
+    return asyncio.run(annotate_paras_async(contextual_options, item, fn_prefix=FN_PREFIX))

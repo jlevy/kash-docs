@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from chopdiff.docs import TextDoc
+from flexdoc import FlexDoc as TextDoc
 from frontmatter_format import to_yaml_string
 
 from kash.config.logger import get_logger

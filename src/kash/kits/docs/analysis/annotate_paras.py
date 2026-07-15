@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Any, TypeVar
 
-from chopdiff.docs import Paragraph, TextDoc, TextUnit
+from flexdoc import FlexDoc as TextDoc
+from flexdoc import TextUnit
+from flexdoc.docs import Paragraph
 from kash.config.logger import get_logger
 from kash.exec.llm_transforms import llm_transform_str
 from kash.model import Format, Item, ItemType, LLMOptions
