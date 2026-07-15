@@ -1,7 +1,6 @@
 from kash.config.logger import get_logger
 from kash.exec import kash_action
 from kash.exec.preconditions import has_html_compatible_body
-from kash.kits.docs.doc_formats.pdf_output import html_to_pdf
 from kash.model import FileExt, Format, Item, ItemType, Param
 from kash.utils.common.format_utils import fmt_loc
 from kash.utils.errors import InvalidInput
@@ -21,6 +20,8 @@ def create_pdf(item: Item, save_html: bool = False) -> Item:
     """
     if not item.body:
         raise InvalidInput(f"Item must have a body: {item}")
+
+    from kash.kits.docs.doc_formats.pdf_output import html_to_pdf
 
     pdf_item = item.derived_copy(type=ItemType.export, format=Format.pdf, file_ext=FileExt.pdf)
     target_pdf_path = current_ws().assign_store_path(pdf_item)

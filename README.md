@@ -2,12 +2,25 @@
 
 See the main [kash](https://github.com/jlevy/kash) repo for general instructions.
 
-To run kash with the the docs kit features enabled, ensure you have uv set up then:
+To run kash with text, research, and general document actions enabled, ensure you have
+uv set up then:
 
 ```shell
 uv tool install kash-docs --upgrade --force
 kash
 ```
+
+PDF/DOCX conversion and AWS publishing are optional so downstream tools such as
+Deep Transcribe do not install unrelated runtimes:
+
+```shell
+uv tool install "kash-docs[documents]" --upgrade --force
+uv tool install "kash-docs[aws]" --upgrade --force
+uv tool install "kash-docs[full]" --upgrade --force
+```
+
+The `documents` extra provides MarkItDown, PDF rendering, and DOCX conversion. The
+`full` extra also includes layout-aware PDF conversion and browser automation.
 
 Or for dev builds from within this git repo:
 

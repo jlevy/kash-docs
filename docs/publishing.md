@@ -180,15 +180,15 @@ Repo-specific additions to the checklist above (keep this section when updating 
 template).
 
 1. **Release order**: kash-docs releases only after the kash-shell release it pins
-   (`kash-shell==X.Y.Z` in pyproject); after releasing kash-docs, bump the
-   `kash-docs[full]==` pin in kash-media.
+   (`kash-shell==X.Y.Z` in pyproject); after releasing kash-docs, bump the plain
+   `kash-docs==` pin in kash-media. Media and transcription installs intentionally do
+   not request document-conversion or browser extras.
 
-2. **Release notes MUST state the dependency reality** (per review of PR #1): the
-   `tool.uv` override of marker-pdf's `openai<2` cap is lock-only and does not ship
-   in wheel metadata. Until marker lifts that cap, `pip install kash-docs` resolves
-   fine (litellm >=1.84, openai 2.x via kash-shell), but `pip install
-   "kash-docs[full]"` cannot resolve. Load `tbd guidelines release-notes-guidelines`
-   for the notes themselves.
+2. **Release notes MUST state the dependency reality**: the base install omits
+   PDF/DOCX conversion, AWS publishing, layout-aware PDF conversion, and browser
+   automation. Those features require the `documents`, `aws`, `pdf`, `browser`, or
+   `full` extra. Load `tbd guidelines release-notes-guidelines` for the notes
+   themselves.
 
 3. **Same-day first-party pins**: a kash-shell released today is inside the 14-day
    cool-off; allow it surgically (do not weaken the global policy), and remove the
