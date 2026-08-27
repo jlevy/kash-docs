@@ -1813,7 +1813,7 @@ requires-dist = [
     { name = "flexdoc", specifier = ">=0.3.0" },
     { name = "flowmark", specifier = ">=0.7.2" },
     { name = "html5lib", specifier = ">=1.1" },
-    { name = "kash-shell", specifier = ">=0.4.4,<0.5" },
+    { name = "kash-shell", specifier = ">=0.4.7,<0.5" },
     { name = "markdownify", specifier = ">=1.2.2" },
     { name = "markitdown", extras = ["docx", "pdf"], marker = "extra == 'documents'", specifier = ">=0.1.2" },
     { name = "markitdown", extras = ["docx", "pdf"], marker = "extra == 'full'", specifier = ">=0.1.2" },
@@ -1856,7 +1856,7 @@ dev = [
 
 [[package]]
 name = "kash-shell"
-version = "0.4.4"
+version = "0.4.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiolimiter" },
@@ -1915,9 +1915,9 @@ dependencies = [
     { name = "uvicorn" },
     { name = "xonsh" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b9/66/bc2c5ee337a42a46e7c8afccc3828ecabd6fde7510a576c594f21f3d5540/kash_shell-0.4.4.tar.gz", hash = "sha256:2d2498e0402cfce0c0098b9427764928291b207bba02873607bb02430143025c", size = 825523, upload-time = "2026-07-15T04:36:55.182Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e3/a2/d0123f24b65150ab9fac177b14dc11ffe80e85e8c3bb3dcba5416969899a/kash_shell-0.4.7.tar.gz", hash = "sha256:85223d8bd75484dee6b883dc961a43dfb992eddfb6eb6f980bbd3be71ed292b7", size = 826882, upload-time = "2026-08-26T23:57:56.03Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3b/7e/dab06e6381b4cad36b66ae4fbcf1b5111d5593e524bca2e7dc1c5abf7c85/kash_shell-0.4.4-py3-none-any.whl", hash = "sha256:8b398cf794ba12b7debaf8ae3aa3eacca4cd43a96c7b0b9930b82ca2281650d6", size = 594842, upload-time = "2026-07-15T04:36:53.66Z" },
+    { url = "https://files.pythonhosted.org/packages/92/b2/c7c04e40cdd030d837d17c818261162424a60065f5be9f4e66da993def49/kash_shell-0.4.7-py3-none-any.whl", hash = "sha256:f5905adfdd40e1c7702603eee298e992ec2e8cbd084fb0cdc820347fb3e059f9", size = 595982, upload-time = "2026-08-26T23:57:54.204Z" },
 ]
 
 [[package]]
@@ -2471,7 +2471,9 @@ resolution-markers = [
     "python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "(python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.13' and sys_platform != 'darwin' and sys_platform != 'emscripten' and sys_platform != 'linux' and sys_platform != 'win32')",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
+    "python_full_version < '3.12' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
+    "python_full_version < '3.12' and sys_platform == 'emscripten'",
     "python_full_version == '3.12.*' and sys_platform == 'darwin'",
     "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'emscripten' and sys_platform != 'linux' and sys_platform != 'win32')",
@@ -3945,8 +3947,6 @@ name = "scipy"
 version = "1.17.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version < '3.12' and sys_platform == 'emscripten'",
     "python_full_version < '3.12' and sys_platform == 'darwin'",
     "python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "(python_full_version < '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.12' and sys_platform != 'darwin' and sys_platform != 'emscripten' and sys_platform != 'linux' and sys_platform != 'win32')",
@@ -4589,11 +4589,11 @@ resolution-markers = [
     "python_full_version >= '3.13' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "(python_full_version >= '3.13' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.13' and sys_platform != 'darwin' and sys_platform != 'emscripten' and sys_platform != 'linux' and sys_platform != 'win32')",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version < '3.12' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
-    "python_full_version < '3.12' and sys_platform == 'emscripten'",
     "python_full_version == '3.12.*' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "(python_full_version == '3.12.*' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version == '3.12.*' and sys_platform != 'darwin' and sys_platform != 'emscripten' and sys_platform != 'linux' and sys_platform != 'win32')",
+    "python_full_version < '3.12' and sys_platform == 'win32'",
+    "python_full_version < '3.12' and sys_platform == 'emscripten'",
     "python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "(python_full_version < '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.12' and sys_platform != 'darwin' and sys_platform != 'emscripten' and sys_platform != 'linux' and sys_platform != 'win32')",
 ]

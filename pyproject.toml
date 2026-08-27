@@ -41,7 +41,7 @@ classifiers = [
 
 dependencies = [
     # Main kash and doc-handling deps:
-    "kash-shell>=0.4.4,<0.5",
+    "kash-shell>=0.4.7,<0.5",
     "markdownify>=1.2.2",
 
     # Utilities:
