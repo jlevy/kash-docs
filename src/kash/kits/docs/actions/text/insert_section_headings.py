@@ -6,7 +6,7 @@ from kash.config.logger import get_logger
 from kash.exec import kash_action, llm_transform_item
 from kash.exec.preconditions import has_markdown_body, has_markdown_with_html_body
 from kash.llm_utils import LLM, Message, MessageTemplate
-from kash.model import Item, LLMOptions
+from kash.model import Format, Item, ItemType, LLMOptions
 
 log = get_logger(__name__)
 
@@ -57,7 +57,12 @@ llm_options = LLMOptions(
 )
 
 
-@kash_action(llm_options=llm_options, precondition=has_markdown_body | has_markdown_with_html_body)
+@kash_action(
+    llm_options=llm_options,
+    precondition=has_markdown_body | has_markdown_with_html_body,
+    output_type=ItemType.doc,
+    output_format=Format.markdown,
+)
 def insert_section_headings(item: Item) -> Item:
     """
     Insert headings into a Markdown (or Markdown+HTML) text as ## headings.
@@ -69,3 +74,14 @@ def insert_section_headings(item: Item) -> Item:
         result_item.body = re.sub(r"<h2>(.*?)</h2>", r"## \1\n\n", result_item.body)
 
     return result_item
+
+
+## Tests
+
+
+def test_insert_section_headings_declares_markdown_output() -> None:
+    action_class = getattr(insert_section_headings, "__action_class__")  # noqa: B009
+    action = action_class.create(None)
+
+    assert action.output_type is ItemType.doc
+    assert action.output_format is Format.markdown

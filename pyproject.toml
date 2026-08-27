@@ -41,7 +41,7 @@ classifiers = [
 
 dependencies = [
     # Main kash and doc-handling deps:
-    "kash-shell>=0.4.8,<0.5",
+    "kash-shell>=0.4.9,<0.5",
     "markdownify>=1.2.2",
 
     # Utilities:
@@ -122,7 +122,7 @@ required-version = ">=0.9"
 exclude-newer = "14 days"
 # Per-package exceptions to the cool-off (remove each at the next routine upgrade
 # once it ages past the global window):
-# - kash-shell 0.4.8: first-party release published in this release train from
+# - kash-shell 0.4.9: first-party release published in this release train from
 #   jlevy/kash CI (trusted publishing, watched end to end).
 # - pillow 12.3.0 (2026-07-01): security-fix release (PYSEC-2026-2254/2256/2257).
 constraint-dependencies = ["pillow>=12.3.0"]
