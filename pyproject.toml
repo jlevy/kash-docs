@@ -187,7 +187,10 @@ allow-direct-references = true
 
 # Explicitly configure top-level namespace for hatch.
 [tool.hatch.build.targets.wheel]
+# kash-shell exclusively owns kash/__init__.py. This extension uses its package root
+# only as a namespace for kash.kits.docs so wheel install order cannot replace Kash's API.
 packages = ["src/kash"]
+exclude = ["src/kash/__init__.py"]
 
 [tool.hatch.build.targets.wheel.sources]
 "src/kash" = "kash"
