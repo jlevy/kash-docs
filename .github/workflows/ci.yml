@@ -77,11 +77,12 @@ jobs:
       - name: Install all dependencies
         # --frozen: install exactly from the committed uv.lock, never re-resolving
         # (UV_EXCLUDE_NEWER, set above, governs any resolution that does happen).
-        # 3.14: skip [pdf]/[full]. Locked onnxruntime 1.20.1 (via docling) has no
-        # cp314 wheel. Default kash-docs and kash-media do not use those extras.
+        # 3.14: default extras only. [documents]/[pdf]/[full] pull magika →
+        # onnxruntime 1.20.1, which has no cp314 wheel. kash-media uses plain
+        # kash-docs.
         run: |
           if [ "${{ matrix.python-version }}" = "3.14" ]; then
-            uv sync --extra documents --extra aws --extra browser --all-groups --frozen
+            uv sync --all-groups --frozen
           else
             uv sync --all-extras --all-groups --frozen
           fi
