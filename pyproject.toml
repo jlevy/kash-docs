@@ -13,8 +13,10 @@ authors = [
 ]
 readme = "README.md"
 license = "AGPL-3.0-or-later"
-# Temporarily staying to 3.13 until dependency issues resolve.
-requires-python = ">=3.11,<3.14"
+# GIL CPython 3.11–3.14. Freethreaded 3.14t is not supported (cydifflib on
+# the flexdoc[diff] path). requires-python cannot express GIL vs freethreaded;
+# see the install docs.
+requires-python = ">=3.11,<3.15"
 dynamic = ["version"]
 
 # https://pypi.org/classifiers/
@@ -41,7 +43,7 @@ classifiers = [
 
 dependencies = [
     # Main kash and doc-handling deps:
-    "kash-shell>=0.4.9,<0.5",
+    "kash-shell>=0.4.12,<0.5",
     "markdownify>=1.2.2",
 
     # Utilities:
@@ -50,8 +52,9 @@ dependencies = [
     "cachetools>=5.5.2",
     # Content tools:
     "flowmark>=0.7.2",
-    "flexdoc>=0.3.0",
-    "chopdiff>=0.4.0",
+    # [diff] keeps cydifflib on the token-diff path (flexdoc 0.4.1 made it optional).
+    "flexdoc[diff]>=0.4.1",
+    "chopdiff>=0.4.1,<0.5",
     # "simplemma>=1.1.2",  # Fairly large (70MB)
     # Concepts, relations, and Wikipedia content:
     "requests>=2.32.3",
@@ -122,8 +125,6 @@ required-version = ">=0.9"
 exclude-newer = "14 days"
 # Per-package exceptions to the cool-off (remove each at the next routine upgrade
 # once it ages past the global window):
-# - kash-shell 0.4.9: first-party release published in this release train from
-#   jlevy/kash CI (trusted publishing, watched end to end).
 # - pillow 12.3.0 (2026-07-01): security-fix release (PYSEC-2026-2254/2256/2257).
 constraint-dependencies = ["pillow>=12.3.0"]
 
