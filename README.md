@@ -6,17 +6,22 @@ To run kash with text, research, and general document actions enabled, ensure yo
 uv set up then:
 
 ```shell
-uv tool install kash-docs --upgrade --force
+# Pin GIL 3.13. Bare `uv tool install` / `uvx` / `uv python find 3.14`
+# may pick freethreaded 3.14t, which is unsupported.
+uv tool install kash-docs --upgrade --force --python 3.13
 kash
 ```
+
+GIL CPython 3.14 also works if you pass that interpreter explicitly.
+`--python 3.14` is not enough when uv resolves 3.14t.
 
 PDF/DOCX conversion and AWS publishing are optional so downstream tools such as
 Deep Transcribe do not install unrelated runtimes:
 
 ```shell
-uv tool install "kash-docs[documents]" --upgrade --force
-uv tool install "kash-docs[aws]" --upgrade --force
-uv tool install "kash-docs[full]" --upgrade --force
+uv tool install "kash-docs[documents]" --upgrade --force --python 3.13
+uv tool install "kash-docs[aws]" --upgrade --force --python 3.13
+uv tool install "kash-docs[full]" --upgrade --force --python 3.13
 ```
 
 The `documents` extra provides MarkItDown, PDF rendering, and DOCX conversion. The
