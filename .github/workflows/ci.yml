@@ -89,9 +89,17 @@ jobs:
 
       - name: Run linting
         # Check-only mode so CI fails on unformatted code instead of fixing it.
+        # 3.14 default install omits optional extras; basedpyright then flags
+        # those imports. Lint still runs on 3.11–3.13 with --all-extras.
+        if: matrix.python-version != '3.14'
         run: uv run python devtools/lint.py --check
 
       - name: Run tests
-        run: uv run pytest
+        run: |
+          if [ "${{ matrix.python-version }}" = "3.14" ]; then
+            uv run pytest --ignore=src/kash/kits/docs/doc_formats/simple_html_to_docx.py
+          else
+            uv run pytest
+          fi
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
