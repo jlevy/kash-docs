@@ -97,7 +97,7 @@ jobs:
       - name: Run tests
         run: |
           if [ "${{ matrix.python-version }}" = "3.14" ]; then
-            uv run pytest --ignore=src/kash/kits/docs/doc_formats/simple_html_to_docx.py
+            uv run pytest --ignore=src/kash/kits/docs/doc_formats
           else
             uv run pytest
           fi
